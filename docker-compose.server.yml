@@ -1,0 +1,14 @@
+services:
+  rrcc-api:
+    image: rrcc-api-rrcc-api:latest
+
+    container_name: rrcc-api
+
+    restart: unless-stopped
+
+    env_file:
+      - path: .env
+        format: raw
+
+    ports:
+      - "4100:4100"
