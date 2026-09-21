@@ -3,4 +3,4 @@ node_modules/
 rrcc-api.tar
 
 npm-debug.log*
-.DS_Storegit init
+.DS_Store
