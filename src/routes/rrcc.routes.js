@@ -8,20 +8,19 @@ import {
   apiKeyMiddleware,
 } from "../middleware/apiKey.js";
 
-
 const router = Router();
 
 router.get(
-  "/evaluar/:dni",
+  "/evaluar/:documento",
   apiKeyMiddleware,
   async (req, res) => {
     try {
-      const dni = String(
-        req.params.dni ?? ""
+      const documento = String(
+        req.params.documento ?? ""
       ).trim();
 
       const resultado =
-        await evaluarPersona(dni);
+        await evaluarPersona(documento);
 
       return res.status(200).json({
         data: resultado,
