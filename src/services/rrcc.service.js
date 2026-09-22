@@ -3,15 +3,24 @@ import {
   sql,
 } from "../config/sqlserver.js";
 
-export async function evaluarPersona(dni) {
-  if (!/^\d{8}$/.test(dni)) {
+export async function evaluarPersona(documento) {
+  const documentoNormalizado =
+    String(documento ?? "")
+      .trim()
+      .toUpperCase();
+
+  if (
+    !/^[A-Z0-9]{3,20}$/.test(
+      documentoNormalizado
+    )
+  ) {
     const error =
       new Error(
-        "El DNI debe contener exactamente 8 dígitos."
+        "El número de documento no tiene un formato válido."
       );
 
     error.statusCode = 400;
-    error.code = "INVALID_DNI";
+    error.code = "INVALID_DOCUMENT";
 
     throw error;
   }
@@ -27,9 +36,9 @@ export async function evaluarPersona(dni) {
     await pool
       .request()
       .input(
-        "dni",
+        "documento",
         sql.VarChar(20),
-        dni
+        documentoNormalizado
       )
       .query(`
         SELECT TOP 1
@@ -53,7 +62,7 @@ export async function evaluarPersona(dni) {
 
         FROM [RRCC].[Calificacion]
 
-        WHERE DOCUMENTO = @dni
+        WHERE DOCUMENTO = @documento
 
         ORDER BY
           PERIODO DESC,
@@ -66,7 +75,7 @@ export async function evaluarPersona(dni) {
   if (!calificacion) {
     const error =
       new Error(
-        "No se encontró información crediticia para el DNI consultado."
+        "No se encontró información crediticia para el documento consultado."
       );
 
     error.statusCode = 404;
@@ -97,9 +106,9 @@ export async function evaluarPersona(dni) {
     await pool
       .request()
       .input(
-        "dni",
+        "documento",
         sql.VarChar(20),
-        dni
+        documentoNormalizado
       )
       .input(
         "periodo",
@@ -131,7 +140,7 @@ export async function evaluarPersona(dni) {
 
         FROM [RRCC].[Deuda]
 
-        WHERE DOCUMENTO = @dni
+        WHERE DOCUMENTO = @documento
           AND CODIGOSBS = @codigoSbs
           AND PERIODO = @periodo
 
@@ -148,9 +157,9 @@ export async function evaluarPersona(dni) {
     await pool
       .request()
       .input(
-        "dni",
+        "documento",
         sql.VarChar(20),
-        dni
+        documentoNormalizado
       )
       .input(
         "periodo",
@@ -182,7 +191,7 @@ export async function evaluarPersona(dni) {
 
         FROM [RRCC].[LineasCredito]
 
-        WHERE DOCUMENTO = @dni
+        WHERE DOCUMENTO = @documento
           AND CODIGOSBS = @codigoSbs
           AND PERIODO = @periodo
 
@@ -365,7 +374,7 @@ export async function evaluarPersona(dni) {
   // --------------------------------------------------
 
   return {
-    dni,
+    documento: documentoNormalizado,
     codigoSbs,
     nombre,
     periodo,
