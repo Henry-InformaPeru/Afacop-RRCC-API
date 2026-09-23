@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Gestión API Clientes
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body class="login-body">
+
+    <main class="login-container">
+
+        <section class="login-brand">
+
+            <div class="brand-content">
+
+                <div class="brand-icon">
+                    API
+                </div>
+
+                <h1>
+                    Gestión API
+                    <span>Clientes</span>
+                </h1>
+
+                <p>
+                    Plataforma para la gestión de
+                    clientes, créditos, tokens y
+                    consultas.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <section class="login-area">
+
+            <div class="login-card">
+
+                <div class="login-header">
+
+                    <div class="admin-icon">
+                        A
+                    </div>
+
+                    <h2>
+                        Acceso administrativo
+                    </h2>
+
+                    <p>
+                        Ingresa tus credenciales
+                        para continuar.
+                    </p>
+
+                </div>
+
+
+                {% if error %}
+
+                <div class="alert-error">
+                    {{ error }}
+                </div>
+
+                {% endif %}
+
+
+                <form
+                    method="POST"
+                    action="{{ url_for('login') }}"
+                >
+
+                    <div class="form-group">
+
+                        <label for="usuario">
+                            Usuario
+                        </label>
+
+                        <input
+                            id="usuario"
+                            name="usuario"
+                            type="text"
+                            placeholder="Ingresa tu usuario"
+                            autocomplete="username"
+                            required
+                            autofocus
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="password">
+                            Contraseña
+                        </label>
+
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            placeholder="Ingresa tu contraseña"
+                            autocomplete="current-password"
+                            required
+                        >
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="login-button"
+                    >
+                        Iniciar sesión
+                    </button>
+
+                </form>
+
+
+                <div class="login-footer">
+                    Acceso exclusivo para administradores
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+</body>
+
+</html>

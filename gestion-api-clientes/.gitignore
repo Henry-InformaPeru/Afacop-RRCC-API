@@ -1,0 +1,11 @@
+node_modules/
+.env
+
+backend.env
+frontend.env
+
+*.tar
+
+frontend-python/.venv/
+frontend-python/__pycache__/
+frontend-python/.env

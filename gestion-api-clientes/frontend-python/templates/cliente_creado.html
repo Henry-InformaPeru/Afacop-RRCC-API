@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Cliente creado | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=11"
+    >
+
+</head>
+
+
+<body class="token-page">
+
+    <main class="token-container">
+
+        <section class="token-card">
+
+            <div class="token-success-icon">
+                ✓
+            </div>
+
+
+            <h1>
+                Cliente creado correctamente
+            </h1>
+
+
+            <p class="token-description">
+
+                El cliente fue registrado y
+                su acceso API está activo.
+
+            </p>
+
+
+            <div class="created-client-summary">
+
+                <div>
+                    <span>Documento</span>
+
+                    <strong>
+                        {{ data.tipoDocumento }}
+                        {{ data.documento }}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Créditos disponibles</span>
+
+                    <strong>
+                        {{ data.creditosDisponibles }}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="token-warning">
+
+                Este token se mostrará una sola vez.
+                Cópialo y entrégalo al cliente antes
+                de continuar.
+
+            </div>
+
+
+            <div class="generated-token">
+
+                <code id="generatedToken">
+                    {{ data.token }}
+                </code>
+
+            </div>
+
+
+            <div class="created-actions">
+
+                <button
+                    type="button"
+                    class="primary-action"
+                    id="copyTokenButton"
+                    onclick="copiarToken()"
+                >
+                    Copiar token
+                </button>
+
+
+                <a
+                    href="{{ url_for(
+                        'cliente_detalle',
+                        id_cliente=data.idCliente
+                    ) }}"
+                    class="secondary-link-button"
+                >
+                    Ir al cliente
+                </a>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+<script>
+
+    async function copiarToken() {
+
+        const elemento =
+            document.getElementById(
+                "generatedToken"
+            );
+
+        const boton =
+            document.getElementById(
+                "copyTokenButton"
+            );
+
+
+        if (!elemento || !boton) {
+            return;
+        }
+
+
+        const token =
+            elemento.textContent.trim();
+
+
+        try {
+
+            await navigator.clipboard.writeText(
+                token
+            );
+
+
+            boton.textContent =
+                "Token copiado ✓";
+
+            boton.disabled =
+                true;
+
+
+            setTimeout(
+                () => {
+
+                    boton.textContent =
+                        "Copiar token";
+
+                    boton.disabled =
+                        false;
+
+                },
+                1800
+            );
+
+
+        } catch (error) {
+
+            boton.textContent =
+                "No se pudo copiar";
+
+
+            setTimeout(
+                () => {
+
+                    boton.textContent =
+                        "Copiar token";
+
+                },
+                1800
+            );
+        }
+    }
+
+</script>
+
+</body>
+
+</html>

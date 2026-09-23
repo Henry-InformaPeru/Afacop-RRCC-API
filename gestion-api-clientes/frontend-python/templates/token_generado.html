@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+
+    <head>
+
+        <meta charset="UTF-8">
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
+
+        <title>
+            Nuevo token | Gestión API
+        </title>
+
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}?v=11"
+        >
+
+    </head>
+
+
+    <body class="token-page">
+
+        <main class="token-container">
+
+            <div class="token-card">
+
+                <div class="token-success-icon">
+                    ✓
+                </div>
+
+                <h1>
+                    Nuevo token generado
+                </h1>
+
+                <p class="token-description">
+                    El token anterior fue revocado.
+                    Entrega esta nueva credencial al cliente.
+                </p>
+
+
+                <div class="token-warning">
+
+                    Este token se mostrará una sola vez.
+                    Cópialo antes de continuar.
+
+                </div>
+
+
+                <div class="generated-token">
+
+                    <code id="generatedToken">
+                        {{ token }}
+                    </code>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="primary-action token-copy"
+                    id="copyTokenButton"
+                    onclick="copiarToken()"
+                >
+                    Copiar token
+                </button>
+
+
+                <a
+                    href="{{ url_for(
+                        'cliente_detalle',
+                        id_cliente=id_cliente
+                    ) }}"
+                    class="token-return"
+                >
+                    Volver al cliente
+                </a>
+
+            </div>
+
+        </main>
+
+
+        <script>
+
+            async function copiarToken() {
+
+                const elemento =
+                    document.getElementById(
+                        "generatedToken"
+                    );
+
+                const boton =
+                    document.getElementById(
+                        "copyTokenButton"
+                    );
+
+
+                if (!elemento || !boton) {
+                    return;
+                }
+
+
+                const token =
+                    elemento.textContent.trim();
+
+
+                try {
+
+                    await navigator.clipboard.writeText(
+                        token
+                    );
+
+
+                    boton.textContent =
+                        "Token copiado ✓";
+
+                    boton.disabled =
+                        true;
+
+
+                    setTimeout(
+                        () => {
+
+                            boton.textContent =
+                                "Copiar token";
+
+                            boton.disabled =
+                                false;
+
+                        },
+                        1800
+                    );
+
+
+                } catch (error) {
+
+                    boton.textContent =
+                        "No se pudo copiar";
+
+
+                    setTimeout(
+                        () => {
+
+                            boton.textContent =
+                                "Copiar token";
+
+                        },
+                        1800
+                    );
+                }
+            }
+
+        </script>       
+
+    </body>
+
+</html>

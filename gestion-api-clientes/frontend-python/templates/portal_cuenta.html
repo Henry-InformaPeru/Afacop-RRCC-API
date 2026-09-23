@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Mi cuenta | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=10"
+    >
+
+</head>
+
+
+<body class="portal-body">
+
+<div class="portal-shell">
+
+    <header class="portal-header">
+
+        <div class="portal-header-brand">
+
+            <div class="portal-small-logo">
+                API
+            </div>
+
+            <div>
+
+                <strong>
+                    Portal de consultas
+                </strong>
+
+                <span>
+                    RRCC
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <form
+            method="POST"
+            action="{{ url_for('portal_logout') }}"
+        >
+
+            <button
+                type="submit"
+                class="portal-logout"
+            >
+                Cerrar sesión
+            </button>
+
+        </form>
+
+    </header>
+
+
+    <main class="portal-content">
+
+        {% if error %}
+
+        <div class="alert-error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+
+        {% if cuenta %}
+
+        <section class="portal-welcome">
+
+            <span class="portal-label">
+                Mi cuenta
+            </span>
+
+            <h1>
+                {{ cuenta.nombre }}
+            </h1>
+
+            <p>
+                {{ cuenta.tipoDocumento }}
+                {{ cuenta.documento }}
+            </p>
+
+        </section>
+
+
+        <section class="portal-credit-grid">
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Créditos disponibles
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.disponibles }}
+                </strong>
+
+            </article>
+
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Total asignado
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.totalAsignado }}
+                </strong>
+
+            </article>
+
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Total consumido
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.totalConsumido }}
+                </strong>
+
+            </article>
+
+        </section>
+
+            <!-- =====================================
+             CONSULTA RRCC
+        ====================================== -->
+
+        <section class="portal-query-panel">
+
+            <div class="portal-query-header">
+
+                <div>
+
+                    <h2>
+                        Consulta RRCC
+                    </h2>
+
+                    <p>
+                        Ingresa el documento que deseas consultar.
+                    </p>
+
+                </div>
+
+
+                <div class="portal-query-cost">
+                    1 crédito por consulta exitosa
+                </div>
+
+            </div>
+
+
+            <form
+                method="POST"
+                action="{{ url_for('portal_consulta') }}"
+                class="portal-query-form"
+            >
+
+                <div class="portal-query-field">
+
+                    <label for="tipoDocumento">
+                        Tipo de documento
+                    </label>
+
+                    <select
+                        id="tipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            CE
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="portal-query-field portal-document-field">
+
+                    <label for="documento">
+                        Documento
+                    </label>
+
+                    <input
+                        id="documento"
+                        name="documento"
+                        type="text"
+                        value="{% if consulta_form %}{{ consulta_form.get('documento', '') }}{% endif %}"
+                        placeholder="Ingrese documento"
+                        autocomplete="off"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="portal-query-submit">
+
+                    <button
+                        type="submit"
+                        class="portal-query-button"
+                    >
+                        Consultar
+                    </button>
+
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- =====================================
+             RESPUESTA JSON
+        ====================================== -->
+
+        {% if consulta_json %}
+
+        <section class="portal-json-panel">
+
+            <div class="portal-json-header">
+
+                <div>
+
+                    <span class="portal-label">
+                        Respuesta API
+                    </span>
+
+                    <h2>
+                        Resultado JSON
+                    </h2>
+
+                    <p>
+                        Respuesta completa devuelta por el servicio.
+                    </p>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="copy-json-button"
+                    id="copyJsonButton"
+                    onclick="copiarJson()"
+                >
+                    Copiar JSON
+                </button>
+
+            </div>
+
+
+            <div class="portal-json-container">
+
+                <pre
+                    id="jsonResponse"
+                    class="portal-json-response"
+                >{{ consulta_json }}</pre>
+
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+        <!-- CIERRA: if cuenta -->
+
+        {% endif %}
+
+    </main>
+
+</div>
+
+    <script>
+
+    async function copiarJson() {
+
+        const elemento =
+            document.getElementById(
+                "jsonResponse"
+            );
+
+        const boton =
+            document.getElementById(
+                "copyJsonButton"
+            );
+
+
+        if (!elemento) {
+            return;
+        }
+
+
+        const contenido =
+            elemento.textContent;
+
+
+        try {
+
+            await navigator.clipboard.writeText(
+                contenido
+            );
+
+
+            boton.textContent =
+                "JSON copiado ✓";
+
+
+            setTimeout(
+                () => {
+
+                    boton.textContent =
+                        "Copiar JSON";
+
+                },
+                1800
+            );
+
+
+        } catch (error) {
+
+            alert(
+                "No se pudo copiar automáticamente."
+            );
+        }
+    }
+
+</script>
+
+</body>
+
+</html>

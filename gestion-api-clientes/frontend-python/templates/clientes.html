@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Clientes | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=2"
+    >
+</head>
+
+
+<body class="dashboard-body">
+
+<div class="app-layout">
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+
+            <div class="sidebar-logo">
+                API
+            </div>
+
+            <div>
+                <strong>
+                    Gestión API
+                </strong>
+
+                <span>
+                    Clientes
+                </span>
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a
+                href="{{ url_for('dashboard') }}"
+                class="nav-link"
+            >
+                <span class="nav-icon">
+                    ▦
+                </span>
+
+                Dashboard
+            </a>
+
+
+            <a
+                href="{{ url_for('clientes') }}"
+                class="nav-link active"
+            >
+                <span class="nav-icon">
+                    👥
+                </span>
+
+                Clientes
+            </a>
+
+
+            <a
+                href="#"
+                class="nav-link"
+            >
+                <span class="nav-icon">
+                    ◫
+                </span>
+
+                Consumos
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+
+            <form
+                method="POST"
+                action="{{ url_for('logout') }}"
+            >
+
+                <button
+                    type="submit"
+                    class="logout-button"
+                >
+                    Cerrar sesión
+                </button>
+
+            </form>
+
+        </div>
+
+    </aside>
+
+
+    <!-- CONTENIDO -->
+
+    <main class="main-content">
+
+        <header class="page-header">
+
+            <div>
+
+                <h1>
+                    Clientes
+                </h1>
+
+                <p>
+                    Administración de clientes,
+                    créditos y accesos API
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('cliente_nuevo') }}"
+                class="primary-action"
+            >
+                + Nuevo cliente
+            </a>
+
+        </header>
+
+
+        {% if error %}
+
+        <div class="alert-error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+
+        <!-- FILTROS -->
+
+        <section class="clients-toolbar">
+
+            <form
+                method="GET"
+                action="{{ url_for('clientes') }}"
+                class="search-form"
+            >
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Buscar por nombre, documento o correo..."
+                >
+
+                <button
+                    type="submit"
+                >
+                    Buscar
+                </button>
+
+                {% if search %}
+
+                <a
+                    href="{{ url_for('clientes') }}"
+                    class="clear-search"
+                >
+                    Limpiar
+                </a>
+
+                {% endif %}
+
+            </form>
+
+        </section>
+
+
+        <!-- TABLA -->
+
+        <section class="table-panel">
+
+            <div class="table-header">
+
+                <div>
+
+                    <h2>
+                        Clientes registrados
+                    </h2>
+
+                    {% if paginacion %}
+
+                    <p>
+                        {{ paginacion.total }}
+                        cliente(s)
+                    </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="clients-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Documento
+                            </th>
+
+                            <th>
+                                Créditos
+                            </th>
+
+                            <th>
+                                Consumidos
+                            </th>
+
+                            <th>
+                                Tokens
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                            </th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for cliente in clientes %}
+
+                        <tr>
+
+                            <td>
+
+                                <div class="client-name">
+                                    {{ cliente.nombre }}
+                                </div>
+
+                                <div class="client-email">
+                                    {{ cliente.email or "Sin correo" }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <div class="document-type">
+                                    {{ cliente.tipoDocumento }}
+                                </div>
+
+                                <div>
+                                    {{ cliente.documento }}
+                                </div>
+
+                            </td>
+
+
+                            <td>
+
+                                <strong class="credits-value">
+                                    {{ cliente.creditos.disponibles }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+                                {{ cliente.creditos.totalConsumido }}
+                            </td>
+
+
+                            <td>
+                                {{ cliente.tokensActivos }}
+                            </td>
+
+
+                            <td>
+
+                                {% if cliente.estado == "ACTIVO" %}
+
+                                <span class="badge badge-active">
+                                    ACTIVO
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge badge-blocked">
+                                    {{ cliente.estado }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    href="{{ url_for('cliente_detalle', id_cliente=cliente.idCliente) }}"
+                                    class="detail-link"
+                                >
+                                    Ver detalle
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty-table"
+                            >
+                                No se encontraron clientes.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            {% if paginacion and paginacion.totalPaginas > 1 %}
+
+            <div class="pagination">
+
+                {% if paginacion.page > 1 %}
+
+                <a
+                    href="{{ url_for(
+                        'clientes',
+                        page=paginacion.page - 1,
+                        search=search
+                    ) }}"
+                >
+                    ← Anterior
+                </a>
+
+                {% endif %}
+
+
+                <span>
+                    Página
+                    {{ paginacion.page }}
+                    de
+                    {{ paginacion.totalPaginas }}
+                </span>
+
+
+                {% if paginacion.page < paginacion.totalPaginas %}
+
+                <a
+                    href="{{ url_for(
+                        'clientes',
+                        page=paginacion.page + 1,
+                        search=search
+                    ) }}"
+                >
+                    Siguiente →
+                </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+</div>
+
+</body>
+
+</html>

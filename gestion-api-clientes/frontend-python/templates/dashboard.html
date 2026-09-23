@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard | Gestión API Clientes
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body class="dashboard-body">
+
+    <div class="app-layout">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+
+                <div class="sidebar-logo">
+                    API
+                </div>
+
+                <div>
+                    <strong>
+                        Gestión API
+                    </strong>
+
+                    <span>
+                        Clientes
+                    </span>
+                </div>
+
+            </div>
+
+
+            <nav class="sidebar-nav">
+
+                <a
+                    href="/dashboard"
+                    class="nav-link active"
+                >
+                    <span class="nav-icon">
+                        ▦
+                    </span>
+
+                    Dashboard
+                </a>
+
+                <a
+                    href="{{ url_for('clientes') }}"
+                    class="nav-link"
+                >
+                    <span class="nav-icon">
+                        👥
+                    </span>
+
+                    Clientes
+                </a>
+
+                <a
+                    href="{{ url_for('consumos') }}"
+                    class="nav-link"
+                >
+                    <span class="nav-icon">
+                        ◫
+                    </span>
+
+                    Consumos
+                </a>
+
+            </nav>
+
+
+            <div class="sidebar-footer">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('logout') }}"
+                >
+
+                    <button
+                        type="submit"
+                        class="logout-button"
+                    >
+                        Cerrar sesión
+                    </button>
+
+                </form>
+
+            </div>
+
+        </aside>
+
+
+        <!-- CONTENIDO -->
+        <main class="main-content">
+
+            <header class="page-header">
+
+                <div>
+
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        Resumen general de la plataforma
+                    </p>
+
+                </div>
+
+                <div class="status-badge">
+                    Sistema operativo
+                </div>
+
+            </header>
+
+
+            {% if error %}
+
+                <div class="alert-error">
+                    {{ error }}
+                </div>
+
+            {% endif %}
+
+
+            {% if data %}
+
+            <!-- TARJETAS PRINCIPALES -->
+            <section class="stats-grid">
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Clientes
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.clientes.total }}
+                    </div>
+
+                    <div class="stat-detail">
+
+                        <span class="status-success">
+                            {{ data.clientes.activos }}
+                            activos
+                        </span>
+
+                        <span>
+                            {{ data.clientes.bloqueados }}
+                            bloqueados
+                        </span>
+
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Créditos disponibles
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.creditos.disponibles }}
+                    </div>
+
+                    <div class="stat-detail">
+
+                        <span>
+                            {{ data.creditos.asignados }}
+                            asignados
+                        </span>
+
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Créditos consumidos
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.creditos.consumidos }}
+                    </div>
+
+                    <div class="stat-detail">
+
+                        <span>
+                            Consumo acumulado
+                        </span>
+
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Consultas
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.consultas.total }}
+                    </div>
+
+                    <div class="stat-detail">
+
+                        <span class="status-success">
+                            {{ data.consultas.hoy }}
+                            hoy
+                        </span>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- SEGUNDA FILA -->
+            <section class="dashboard-grid">
+
+                <article class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h2>
+                                Estado de consultas
+                            </h2>
+
+                            <p>
+                                Resultado acumulado
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="metrics-list">
+
+                        <div class="metric-row">
+
+                            <span>
+                                Exitosas
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.exitosas }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Sin datos
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.sinDatos }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Errores
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.errores }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Total
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.total }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <article class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h2>
+                                Tokens
+                            </h2>
+
+                            <p>
+                                Credenciales actualmente habilitadas
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="token-summary">
+
+                        <div class="token-number">
+                            {{ data.tokens.activos }}
+                        </div>
+
+                        <div>
+                            Tokens activos
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+    <html lang="es">
+
+    <head>
+        <meta charset="UTF-8">
+
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
+
+        <title>
+            {{ data.cliente.nombre if data else "Cliente" }} | Gestión API
+        </title>
+
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}?v=4"
+        >
+    </head>
+
+
+    <body class="dashboard-body">
+
+    <div class="app-layout">
+
+
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+
+                <div class="sidebar-logo">
+                    API
+                </div>
+
+                <div>
+                    <strong>
+                        Gestión API
+                    </strong>
+
+                    <span>
+                        Clientes
+                    </span>
+                </div>
+
+            </div>
+
+
+            <nav class="sidebar-nav">
+
+                <a
+                    href="{{ url_for('dashboard') }}"
+                    class="nav-link"
+                >
+                    <span class="nav-icon">
+                        ▦
+                    </span>
+
+                    Dashboard
+                </a>
+
+
+                <a
+                    href="{{ url_for('clientes') }}"
+                    class="nav-link active"
+                >
+                    <span class="nav-icon">
+                        👥
+                    </span>
+
+                    Clientes
+                </a>
+
+
+                <a
+                    href="{{ url_for('consumos') }}"
+                    class="nav-link"
+                >
+                    <span class="nav-icon">
+                        ◫
+                    </span>
+
+                    Consumos
+                </a>
+
+            </nav>
+
+
+            <div class="sidebar-footer">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('logout') }}"
+                >
+
+                    <button
+                        type="submit"
+                        class="logout-button"
+                    >
+                        Cerrar sesión
+                    </button>
+
+                </form>
+
+            </div>
+
+        </aside>
+
+
+        <!-- CONTENIDO -->
+
+        <main class="main-content">
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+            {% if mensaje %}
+
+            <div class="alert-success">
+                {{ mensaje }}
+            </div>
+
+            {% endif %}
+
+
+            {% if data %}
+
+            <!-- ENCABEZADO -->
+
+            <div class="detail-back">
+
+                <a href="{{ url_for('clientes') }}">
+                    ← Volver a clientes
+                </a>
+
+            </div>
+
+
+            <header class="client-detail-header">
+
+                <div>
+
+                    <div class="client-title-row">
+
+                        <h1>
+                            {{ data.cliente.nombre }}
+                        </h1>
+
+                        {% if data.cliente.estado == "ACTIVO" %}
+
+                        <span class="badge badge-active">
+                            ACTIVO
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge badge-blocked">
+                            {{ data.cliente.estado }}
+                        </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <p>
+                        {{ data.cliente.tipoDocumento }}
+                        {{ data.cliente.documento }}
+                    </p>
+
+                </div>
+
+
+                <div class="detail-actions">
+
+                    <!-- RECARGAR -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for(
+                            'cliente_recargar_creditos',
+                            id_cliente=data.cliente.idCliente
+                        ) }}"
+                        class="recharge-form"
+                    >
+
+                        <input
+                            type="number"
+                            name="cantidad"
+                            min="1"
+                            step="1"
+                            placeholder="Créditos"
+                            required
+                        >
+
+                        <button
+                            type="submit"
+                            class="secondary-action"
+                        >
+                            Recargar
+                        </button>
+
+                    </form>
+
+
+                    <!-- BLOQUEAR / ACTIVAR -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for(
+                            'cliente_estado',
+                            id_cliente=data.cliente.idCliente
+                        ) }}"
+                    >
+
+                        {% if data.cliente.estado == "ACTIVO" %}
+
+                        <input
+                            type="hidden"
+                            name="estado"
+                            value="BLOQUEADO"
+                        >
+
+                        <button
+                            type="submit"
+                            class="danger-action"
+                        >
+                            Bloquear
+                        </button>
+
+                        {% else %}
+
+                        <input
+                            type="hidden"
+                            name="estado"
+                            value="ACTIVO"
+                        >
+
+                        <button
+                            type="submit"
+                            class="success-action"
+                        >
+                            Activar
+                        </button>
+
+                        {% endif %}
+
+                    </form>
+
+
+                    <!-- REGENERAR TOKEN -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for(
+                            'cliente_regenerar_token',
+                            id_cliente=data.cliente.idCliente
+                        ) }}"
+                    >
+
+                        <button
+                            type="submit"
+                            class="primary-action"
+                        >
+                            Regenerar token
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </header>
+
+
+            <!-- CRÉDITOS -->
+
+            <section class="detail-stats">
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Créditos disponibles
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.creditos.disponibles }}
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Total asignado
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.creditos.totalAsignado }}
+                    </div>
+
+                </article>
+
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+                        Total consumido
+                    </div>
+
+                    <div class="stat-value">
+                        {{ data.creditos.totalConsumido }}
+                    </div>
+
+                </article>
+
+            </section>
+
+
+            <!-- INFORMACIÓN -->
+
+            <section class="panel detail-information">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>
+                            Información del cliente
+                        </h2>
+
+                        <p>
+                            Datos registrados en la plataforma
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="information-grid">
+
+                    <div class="information-item">
+                        <span>Razón social / Nombre</span>
+                        <strong>
+                            {{ data.cliente.nombre }}
+                        </strong>
+                    </div>
+
+
+                    <div class="information-item">
+                        <span>Documento</span>
+                        <strong>
+                            {{ data.cliente.tipoDocumento }}
+                            {{ data.cliente.documento }}
+                        </strong>
+                    </div>
+
+
+                    <div class="information-item">
+                        <span>Correo</span>
+                        <strong>
+                            {{ data.cliente.email or "No registrado" }}
+                        </strong>
+                    </div>
+
+
+                    <div class="information-item">
+                        <span>Teléfono</span>
+                        <strong>
+                            {{ data.cliente.telefono or "No registrado" }}
+                        </strong>
+                    </div>
+
+
+                    <div class="information-item">
+                        <span>Fecha de creación</span>
+                        <strong>
+                            {{ data.cliente.fechaCreacion or "-" }}
+                        </strong>
+                    </div>
+
+
+                    <div class="information-item">
+                        <span>Estado</span>
+                        <strong>
+                            {{ data.cliente.estado }}
+                        </strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- TOKENS -->
+
+            <section class="panel detail-section">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>
+                            Tokens de acceso
+                        </h2>
+
+                        <p>
+                            Historial de credenciales del cliente
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="clients-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Token</th>
+                                <th>Estado</th>
+                                <th>Creación</th>
+                                <th>Vencimiento</th>
+                                <th>Último uso</th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                        {% for token in data.tokens %}
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        {{ token.prefijo }}...
+                                    </strong>
+                                </td>
+
+                                <td>
+
+                                    {% if token.estado == "ACTIVO" %}
+
+                                    <span class="badge badge-active">
+                                        ACTIVO
+                                    </span>
+
+                                    {% else %}
+
+                                    <span class="badge badge-blocked">
+                                        {{ token.estado }}
+                                    </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+                                    {{ token.fechaCreacion or "-" }}
+                                </td>
+
+                                <td>
+                                    {{ token.fechaVencimiento or "Sin vencimiento" }}
+                                </td>
+
+                                <td>
+                                    {{ token.ultimoUso or "Nunca" }}
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+                                <td
+                                    colspan="5"
+                                    class="empty-table"
+                                >
+                                    No existen tokens.
+                                </td>
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- CONSUMOS -->
+
+            <section class="panel detail-section">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>
+                            Últimas consultas
+                        </h2>
+
+                        <p>
+                            Historial reciente de consumo de API
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="clients-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Documento</th>
+                                <th>Resultado</th>
+                                <th>Créditos</th>
+                                <th>HTTP</th>
+                                <th>Duración</th>
+                                <th>Fecha</th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                        {% for consumo in data.consumos %}
+
+                            <tr>
+
+                                <td>
+
+                                    <div class="document-type">
+                                        {{ consumo.tipoDocumento }}
+                                    </div>
+
+                                    {{ consumo.documento }}
+
+                                </td>
+
+
+                                <td>
+
+                                    {% if consumo.estado == "EXITOSA" %}
+
+                                    <span class="badge badge-active">
+                                        EXITOSA
+                                    </span>
+
+                                    {% else %}
+
+                                    <span class="badge badge-blocked">
+                                        {{ consumo.estado }}
+                                    </span>
+
+                                    {% endif %}
+
+                                </td>
+
+
+                                <td>
+                                    {{ consumo.creditosConsumidos }}
+                                </td>
+
+
+                                <td>
+                                    {{ consumo.httpStatus }}
+                                </td>
+
+
+                                <td>
+                                    {{ consumo.duracionMs }} ms
+                                </td>
+
+
+                                <td>
+                                    {{ consumo.fecha }}
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="6"
+                                    class="empty-table"
+                                >
+                                    Este cliente todavía no realizó consultas.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+
+            <!-- MOVIMIENTOS -->
+
+            <section class="panel detail-section">
+
+                <div class="panel-header">
+
+                    <div>
+                        <h2>
+                            Movimientos de créditos
+                        </h2>
+
+                        <p>
+                            Cargas, consumos y ajustes
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div class="table-responsive">
+
+                    <table class="clients-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Cantidad</th>
+                                <th>Saldo anterior</th>
+                                <th>Saldo posterior</th>
+                                <th>Origen</th>
+                                <th>Fecha</th>
+                            </tr>
+
+                        </thead>
+
+
+                        <tbody>
+
+                        {% for movimiento in data.movimientos %}
+
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        {{ movimiento.tipo }}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    {{ movimiento.cantidad }}
+                                </td>
+
+                                <td>
+                                    {{ movimiento.saldoAntes }}
+                                </td>
+
+                                <td>
+                                    {{ movimiento.saldoDespues }}
+                                </td>
+
+                                <td>
+                                    {{ movimiento.origen }}
+                                </td>
+
+                                <td>
+                                    {{ movimiento.fecha }}
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+                                    colspan="6"
+                                    class="empty-table"
+                                >
+                                    No existen movimientos.
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+    </body>
+
+</html>

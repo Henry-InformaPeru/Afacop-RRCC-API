@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Acceso clientes | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=8"
+    >
+
+</head>
+
+
+<body class="portal-login-body">
+
+<div class="portal-login-layout">
+
+    <section class="portal-brand">
+
+        <div class="portal-brand-content">
+
+            <div class="portal-api-logo">
+                API
+            </div>
+
+            <h1>
+                Consulta
+                <span>
+                    RRCC
+                </span>
+            </h1>
+
+            <p>
+                Accede a tus consultas utilizando
+                el token proporcionado por el
+                administrador del servicio.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <section class="portal-login-area">
+
+        <div class="portal-login-card">
+
+            <div class="portal-login-header">
+
+                <span class="portal-label">
+                    Portal de clientes
+                </span>
+
+                <h2>
+                    Ingresar
+                </h2>
+
+                <p>
+                    Introduce tu token de acceso
+                    para continuar.
+                </p>
+
+            </div>
+
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            <form
+                method="POST"
+                action="{{ url_for('portal_login') }}"
+            >
+
+                <div class="portal-token-field">
+
+                    <label for="token">
+                        Token de acceso
+                    </label>
+
+                    <input
+                        id="token"
+                        name="token"
+                        type="password"
+                        placeholder="rrcc_live_..."
+                        autocomplete="off"
+                        required
+                    >
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="portal-login-button"
+                >
+                    Ingresar al portal
+                </button>
+
+            </form>
+
+
+            <div class="portal-help">
+
+                <p>
+                    ¿No tienes un token o dejó de
+                    funcionar?
+                </p>
+
+                <span>
+                    Solicita uno nuevo al
+                    administrador del servicio.
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+</body>
+
+</html>
