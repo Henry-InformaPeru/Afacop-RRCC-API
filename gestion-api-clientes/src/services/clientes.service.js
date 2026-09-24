@@ -11,6 +11,7 @@ import {
 // --------------------------------------------------
 
 function generarToken() {
+
   const secreto =
     crypto
       .randomBytes(32)
@@ -21,6 +22,7 @@ function generarToken() {
 
 
 function generarHash(token) {
+
   return crypto
     .createHash("sha256")
     .update(token)
@@ -34,6 +36,7 @@ function crearError(
   statusCode,
   code
 ) {
+
   const error =
     new Error(message);
 
@@ -47,11 +50,12 @@ function crearError(
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // CREAR CLIENTE
-// --------------------------------------------------
+// ==================================================
 
 export async function crearCliente({
+
   tipoDocumento,
   documento,
 
@@ -66,6 +70,7 @@ export async function crearCliente({
 
   creditosIniciales = 0,
   fechaVencimiento = null,
+
 }) {
 
   tipoDocumento =
@@ -75,15 +80,21 @@ export async function crearCliente({
       .trim()
       .toUpperCase();
 
+
   documento =
     String(
       documento || ""
-    ).trim();
+    )
+      .trim();
+
 
   nombres =
     nombres
-      ? String(nombres).trim()
+      ? String(
+          nombres
+        ).trim()
       : null;
+
 
   apellidoPaterno =
     apellidoPaterno
@@ -92,12 +103,14 @@ export async function crearCliente({
         ).trim()
       : null;
 
+
   apellidoMaterno =
     apellidoMaterno
       ? String(
           apellidoMaterno
         ).trim()
       : null;
+
 
   razonSocial =
     razonSocial
@@ -106,10 +119,14 @@ export async function crearCliente({
         ).trim()
       : null;
 
+
   email =
     email
-      ? String(email).trim()
+      ? String(
+          email
+        ).trim()
       : null;
+
 
   telefono =
     telefono
@@ -130,11 +147,13 @@ export async function crearCliente({
     "PASAPORTE",
   ];
 
+
   if (
     !tiposPermitidos.includes(
       tipoDocumento
     )
   ) {
+
     throw crearError(
       "Tipo de documento no válido.",
       400,
@@ -142,7 +161,9 @@ export async function crearCliente({
     );
   }
 
+
   if (!documento) {
+
     throw crearError(
       "El documento es obligatorio.",
       400,
@@ -150,10 +171,100 @@ export async function crearCliente({
     );
   }
 
+
+  // --------------------------------------------------
+  // DNI
+  // --------------------------------------------------
+
+  if (
+    tipoDocumento === "DNI" &&
+    !/^\d{8}$/.test(
+      documento
+    )
+  ) {
+
+    throw crearError(
+      "El DNI debe contener exactamente 8 dígitos.",
+      400,
+      "INVALID_DNI"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // RUC
+  // --------------------------------------------------
+
+  if (
+    tipoDocumento === "RUC" &&
+    !/^\d{11}$/.test(
+      documento
+    )
+  ) {
+
+    throw crearError(
+      "El RUC debe contener exactamente 11 dígitos.",
+      400,
+      "INVALID_RUC"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // CARNET DE EXTRANJERÍA
+  // --------------------------------------------------
+
+  if (
+    tipoDocumento === "CE" &&
+    (
+      documento.length < 1 ||
+      documento.length > 20 ||
+      !/^[A-Za-z0-9]+$/.test(
+        documento
+      )
+    )
+  ) {
+
+    throw crearError(
+      "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres.",
+      400,
+      "INVALID_CE"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // PASAPORTE
+  // --------------------------------------------------
+
+  if (
+    tipoDocumento === "PASAPORTE" &&
+    (
+      documento.length < 1 ||
+      documento.length > 20 ||
+      !/^[A-Za-z0-9]+$/.test(
+        documento
+      )
+    )
+  ) {
+
+    throw crearError(
+      "El pasaporte debe ser alfanumérico y no superar 20 caracteres.",
+      400,
+      "INVALID_PASSPORT"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // RAZÓN SOCIAL
+  // --------------------------------------------------
+
   if (
     tipoDocumento === "RUC" &&
     !razonSocial
   ) {
+
     throw crearError(
       "La razón social es obligatoria para clientes con RUC.",
       400,
@@ -161,10 +272,16 @@ export async function crearCliente({
     );
   }
 
+
+  // --------------------------------------------------
+  // NOMBRES
+  // --------------------------------------------------
+
   if (
     tipoDocumento !== "RUC" &&
     !nombres
   ) {
+
     throw crearError(
       "Los nombres son obligatorios.",
       400,
@@ -172,15 +289,24 @@ export async function crearCliente({
     );
   }
 
+
+  // --------------------------------------------------
+  // CRÉDITOS INICIALES
+  // --------------------------------------------------
+
   const creditos =
     Number(
       creditosIniciales
     );
 
+
   if (
-    !Number.isInteger(creditos) ||
+    !Number.isInteger(
+      creditos
+    ) ||
     creditos < 0
   ) {
+
     throw crearError(
       "Los créditos iniciales deben ser un número entero mayor o igual a 0.",
       400,
@@ -189,20 +315,29 @@ export async function crearCliente({
   }
 
 
+  // --------------------------------------------------
+  // FECHA DE VENCIMIENTO
+  // --------------------------------------------------
+
   let fechaVencimientoSql =
     null;
 
+
   if (fechaVencimiento) {
+
     fechaVencimientoSql =
       new Date(
         fechaVencimiento
       );
 
+
     if (
       Number.isNaN(
-        fechaVencimientoSql.getTime()
+        fechaVencimientoSql
+          .getTime()
       )
     ) {
+
       throw crearError(
         "La fecha de vencimiento no es válida.",
         400,
@@ -213,14 +348,18 @@ export async function crearCliente({
 
 
   // --------------------------------------------------
-  // TOKEN
+  // GENERAR TOKEN
   // --------------------------------------------------
 
   const token =
     generarToken();
 
+
   const tokenHash =
-    generarHash(token);
+    generarHash(
+      token
+    );
+
 
   const tokenPrefijo =
     token.substring(
@@ -236,6 +375,7 @@ export async function crearCliente({
   const pool =
     await getSqlPool();
 
+
   const transaction =
     new sql.Transaction(
       pool
@@ -250,40 +390,48 @@ export async function crearCliente({
 
 
     // --------------------------------------------------
-    // CLIENTE DUPLICADO
+    // VALIDAR CLIENTE DUPLICADO
     // --------------------------------------------------
 
     const duplicado =
       await new sql.Request(
         transaction
       )
+
         .input(
           "tipoDocumento",
           sql.VarChar(20),
           tipoDocumento
         )
+
         .input(
           "documento",
           sql.VarChar(30),
           documento
         )
+
         .query(`
           SELECT TOP 1
             ID_CLIENTE
+
           FROM
             GestionAPIClientes.Clientes
+
           WHERE
             TIPO_DOCUMENTO_CLIENTE =
               @tipoDocumento
+
             AND DOCUMENTO_CLIENTE =
               @documento
         `);
+
 
     if (
       duplicado
         .recordset
         .length > 0
     ) {
+
       throw crearError(
         "Ya existe un cliente registrado con ese documento.",
         409,
@@ -300,75 +448,95 @@ export async function crearCliente({
       await new sql.Request(
         transaction
       )
+
         .input(
           "tipoDocumento",
           sql.VarChar(20),
           tipoDocumento
         )
+
         .input(
           "documento",
           sql.VarChar(30),
           documento
         )
+
         .input(
           "nombres",
           sql.NVarChar(150),
           nombres
         )
+
         .input(
           "apellidoPaterno",
           sql.NVarChar(100),
           apellidoPaterno
         )
+
         .input(
           "apellidoMaterno",
           sql.NVarChar(100),
           apellidoMaterno
         )
+
         .input(
           "razonSocial",
           sql.NVarChar(200),
           razonSocial
         )
+
         .input(
           "email",
           sql.NVarChar(150),
           email
         )
+
         .input(
           "telefono",
           sql.VarChar(30),
           telefono
         )
+
         .query(`
           INSERT INTO
             GestionAPIClientes.Clientes
           (
             TIPO_DOCUMENTO_CLIENTE,
             DOCUMENTO_CLIENTE,
+
             NOMBRES,
             APELLIDO_PATERNO,
             APELLIDO_MATERNO,
+
             RAZON_SOCIAL,
+
             EMAIL,
             TELEFONO,
+
             ESTADO
           )
+
           OUTPUT
             INSERTED.ID_CLIENTE
+
           VALUES
           (
             @tipoDocumento,
             @documento,
+
             @nombres,
             @apellidoPaterno,
             @apellidoMaterno,
+
             @razonSocial,
+
             @email,
             @telefono,
+
             'ACTIVO'
           )
         `);
+
 
     const idCliente =
       clienteResult
@@ -377,34 +545,40 @@ export async function crearCliente({
 
 
     // --------------------------------------------------
-    // SALDO
+    // CREAR SALDO
     // --------------------------------------------------
 
     await new sql.Request(
       transaction
     )
+
       .input(
         "idCliente",
         sql.BigInt,
         idCliente
       )
+
       .input(
         "creditos",
         sql.Int,
         creditos
       )
+
       .query(`
         INSERT INTO
           GestionAPIClientes.Saldos
         (
           ID_CLIENTE,
+
           CREDITOS_DISPONIBLES,
           TOTAL_ASIGNADO,
           TOTAL_CONSUMIDO
         )
+
         VALUES
         (
           @idCliente,
+
           @creditos,
           @creditos,
           0
@@ -413,54 +587,68 @@ export async function crearCliente({
 
 
     // --------------------------------------------------
-    // TOKEN
+    // CREAR TOKEN
     // --------------------------------------------------
 
     const tokenResult =
       await new sql.Request(
         transaction
       )
+
         .input(
           "idCliente",
           sql.BigInt,
           idCliente
         )
+
         .input(
           "tokenHash",
           sql.Char(64),
           tokenHash
         )
+
         .input(
           "tokenPrefijo",
           sql.VarChar(30),
           tokenPrefijo
         )
+
         .input(
           "fechaVencimiento",
           sql.DateTime2,
           fechaVencimientoSql
         )
+
         .query(`
           INSERT INTO
             GestionAPIClientes.Tokens
           (
             ID_CLIENTE,
+
             TOKEN_HASH,
             TOKEN_PREFIJO,
+
             ESTADO,
+
             FECHA_VENCIMIENTO
           )
+
           OUTPUT
             INSERTED.ID_TOKEN
+
           VALUES
           (
             @idCliente,
+
             @tokenHash,
             @tokenPrefijo,
+
             'ACTIVO',
+
             @fechaVencimiento
           )
         `);
+
 
     const idToken =
       tokenResult
@@ -477,35 +665,45 @@ export async function crearCliente({
       await new sql.Request(
         transaction
       )
+
         .input(
           "idCliente",
           sql.BigInt,
           idCliente
         )
+
         .input(
           "creditos",
           sql.Int,
           creditos
         )
+
         .query(`
           INSERT INTO
             GestionAPIClientes.Movimientos
           (
             ID_CLIENTE,
+
             TIPO,
             CANTIDAD,
+
             SALDO_ANTES,
             SALDO_DESPUES,
+
             ORIGEN,
             OBSERVACION
           )
+
           VALUES
           (
             @idCliente,
+
             'CARGA',
             @creditos,
+
             0,
             @creditos,
+
             'ADMIN',
             'Asignación inicial de créditos'
           )
@@ -517,6 +715,7 @@ export async function crearCliente({
 
 
     return {
+
       idCliente,
       idToken,
 
@@ -538,20 +737,27 @@ export async function crearCliente({
     if (
       transaction._aborted !== true
     ) {
+
       try {
+
         await transaction.rollback();
+
       } catch {
+
         // La transacción ya pudo haber sido revertida.
+
       }
     }
+
 
     throw error;
   }
 }
 
-// --------------------------------------------------
+
+// ==================================================
 // RECARGAR CRÉDITOS
-// --------------------------------------------------
+// ==================================================
 
 export async function recargarCreditos(
   idCliente,
@@ -559,15 +765,24 @@ export async function recargarCreditos(
 ) {
 
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
+
 
   cantidad =
-    Number(cantidad);
+    Number(
+      cantidad
+    );
+
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
+
     throw crearError(
       "El cliente no es válido.",
       400,
@@ -575,10 +790,14 @@ export async function recargarCreditos(
     );
   }
 
+
   if (
-    !Number.isInteger(cantidad) ||
+    !Number.isInteger(
+      cantidad
+    ) ||
     cantidad <= 0
   ) {
+
     throw crearError(
       "La cantidad de créditos debe ser mayor a 0.",
       400,
@@ -586,11 +805,16 @@ export async function recargarCreditos(
     );
   }
 
+
   const pool =
     await getSqlPool();
 
+
   const transaction =
-    new sql.Transaction(pool);
+    new sql.Transaction(
+      pool
+    );
+
 
   try {
 
@@ -598,28 +822,42 @@ export async function recargarCreditos(
       sql.ISOLATION_LEVEL.SERIALIZABLE
     );
 
-    // -----------------------------------------------
+
+    // --------------------------------------------------
     // VALIDAR CLIENTE
-    // -----------------------------------------------
+    // --------------------------------------------------
 
     const clienteResult =
-      await new sql.Request(transaction)
+      await new sql.Request(
+        transaction
+      )
+
         .input(
           "idCliente",
           sql.BigInt,
           idCliente
         )
+
         .query(`
           SELECT
             ID_CLIENTE,
             ESTADO
-          FROM GestionAPIClientes.Clientes
-          WHERE ID_CLIENTE = @idCliente
+
+          FROM
+            GestionAPIClientes.Clientes
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
         `);
 
+
     if (
-      clienteResult.recordset.length === 0
+      clienteResult
+        .recordset
+        .length === 0
     ) {
+
       throw crearError(
         "Cliente no encontrado.",
         404,
@@ -627,36 +865,54 @@ export async function recargarCreditos(
       );
     }
 
-    // -----------------------------------------------
+
+    // --------------------------------------------------
     // BLOQUEAR Y OBTENER SALDO
-    // -----------------------------------------------
+    // --------------------------------------------------
 
     const saldoResult =
-      await new sql.Request(transaction)
+      await new sql.Request(
+        transaction
+      )
+
         .input(
           "idCliente",
           sql.BigInt,
           idCliente
         )
+
         .query(`
           SELECT
             CREDITOS_DISPONIBLES,
             TOTAL_ASIGNADO,
             TOTAL_CONSUMIDO
-          FROM GestionAPIClientes.Saldos
-            WITH (UPDLOCK, HOLDLOCK)
-          WHERE ID_CLIENTE = @idCliente
+
+          FROM
+            GestionAPIClientes.Saldos
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
         `);
 
+
     if (
-      saldoResult.recordset.length === 0
+      saldoResult
+        .recordset
+        .length === 0
     ) {
+
       throw crearError(
         "El cliente no tiene un registro de saldo.",
         409,
         "BALANCE_NOT_FOUND"
       );
     }
+
 
     const saldoAntes =
       Number(
@@ -665,31 +921,41 @@ export async function recargarCreditos(
           .CREDITOS_DISPONIBLES
       );
 
+
     const saldoDespues =
-      saldoAntes + cantidad;
+      saldoAntes +
+      cantidad;
 
-    // -----------------------------------------------
+
+    // --------------------------------------------------
     // ACTUALIZAR SALDO
-    // -----------------------------------------------
+    // --------------------------------------------------
 
-    await new sql.Request(transaction)
+    await new sql.Request(
+      transaction
+    )
+
       .input(
         "idCliente",
         sql.BigInt,
         idCliente
       )
+
       .input(
         "cantidad",
         sql.Int,
         cantidad
       )
+
       .input(
         "saldoDespues",
         sql.Int,
         saldoDespues
       )
+
       .query(`
-        UPDATE GestionAPIClientes.Saldos
+        UPDATE
+          GestionAPIClientes.Saldos
 
         SET
           CREDITOS_DISPONIBLES =
@@ -702,126 +968,176 @@ export async function recargarCreditos(
           FECHA_ACTUALIZACION =
             SYSDATETIME()
 
-        WHERE ID_CLIENTE =
-          @idCliente
+        WHERE
+          ID_CLIENTE =
+            @idCliente
       `);
 
-    // -----------------------------------------------
-    // MOVIMIENTO
-    // -----------------------------------------------
 
-    await new sql.Request(transaction)
+    // --------------------------------------------------
+    // REGISTRAR MOVIMIENTO
+    // --------------------------------------------------
+
+    await new sql.Request(
+      transaction
+    )
+
       .input(
         "idCliente",
         sql.BigInt,
         idCliente
       )
+
       .input(
         "cantidad",
         sql.Int,
         cantidad
       )
+
       .input(
         "saldoAntes",
         sql.Int,
         saldoAntes
       )
+
       .input(
         "saldoDespues",
         sql.Int,
         saldoDespues
       )
+
       .query(`
         INSERT INTO
           GestionAPIClientes.Movimientos
         (
           ID_CLIENTE,
+
           TIPO,
           CANTIDAD,
+
           SALDO_ANTES,
           SALDO_DESPUES,
+
           ORIGEN,
           OBSERVACION
         )
+
         VALUES
         (
           @idCliente,
+
           'CARGA',
           @cantidad,
+
           @saldoAntes,
           @saldoDespues,
+
           'ADMIN',
           'Recarga de créditos'
         )
       `);
 
+
     await transaction.commit();
 
+
     return {
+
       idCliente,
+
       creditosAgregados:
         cantidad,
+
       saldoAntes,
+
       saldoActual:
         saldoDespues,
     };
 
+
   } catch (error) {
 
     try {
+
       await transaction.rollback();
+
     } catch {
+
       // Ya pudo haberse revertido.
+
     }
+
 
     throw error;
   }
 }
 
-// --------------------------------------------------
+
+// ==================================================
 // LISTAR CLIENTES
-// --------------------------------------------------
+// ==================================================
 
 export async function listarClientes({
+
   page = 1,
   limit = 20,
   search = "",
+
 }) {
 
   page =
-    Number(page);
+    Number(
+      page
+    );
+
 
   limit =
-    Number(limit);
+    Number(
+      limit
+    );
+
 
   if (
-    !Number.isInteger(page) ||
+    !Number.isInteger(
+      page
+    ) ||
     page < 1
   ) {
+
     page = 1;
   }
 
+
   if (
-    !Number.isInteger(limit) ||
+    !Number.isInteger(
+      limit
+    ) ||
     limit < 1 ||
     limit > 100
   ) {
+
     limit = 20;
   }
 
+
   search =
-    String(search || "")
+    String(
+      search || ""
+    )
       .trim();
 
+
   const offset =
-    (page - 1) * limit;
+    (page - 1) *
+    limit;
+
 
   const pool =
     await getSqlPool();
 
 
   // --------------------------------------------------
-  // TOTAL
+  // TOTAL DE CLIENTES
   // --------------------------------------------------
 
   const totalResult =
@@ -924,8 +1240,12 @@ export async function listarClientes({
           S.TOTAL_CONSUMIDO,
 
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Tokens T
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Tokens T
+
             WHERE
               T.ID_CLIENTE =
                 C.ID_CLIENTE
@@ -966,7 +1286,8 @@ export async function listarClientes({
         ORDER BY
           C.ID_CLIENTE DESC
 
-        OFFSET @offset ROWS
+        OFFSET
+          @offset ROWS
 
         FETCH NEXT
           @limit ROWS ONLY
@@ -987,7 +1308,9 @@ export async function listarClientes({
             .filter(Boolean)
             .join(" ");
 
+
         return {
+
           idCliente:
             cliente.ID_CLIENTE,
 
@@ -1011,6 +1334,7 @@ export async function listarClientes({
             cliente.ESTADO,
 
           creditos: {
+
             disponibles:
               Number(
                 cliente
@@ -1035,52 +1359,113 @@ export async function listarClientes({
 
           tokensActivos:
             Number(
-              cliente.TOKENS_ACTIVOS
+              cliente
+                .TOKENS_ACTIVOS
             ),
 
           fechaCreacion:
-            cliente.FECHA_CREACION,
+            cliente
+              .FECHA_CREACION,
         };
       }
     );
 
 
   return {
+
     clientes,
 
     paginacion: {
+
       page,
       limit,
       total,
 
       totalPaginas:
         Math.ceil(
-          total / limit
+          total /
+          limit
         ),
     },
   };
 }
 
-// --------------------------------------------------
+
+// ==================================================
 // OBTENER DETALLE DE CLIENTE
-// --------------------------------------------------
+// ==================================================
 
 export async function obtenerClienteDetalle(
-  idCliente
+
+  idCliente,
+
+  {
+    pageConsumos = 1,
+    pageMovimientos = 1,
+  } = {}
+
 ) {
 
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
+
+
+  pageConsumos =
+    Number(
+      pageConsumos
+    );
+
+
+  pageMovimientos =
+    Number(
+      pageMovimientos
+    );
+
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
+
     throw crearError(
       "El cliente no es válido.",
       400,
       "INVALID_CLIENT"
     );
+  }
+
+
+  // --------------------------------------------------
+  // PAGINACIÓN
+  // --------------------------------------------------
+
+  const limit =
+    10;
+
+
+  if (
+    !Number.isInteger(
+      pageConsumos
+    ) ||
+    pageConsumos < 1
+  ) {
+
+    pageConsumos = 1;
+  }
+
+
+  if (
+    !Number.isInteger(
+      pageMovimientos
+    ) ||
+    pageMovimientos < 1
+  ) {
+
+    pageMovimientos = 1;
   }
 
 
@@ -1142,8 +1527,11 @@ export async function obtenerClienteDetalle(
 
 
   if (
-    clienteResult.recordset.length === 0
+    clienteResult
+      .recordset
+      .length === 0
   ) {
+
     throw crearError(
       "Cliente no encontrado.",
       404,
@@ -1153,7 +1541,8 @@ export async function obtenerClienteDetalle(
 
 
   const cliente =
-    clienteResult.recordset[0];
+    clienteResult
+      .recordset[0];
 
 
   const nombre =
@@ -1202,9 +1591,71 @@ export async function obtenerClienteDetalle(
       `);
 
 
+  // ==================================================
+  // TOTAL DE CONSULTAS
+  // ==================================================
+
+  const totalConsumosResult =
+    await pool
+      .request()
+
+      .input(
+        "idCliente",
+        sql.BigInt,
+        idCliente
+      )
+
+      .query(`
+        SELECT
+          COUNT(*) AS TOTAL
+
+        FROM
+          GestionAPIClientes.Consumos
+
+        WHERE
+          ID_CLIENTE =
+            @idCliente
+      `);
+
+
+  const totalConsumos =
+    Number(
+      totalConsumosResult
+        .recordset[0]
+        .TOTAL
+    );
+
+
+  const totalPaginasConsumos =
+    Math.ceil(
+      totalConsumos /
+      limit
+    );
+
+
   // --------------------------------------------------
-  // ÚLTIMOS CONSUMOS
+  // EVITAR PÁGINAS DE CONSULTAS FUERA DE RANGO
   // --------------------------------------------------
+
+  if (
+    totalPaginasConsumos > 0 &&
+    pageConsumos >
+      totalPaginasConsumos
+  ) {
+
+    pageConsumos =
+      totalPaginasConsumos;
+  }
+
+
+  const offsetConsumos =
+    (pageConsumos - 1) *
+    limit;
+
+
+  // ==================================================
+  // CONSULTAS PAGINADAS
+  // ==================================================
 
   const consumosResult =
     await pool
@@ -1216,8 +1667,20 @@ export async function obtenerClienteDetalle(
         idCliente
       )
 
+      .input(
+        "offset",
+        sql.Int,
+        offsetConsumos
+      )
+
+      .input(
+        "limit",
+        sql.Int,
+        limit
+      )
+
       .query(`
-        SELECT TOP 20
+        SELECT
           ID_CONSUMO,
           ID_TOKEN,
           ID_MOVIMIENTO,
@@ -1244,12 +1707,80 @@ export async function obtenerClienteDetalle(
 
         ORDER BY
           ID_CONSUMO DESC
+
+        OFFSET
+          @offset ROWS
+
+        FETCH NEXT
+          @limit ROWS ONLY
       `);
 
 
+  // ==================================================
+  // TOTAL DE MOVIMIENTOS
+  // ==================================================
+
+  const totalMovimientosResult =
+    await pool
+      .request()
+
+      .input(
+        "idCliente",
+        sql.BigInt,
+        idCliente
+      )
+
+      .query(`
+        SELECT
+          COUNT(*) AS TOTAL
+
+        FROM
+          GestionAPIClientes.Movimientos
+
+        WHERE
+          ID_CLIENTE =
+            @idCliente
+      `);
+
+
+  const totalMovimientos =
+    Number(
+      totalMovimientosResult
+        .recordset[0]
+        .TOTAL
+    );
+
+
+  const totalPaginasMovimientos =
+    Math.ceil(
+      totalMovimientos /
+      limit
+    );
+
+
   // --------------------------------------------------
-  // ÚLTIMOS MOVIMIENTOS
+  // EVITAR PÁGINAS DE MOVIMIENTOS FUERA DE RANGO
   // --------------------------------------------------
+
+  if (
+    totalPaginasMovimientos > 0 &&
+    pageMovimientos >
+      totalPaginasMovimientos
+  ) {
+
+    pageMovimientos =
+      totalPaginasMovimientos;
+  }
+
+
+  const offsetMovimientos =
+    (pageMovimientos - 1) *
+    limit;
+
+
+  // ==================================================
+  // MOVIMIENTOS PAGINADOS
+  // ==================================================
 
   const movimientosResult =
     await pool
@@ -1261,8 +1792,20 @@ export async function obtenerClienteDetalle(
         idCliente
       )
 
+      .input(
+        "offset",
+        sql.Int,
+        offsetMovimientos
+      )
+
+      .input(
+        "limit",
+        sql.Int,
+        limit
+      )
+
       .query(`
-        SELECT TOP 20
+        SELECT
           ID_MOVIMIENTO,
           TIPO,
           CANTIDAD,
@@ -1281,14 +1824,26 @@ export async function obtenerClienteDetalle(
 
         ORDER BY
           ID_MOVIMIENTO DESC
+
+        OFFSET
+          @offset ROWS
+
+        FETCH NEXT
+          @limit ROWS ONLY
       `);
 
+
+  // ==================================================
+  // RESPUESTA
+  // ==================================================
 
   return {
 
     cliente: {
+
       idCliente:
-        cliente.ID_CLIENTE,
+        cliente
+          .ID_CLIENTE,
 
       tipoDocumento:
         cliente
@@ -1304,13 +1859,16 @@ export async function obtenerClienteDetalle(
         cliente.NOMBRES,
 
       apellidoPaterno:
-        cliente.APELLIDO_PATERNO,
+        cliente
+          .APELLIDO_PATERNO,
 
       apellidoMaterno:
-        cliente.APELLIDO_MATERNO,
+        cliente
+          .APELLIDO_MATERNO,
 
       razonSocial:
-        cliente.RAZON_SOCIAL,
+        cliente
+          .RAZON_SOCIAL,
 
       email:
         cliente.EMAIL,
@@ -1322,137 +1880,225 @@ export async function obtenerClienteDetalle(
         cliente.ESTADO,
 
       fechaCreacion:
-        cliente.FECHA_CREACION,
+        cliente
+          .FECHA_CREACION,
 
       fechaActualizacion:
-        cliente.FECHA_ACTUALIZACION,
+        cliente
+          .FECHA_ACTUALIZACION,
     },
 
 
     creditos: {
+
       disponibles:
         Number(
           cliente
-            .CREDITOS_DISPONIBLES || 0
+            .CREDITOS_DISPONIBLES ||
+          0
         ),
 
       totalAsignado:
         Number(
           cliente
-            .TOTAL_ASIGNADO || 0
+            .TOTAL_ASIGNADO ||
+          0
         ),
 
       totalConsumido:
         Number(
           cliente
-            .TOTAL_CONSUMIDO || 0
+            .TOTAL_CONSUMIDO ||
+          0
         ),
     },
 
 
     tokens:
-      tokensResult.recordset.map(
-        (token) => ({
-          idToken:
-            token.ID_TOKEN,
+      tokensResult
+        .recordset
+        .map(
+          (token) => ({
 
-          prefijo:
-            token.TOKEN_PREFIJO,
+            idToken:
+              token
+                .ID_TOKEN,
 
-          estado:
-            token.ESTADO,
+            prefijo:
+              token
+                .TOKEN_PREFIJO,
 
-          fechaCreacion:
-            token.FECHA_CREACION,
+            estado:
+              token
+                .ESTADO,
 
-          fechaVencimiento:
-            token.FECHA_VENCIMIENTO,
+            fechaCreacion:
+              token
+                .FECHA_CREACION,
 
-          ultimoUso:
-            token.ULTIMO_USO,
-        })
-      ),
+            fechaVencimiento:
+              token
+                .FECHA_VENCIMIENTO,
 
+            ultimoUso:
+              token
+                .ULTIMO_USO,
+          })
+        ),
+
+
+    // --------------------------------------------------
+    // CONSULTAS
+    // --------------------------------------------------
 
     consumos:
-      consumosResult.recordset.map(
-        (consumo) => ({
-          idConsumo:
-            consumo.ID_CONSUMO,
+      consumosResult
+        .recordset
+        .map(
+          (consumo) => ({
 
-          idToken:
-            consumo.ID_TOKEN,
+            idConsumo:
+              consumo
+                .ID_CONSUMO,
 
-          idMovimiento:
-            consumo.ID_MOVIMIENTO,
+            idToken:
+              consumo
+                .ID_TOKEN,
 
-          tipoDocumento:
-            consumo
-              .TIPO_DOCUMENTO_CONSULTADO,
+            idMovimiento:
+              consumo
+                .ID_MOVIMIENTO,
 
-          documento:
-            consumo
-              .DOCUMENTO_CONSULTADO,
+            tipoDocumento:
+              consumo
+                .TIPO_DOCUMENTO_CONSULTADO,
 
-          creditosConsumidos:
-            consumo
-              .CREDITOS_CONSUMIDOS,
+            documento:
+              consumo
+                .DOCUMENTO_CONSULTADO,
 
-          estado:
-            consumo.ESTADO,
+            creditosConsumidos:
+              Number(
+                consumo
+                  .CREDITOS_CONSUMIDOS ||
+                0
+              ),
 
-          httpStatus:
-            consumo.HTTP_STATUS,
+            estado:
+              consumo
+                .ESTADO,
 
-          mensaje:
-            consumo.MENSAJE,
+            httpStatus:
+              consumo
+                .HTTP_STATUS,
 
-          ipOrigen:
-            consumo.IP_ORIGEN,
+            mensaje:
+              consumo
+                .MENSAJE,
 
-          duracionMs:
-            consumo.DURACION_MS,
+            ipOrigen:
+              consumo
+                .IP_ORIGEN,
 
-          fecha:
-            consumo.FECHA,
-        })
-      ),
+            duracionMs:
+              consumo
+                .DURACION_MS,
 
+            fecha:
+              consumo
+                .FECHA,
+          })
+        ),
+
+
+    // --------------------------------------------------
+    // PAGINACIÓN CONSULTAS
+    // --------------------------------------------------
+
+    paginacionConsumos: {
+
+      page:
+        pageConsumos,
+
+      limit,
+
+      total:
+        totalConsumos,
+
+      totalPaginas:
+        totalPaginasConsumos,
+    },
+
+
+    // --------------------------------------------------
+    // MOVIMIENTOS
+    // --------------------------------------------------
 
     movimientos:
-      movimientosResult.recordset.map(
-        (movimiento) => ({
-          idMovimiento:
-            movimiento.ID_MOVIMIENTO,
+      movimientosResult
+        .recordset
+        .map(
+          (movimiento) => ({
 
-          tipo:
-            movimiento.TIPO,
+            idMovimiento:
+              movimiento
+                .ID_MOVIMIENTO,
 
-          cantidad:
-            movimiento.CANTIDAD,
+            tipo:
+              movimiento
+                .TIPO,
 
-          saldoAntes:
-            movimiento.SALDO_ANTES,
+            cantidad:
+              movimiento
+                .CANTIDAD,
 
-          saldoDespues:
-            movimiento.SALDO_DESPUES,
+            saldoAntes:
+              movimiento
+                .SALDO_ANTES,
 
-          origen:
-            movimiento.ORIGEN,
+            saldoDespues:
+              movimiento
+                .SALDO_DESPUES,
 
-          observacion:
-            movimiento.OBSERVACION,
+            origen:
+              movimiento
+                .ORIGEN,
 
-          fecha:
-            movimiento.FECHA,
-        })
-      ),
+            observacion:
+              movimiento
+                .OBSERVACION,
+
+            fecha:
+              movimiento
+                .FECHA,
+          })
+        ),
+
+
+    // --------------------------------------------------
+    // PAGINACIÓN MOVIMIENTOS
+    // --------------------------------------------------
+
+    paginacionMovimientos: {
+
+      page:
+        pageMovimientos,
+
+      limit,
+
+      total:
+        totalMovimientos,
+
+      totalPaginas:
+        totalPaginasMovimientos,
+    },
   };
 }
 
-// --------------------------------------------------
+
+// ==================================================
 // ACTUALIZAR ESTADO DE CLIENTE
-// --------------------------------------------------
+// ==================================================
 
 export async function actualizarEstadoCliente(
   idCliente,
@@ -1460,18 +2106,26 @@ export async function actualizarEstadoCliente(
 ) {
 
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
+
 
   estado =
-    String(estado || "")
+    String(
+      estado || ""
+    )
       .trim()
       .toUpperCase();
 
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
+
     throw crearError(
       "El cliente no es válido.",
       400,
@@ -1491,6 +2145,7 @@ export async function actualizarEstadoCliente(
       estado
     )
   ) {
+
     throw crearError(
       "Estado no válido. Use ACTIVO o BLOQUEADO.",
       400,
@@ -1532,8 +2187,11 @@ export async function actualizarEstadoCliente(
 
 
   if (
-    clienteResult.recordset.length === 0
+    clienteResult
+      .recordset
+      .length === 0
   ) {
+
     throw crearError(
       "Cliente no encontrado.",
       404,
@@ -1549,7 +2207,7 @@ export async function actualizarEstadoCliente(
 
 
   // --------------------------------------------------
-  // ACTUALIZAR
+  // ACTUALIZAR ESTADO
   // --------------------------------------------------
 
   await pool
@@ -1585,8 +2243,11 @@ export async function actualizarEstadoCliente(
 
 
   return {
+
     idCliente,
+
     estadoAnterior,
+
     estadoActual:
       estado,
   };

@@ -189,8 +189,15 @@ router.get(
 
       const resultado =
         await obtenerClienteDetalle(
-          req.params.id
-        );
+        req.params.id,
+        {
+          pageConsumos:
+            req.query.pageConsumos,
+
+          pageMovimientos:
+            req.query.pageMovimientos,
+        }
+      );
 
 
       return res

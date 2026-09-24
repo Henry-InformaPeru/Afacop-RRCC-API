@@ -1,12 +1,23 @@
-import {Router,} from "express";
+import {
+  Router,
+} from "express";
 
-import {clientTokenAuth,} from "../middleware/clientToken.js";
+import {
+  clientTokenAuth,
+} from "../middleware/clientToken.js";
 
-import {consultarRRCC, validarDocumento,} from "../services/consulta.service.js";
+import {
+  consultarRRCC,
+  validarDocumento,
+} from "../services/consulta.service.js";
 
-import {reservarCredito, revertirCredito,} from "../services/creditos.service.js";
+import {
+  reservarCredito,
+} from "../services/creditos.service.js";
 
-import {registrarConsumo,} from "../services/consumos.service.js";
+import {
+  registrarConsumo,
+} from "../services/consumos.service.js";
 
 
 const router =
@@ -25,6 +36,7 @@ router.get(
     const cliente =
       req.clienteApi;
 
+
     const nombre =
       cliente.razonSocial ||
       [
@@ -35,12 +47,15 @@ router.get(
         .filter(Boolean)
         .join(" ");
 
+
     return res
       .status(200)
       .json({
+
         success: true,
 
         data: {
+
           idCliente:
             cliente.idCliente,
 
@@ -55,6 +70,7 @@ router.get(
               .documentoCliente,
 
           creditos: {
+
             disponibles:
               cliente
                 .creditosDisponibles,
@@ -85,34 +101,58 @@ router.post(
     const inicio =
       Date.now();
 
+
     const cliente =
       req.clienteApi;
+
+
+    let datosConsulta =
+      null;
+
 
     let reserva =
       null;
 
-    let creditoRevertido =
+
+    let consumoRegistrado =
       false;
+
 
     try {
 
-      // ----------------------------------------------
+      // ==============================================
       // 1. VALIDAR DOCUMENTO
-      // ----------------------------------------------
+      //
+      // Si el documento es inválido:
+      // - no se reserva crédito
+      // - no se llama a RRCC
+      // - no se consume crédito
+      // ==============================================
 
-      const datosConsulta =
+      datosConsulta =
         validarDocumento(
           req.body?.tipoDocumento,
           req.body?.documento
         );
 
 
-      // ----------------------------------------------
-      // 2. RESERVAR 1 CRÉDITO
-      // ----------------------------------------------
+      // ==============================================
+      // 2. RESERVAR / DESCONTAR 1 CRÉDITO
+      //
+      // Si no tiene créditos disponibles,
+      // reservarCredito debe lanzar el error
+      // correspondiente y NO se llama a RRCC.
+      //
+      // Desde que esta operación termina
+      // correctamente, el crédito se considera
+      // consumido.
+      //
+      // NO HAY REVERSIÓN.
+      // ==============================================
 
       reserva =
         await reservarCredito({
+
           idCliente:
             cliente.idCliente,
 
@@ -121,12 +161,13 @@ router.post(
         });
 
 
-      // ----------------------------------------------
+      // ==============================================
       // 3. CONSULTAR RRCC
-      // ----------------------------------------------
+      // ==============================================
 
       const rrcc =
         await consultarRRCC({
+
           tipoDocumento:
             datosConsulta
               .tipoDocumento,
@@ -138,16 +179,18 @@ router.post(
 
 
       const duracionMs =
-        Date.now() - inicio;
+        Date.now() -
+        inicio;
 
 
-      // ----------------------------------------------
+      // ==============================================
       // 4. CONSULTA EXITOSA
-      // ----------------------------------------------
+      // ==============================================
 
       if (rrcc.ok) {
 
         await registrarConsumo({
+
           idCliente:
             cliente.idCliente,
 
@@ -184,36 +227,61 @@ router.post(
         });
 
 
+        consumoRegistrado =
+          true;
+
+
         return res
-            .status(200)
-            .json({
-                success: true,
+          .status(
+            rrcc.status ||
+            200
+          )
+          .json({
 
-                data:
-                rrcc.data?.data ??
-                rrcc.data,
-            });
-        }
+            success: true,
+
+            data:
+              rrcc.data?.data ??
+              rrcc.data,
+          });
+      }
 
 
-      // ----------------------------------------------
-      // 5. RRCC NO DEVOLVIÓ RESULTADO EXITOSO
-      // ----------------------------------------------
+      // ==============================================
+      // 5. RRCC RESPONDIÓ SIN RESULTADO
+      //    O DEVOLVIÓ ALGÚN ERROR HTTP
+      //
+      // También consume 1 crédito.
+      // ==============================================
 
-      const reversion =
-        await revertirCredito({
-        idCliente:
-            cliente.idCliente,
+      const estado =
+        rrcc.status === 404
+          ? "SIN_DATOS"
+          : "ERROR";
 
-        idMovimientoOriginal:
-            reserva.idMovimiento,
-        });
 
-        creditoRevertido =
-        true;
+      const mensaje =
+        rrcc.data?.error ||
+        rrcc.data?.message ||
+        rrcc.data?.mensaje ||
+        (
+          rrcc.status === 404
+            ? "No se encontró información para el documento consultado."
+            : "La consulta fue procesada con error."
+        );
+
+
+      const codigo =
+        rrcc.data?.code ||
+        (
+          rrcc.status === 404
+            ? "SIN_DATOS"
+            : "RRCC_ERROR"
+        );
 
 
       await registrarConsumo({
+
         idCliente:
           cliente.idCliente,
 
@@ -231,20 +299,19 @@ router.post(
           datosConsulta
             .documento,
 
-        creditosConsumidos:
-          0,
+        // --------------------------------------------
+        // SIN DATOS / ERROR TAMBIÉN CONSUME 1
+        // --------------------------------------------
 
-        estado:
-          rrcc.status === 404
-            ? "SIN_DATOS"
-            : "ERROR",
+        creditosConsumidos:
+          1,
+
+        estado,
 
         httpStatus:
           rrcc.status,
 
-        mensaje:
-          rrcc.data?.error ||
-          "Consulta no procesada.",
+        mensaje,
 
         ipOrigen:
           req.ip,
@@ -253,51 +320,35 @@ router.post(
       });
 
 
-      return res
-        .status(rrcc.status)
-        .json({
-            success: false,
+      consumoRegistrado =
+        true;
 
-            data:
+
+      return res
+        .status(
+          rrcc.status ||
+          500
+        )
+        .json({
+
+          success: false,
+
+          error:
+            mensaje,
+
+          code:
+            codigo,
+
+          data:
             rrcc.data,
         });
 
 
     } catch (error) {
 
-      // ----------------------------------------------
-      // SI YA SE RESERVÓ Y AÚN NO SE REVERTIÓ,
-      // DEVOLVER EL CRÉDITO
-      // ----------------------------------------------
-
-      if (
-        reserva &&
-        !creditoRevertido
-      ) {
-
-        try {
-
-          await revertirCredito({
-            idCliente:
-              cliente.idCliente,
-
-            idMovimientoOriginal:
-              reserva.idMovimiento,
-          });
-
-          creditoRevertido =
-            true;
-
-        } catch (
-          errorReversion
-        ) {
-
-          console.error(
-            "ERROR CRÍTICO revirtiendo crédito:",
-            errorReversion
-          );
-        }
-      }
+      const duracionMs =
+        Date.now() -
+        inicio;
 
 
       console.error(
@@ -306,12 +357,96 @@ router.post(
       );
 
 
+      // ==============================================
+      // 6. ERROR DESPUÉS DE HABER RESERVADO CRÉDITO
+      //
+      // Ejemplos:
+      // - timeout de RRCC
+      // - conexión caída
+      // - respuesta inválida
+      // - error técnico
+      //
+      // Como ya se inició una consulta válida,
+      // también consume 1 crédito.
+      //
+      // NO SE REVIERTE.
+      // ==============================================
+
+      if (
+        reserva &&
+        datosConsulta &&
+        !consumoRegistrado
+      ) {
+
+        try {
+
+          await registrarConsumo({
+
+            idCliente:
+              cliente.idCliente,
+
+            idToken:
+              cliente.idToken,
+
+            idMovimiento:
+              reserva.idMovimiento,
+
+            tipoDocumento:
+              datosConsulta
+                .tipoDocumento,
+
+            documento:
+              datosConsulta
+                .documento,
+
+            creditosConsumidos:
+              1,
+
+            estado:
+              "ERROR",
+
+            httpStatus:
+              error.statusCode ||
+              500,
+
+            mensaje:
+              error.message ||
+              "Error procesando la consulta.",
+
+            ipOrigen:
+              req.ip,
+
+            duracionMs,
+          });
+
+
+          consumoRegistrado =
+            true;
+
+
+        } catch (
+          errorRegistro
+        ) {
+
+          console.error(
+            "ERROR registrando consumo:",
+            errorRegistro
+          );
+        }
+      }
+
+
+      // ==============================================
+      // 7. RESPUESTA DEL ERROR
+      // ==============================================
+
       return res
         .status(
           error.statusCode ||
           500
         )
         .json({
+
           success: false,
 
           error:

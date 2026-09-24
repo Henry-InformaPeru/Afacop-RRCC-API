@@ -2,6 +2,8 @@ import os
 import json
 import requests
 
+from datetime import datetime
+
 from flask import (
     Flask,
     render_template,
@@ -19,6 +21,130 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# --------------------------------------------------
+# FORMATO DE FECHAS PARA LAS VISTAS
+# --------------------------------------------------
+
+@app.template_filter("fecha")
+def formato_fecha(valor):
+
+    if not valor:
+        return "-"
+
+    try:
+
+        # Si Flask ya recibe un datetime
+        if isinstance(valor, datetime):
+            fecha = valor
+
+        else:
+
+            texto = str(valor).strip()
+
+            # Convierte:
+            # 2026-09-24T10:55:52.000Z
+            # a un datetime válido para Python.
+            if texto.endswith("Z"):
+                texto = (
+                    texto[:-1]
+                    + "+00:00"
+                )
+
+            fecha = datetime.fromisoformat(
+                texto
+            )
+
+        return fecha.strftime(
+            "%d/%m/%Y %H:%M:%S"
+        )
+
+    except (
+        ValueError,
+        TypeError
+    ):
+
+        # Si llega un formato inesperado,
+        # evitamos romper la página.
+        return str(valor)
+
+@app.template_filter("periodo")
+def formato_periodo(valor):
+
+    if valor is None:
+        return "-"
+
+    texto = str(valor).strip()
+
+    if (
+        len(texto) != 6
+        or
+        not texto.isdigit()
+    ):
+        return texto or "-"
+
+    anio = texto[:4]
+
+    try:
+        mes = int(
+            texto[4:6]
+        )
+    except ValueError:
+        return texto
+
+
+    meses = [
+        "Enero",
+        "Febrero",
+        "Marzo",
+        "Abril",
+        "Mayo",
+        "Junio",
+        "Julio",
+        "Agosto",
+        "Septiembre",
+        "Octubre",
+        "Noviembre",
+        "Diciembre",
+    ]
+
+
+    if (
+        mes < 1
+        or
+        mes > 12
+    ):
+        return texto
+
+
+    return (
+        f"{meses[mes - 1]} "
+        f"{anio}"
+    )
+
+
+# --------------------------------------------------
+# FORMATO MONEDA
+# --------------------------------------------------
+
+@app.template_filter("moneda")
+def formato_moneda(valor):
+
+    try:
+
+        numero = float(
+            valor or 0
+        )
+
+        return (
+            f"S/ {numero:,.2f}"
+        )
+
+    except (
+        TypeError,
+        ValueError
+    ):
+
+        return "S/ 0.00"
 
 BACKEND_URL = os.getenv(
     "BACKEND_URL",
@@ -427,27 +553,88 @@ def cliente_detalle(id_cliente):
     )
 
     if not token:
+
         return redirect(
             url_for("login")
         )
 
+
+    # ----------------------------------------------
+    # PÁGINA DE CONSULTAS
+    # ----------------------------------------------
+
+    try:
+
+        page_consultas = int(
+            request.args.get(
+                "page_consultas",
+                1
+            )
+        )
+
+    except ValueError:
+
+        page_consultas = 1
+
+
+    if page_consultas < 1:
+        page_consultas = 1
+
+
+    # ----------------------------------------------
+    # PÁGINA DE MOVIMIENTOS
+    # ----------------------------------------------
+
+    try:
+
+        page_movimientos = int(
+            request.args.get(
+                "page_movimientos",
+                1
+            )
+        )
+
+    except ValueError:
+
+        page_movimientos = 1
+
+
+    if page_movimientos < 1:
+        page_movimientos = 1
+
+
     try:
 
         response_backend = requests.get(
+
             f"{BACKEND_URL}/api/admin/clientes/{id_cliente}",
+
+            params={
+                "pageConsumos":
+                    page_consultas,
+
+                "pageMovimientos":
+                    page_movimientos,
+            },
+
             cookies={
                 "admin_session": token
             },
+
             timeout=10
         )
+
 
     except requests.RequestException:
 
         return render_template(
             "cliente_detalle.html",
-            data=resultado.get("data"),
-            error=request.args.get("error"),
-            mensaje=request.args.get("mensaje")
+            data=None,
+            error=(
+                "No se pudo conectar "
+                "con el backend."
+            ),
+            mensaje=None
         )
 
 
@@ -471,8 +658,11 @@ def cliente_detalle(id_cliente):
 
 
     try:
+
         resultado = response_backend.json()
+
     except ValueError:
+
         resultado = {}
 
 
@@ -480,21 +670,38 @@ def cliente_detalle(id_cliente):
 
         return render_template(
             "cliente_detalle.html",
+
             data=None,
+
             error=(
                 resultado.get("error")
                 or
                 "No fue posible obtener el cliente."
-            )
+            ),
+
+            mensaje=None
         )
 
 
     return render_template(
         "cliente_detalle.html",
-        data=resultado.get("data"),
-        error=None
+
+        data=
+            resultado.get(
+                "data"
+            ),
+
+        error=
+            request.args.get(
+                "error"
+            ),
+
+        mensaje=
+            request.args.get(
+                "mensaje"
+            )
     )
-    
+
 # --------------------------------------------------
 # RECARGAR CRÉDITOS
 # --------------------------------------------------
@@ -1544,6 +1751,9 @@ def portal_consulta():
         "portal_token"
     )
 
+    # --------------------------------------------------
+    # VALIDAR SESIÓN
+    # --------------------------------------------------
 
     if not token:
 
@@ -1553,6 +1763,9 @@ def portal_consulta():
             )
         )
 
+    # --------------------------------------------------
+    # DATOS DEL FORMULARIO
+    # --------------------------------------------------
 
     tipo_documento = (
         request.form
@@ -1564,7 +1777,6 @@ def portal_consulta():
         .upper()
     )
 
-
     documento = (
         request.form
         .get(
@@ -1574,19 +1786,21 @@ def portal_consulta():
         .strip()
     )
 
-
     # --------------------------------------------------
     # VALIDACIÓN BÁSICA
     # --------------------------------------------------
 
-    if not tipo_documento or not documento:
+    if (
+        not tipo_documento
+        or
+        not documento
+    ):
 
         return redirect(
             url_for(
                 "portal_cuenta"
             )
         )
-
 
     # --------------------------------------------------
     # REALIZAR CONSULTA
@@ -1613,7 +1827,6 @@ def portal_consulta():
             timeout=30
         )
 
-
         try:
 
             resultado_backend = (
@@ -1629,7 +1842,6 @@ def portal_consulta():
                     "una respuesta no válida."
             }
 
-
     except requests.RequestException:
 
         response_backend = None
@@ -1640,7 +1852,6 @@ def portal_consulta():
                 "No se pudo conectar "
                 "con el servidor."
         }
-
 
     # --------------------------------------------------
     # TOKEN INVÁLIDO / REVOCADO / CLIENTE BLOQUEADO
@@ -1668,13 +1879,11 @@ def portal_consulta():
 
         return response
 
-
     # --------------------------------------------------
     # OBTENER CUENTA ACTUALIZADA
     # --------------------------------------------------
 
     cuenta = None
-
 
     try:
 
@@ -1689,7 +1898,6 @@ def portal_consulta():
             timeout=10
         )
 
-
         if response_cuenta.ok:
 
             datos_cuenta = (
@@ -1703,14 +1911,12 @@ def portal_consulta():
                 )
             )
 
-
     except (
         requests.RequestException,
         ValueError
     ):
 
         cuenta = None
-
 
     # --------------------------------------------------
     # CONVERTIR RESPUESTA COMPLETA A JSON
@@ -1721,7 +1927,6 @@ def portal_consulta():
         ensure_ascii=False,
         indent=2
     )
-
 
     # --------------------------------------------------
     # MOSTRAR RESPUESTA
@@ -1745,6 +1950,8 @@ def portal_consulta():
                 documento,
         }
     )
+
+
 # --------------------------------------------------
 # EJECUCIÓN
 # --------------------------------------------------
@@ -1754,7 +1961,7 @@ if __name__ == "__main__":
     port = int(
         os.getenv(
             "FLASK_PORT",
-            "5000"
+            "5001"
         )
     )
 

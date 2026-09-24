@@ -1,591 +1,987 @@
 <!DOCTYPE html>
 <html lang="es">
 
-<head>
+    <head>
 
-    <meta charset="UTF-8">
+        <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
 
-    <title>
-        Nuevo cliente | Gestión API
-    </title>
+        <title>
+            Nuevo cliente | Gestión API
+        </title>
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=6"
-    >
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}?v=6"
+        >
 
-</head>
-
-
-<body class="dashboard-body">
-
-<div class="app-layout">
+    </head>
 
 
-    <!-- SIDEBAR -->
+    <body class="dashboard-body">
 
-    <aside class="sidebar">
+    <div class="app-layout">
 
-        <div class="sidebar-brand">
 
-            <div class="sidebar-logo">
-                API
+        <!-- SIDEBAR -->
+
+        <aside class="sidebar">
+
+            <div class="sidebar-brand">
+
+                <div class="sidebar-logo">
+                    API
+                </div>
+
+                <div>
+
+                    <strong>
+                        Gestión API
+                    </strong>
+
+                    <span>
+                        Clientes
+                    </span>
+
+                </div>
+
             </div>
 
-            <div>
 
-                <strong>
-                    Gestión API
-                </strong>
+            <nav class="sidebar-nav">
 
-                <span>
-                    Clientes
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <nav class="sidebar-nav">
-
-            <a
-                href="{{ url_for('dashboard') }}"
-                class="nav-link"
-            >
-                <span class="nav-icon">
-                    ▦
-                </span>
-
-                Dashboard
-            </a>
-
-
-            <a
-                href="{{ url_for('clientes') }}"
-                class="nav-link active"
-            >
-                <span class="nav-icon">
-                    👥
-                </span>
-
-                Clientes
-            </a>
-
-
-            <a
-                href="{{ url_for('consumos') }}"
-                class="nav-link"
-            >
-                <span class="nav-icon">
-                    ◫
-                </span>
-
-                Consumos
-            </a>
-
-        </nav>
-
-
-        <div class="sidebar-footer">
-
-            <form
-                method="POST"
-                action="{{ url_for('logout') }}"
-            >
-
-                <button
-                    type="submit"
-                    class="logout-button"
+                <a
+                    href="{{ url_for('dashboard') }}"
+                    class="nav-link"
                 >
-                    Cerrar sesión
-                </button>
+                    <span class="nav-icon">
+                        ▦
+                    </span>
 
-            </form>
-
-        </div>
-
-    </aside>
+                    Dashboard
+                </a>
 
 
-    <!-- CONTENIDO -->
+                <a
+                    href="{{ url_for('clientes') }}"
+                    class="nav-link active"
+                >
+                    <span class="nav-icon">
+                        👥
+                    </span>
 
-    <main class="main-content">
-
-    <div class="form-page">
-
-        <div class="detail-back">
-
-            <a href="{{ url_for('clientes') }}">
-                ← Volver a clientes
-            </a>
-
-        </div>
+                    Clientes
+                </a>
 
 
-        <header class="page-header">
+                <a
+                    href="{{ url_for('consumos') }}"
+                    class="nav-link"
+                >
+                    <span class="nav-icon">
+                        ◫
+                    </span>
 
-            <div>
+                    Consumos
+                </a>
 
-                <h1>
-                    Nuevo cliente
-                </h1>
+            </nav>
 
-                <p>
-                    Registra un cliente y asigna sus créditos iniciales
-                </p>
+
+            <div class="sidebar-footer">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('logout') }}"
+                >
+
+                    <button
+                        type="submit"
+                        class="logout-button"
+                    >
+                        Cerrar sesión
+                    </button>
+
+                </form>
 
             </div>
 
-        </header>
+        </aside>
 
 
-        {% if error %}
+        <!-- CONTENIDO -->
 
-        <div class="alert-error">
-            {{ error }}
-        </div>
+        <main class="main-content">
 
-        {% endif %}
+            <div class="form-page">
+
+                <div class="detail-back">
+
+                    <a href="{{ url_for('clientes') }}">
+                        ← Volver a clientes
+                    </a>
+
+                </div>
 
 
-        <section class="form-panel">
+                <header class="page-header">
 
-    <form
-        method="POST"
-        action="{{ url_for('cliente_nuevo') }}"
-    >
+                    <div>
 
-        <!-- =====================================
-             IDENTIFICACIÓN
-        ====================================== -->
+                        <h1>
+                            Nuevo cliente
+                        </h1>
 
-        <div class="form-section">
+                        <p>
+                            Registra un cliente y asigna sus créditos iniciales
+                        </p>
 
-            <h2>
-                Identificación
-            </h2>
+                    </div>
 
-            <div class="form-grid">
+                </header>
 
-                <div class="form-field">
 
-                    <label for="tipoDocumento">
-                        Tipo de documento
-                    </label>
+                {% if error %}
 
-                    <select
-                        id="tipoDocumento"
-                        name="tipoDocumento"
-                        required
+                <div class="alert-error">
+                    {{ error }}
+                </div>
+
+                {% endif %}
+
+
+                <section class="form-panel">
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_nuevo') }}"
+                        id="clienteForm"
                     >
 
-                        <option value="">
-                            Seleccionar
-                        </option>
+                        <!-- =====================================
+                            IDENTIFICACIÓN
+                        ====================================== -->
 
-                        <option
-                            value="RUC"
-                            {% if form.get('tipoDocumento') == 'RUC' %}
-                            selected
-                            {% endif %}
+                        <div class="form-section">
+
+                            <h2>
+                                Identificación
+                            </h2>
+
+                            <div class="form-grid">
+
+
+                                <div class="form-field">
+
+                                    <label for="tipoDocumento">
+                                        Tipo de documento
+                                    </label>
+
+                                    <select
+                                        id="tipoDocumento"
+                                        name="tipoDocumento"
+                                        required
+                                    >
+
+                                        <option value="">
+                                            Seleccionar
+                                        </option>
+
+
+                                        <option
+                                            value="RUC"
+                                            {% if form.get('tipoDocumento') == 'RUC' %}
+                                            selected
+                                            {% endif %}
+                                        >
+                                            RUC
+                                        </option>
+
+
+                                        <option
+                                            value="DNI"
+                                            {% if form.get('tipoDocumento') == 'DNI' %}
+                                            selected
+                                            {% endif %}
+                                        >
+                                            DNI
+                                        </option>
+
+
+                                        <option
+                                            value="CE"
+                                            {% if form.get('tipoDocumento') == 'CE' %}
+                                            selected
+                                            {% endif %}
+                                        >
+                                            CE
+                                        </option>
+
+
+                                        <option
+                                            value="PASAPORTE"
+                                            {% if form.get('tipoDocumento') == 'PASAPORTE' %}
+                                            selected
+                                            {% endif %}
+                                        >
+                                            Pasaporte
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+
+                                <div class="form-field">
+
+                                    <label for="documento">
+                                        Documento
+                                    </label>
+
+                                    <input
+                                        id="documento"
+                                        name="documento"
+                                        type="text"
+                                        value="{{ form.get('documento', '') }}"
+                                        autocomplete="off"
+                                        required
+                                    >
+
+                                    <small id="documentoAyuda"></small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =====================================
+                            EMPRESA
+                        ====================================== -->
+
+                        <div
+                            class="form-section"
+                            id="empresaSection"
+                            hidden
                         >
-                            RUC
-                        </option>
 
-                        <option
-                            value="DNI"
-                            {% if form.get('tipoDocumento') == 'DNI' %}
-                            selected
-                            {% endif %}
+                            <h2>
+                                Empresa
+                            </h2>
+
+                            <div class="form-grid">
+
+                                <div class="form-field form-full">
+
+                                    <label for="razonSocial">
+                                        Razón social
+                                    </label>
+
+                                    <input
+                                        id="razonSocial"
+                                        name="razonSocial"
+                                        type="text"
+                                        value="{{ form.get('razonSocial', '') }}"
+                                    >
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =====================================
+                            PERSONA NATURAL
+                        ====================================== -->
+
+                        <div
+                            class="form-section"
+                            id="personaSection"
+                            hidden
                         >
-                            DNI
-                        </option>
 
-                        <option
-                            value="CE"
-                            {% if form.get('tipoDocumento') == 'CE' %}
-                            selected
-                            {% endif %}
-                        >
-                            CE
-                        </option>
+                            <h2>
+                                Datos personales
+                            </h2>
 
-                        <option
-                            value="PASAPORTE"
-                            {% if form.get('tipoDocumento') == 'PASAPORTE' %}
-                            selected
-                            {% endif %}
-                        >
-                            Pasaporte
-                        </option>
-
-                    </select>
-
-                </div>
+                            <div class="form-grid form-grid-3">
 
 
-                <div class="form-field">
+                                <div class="form-field">
 
-                    <label for="documento">
-                        Documento
-                    </label>
+                                    <label for="nombres">
+                                        Nombres
+                                    </label>
 
-                    <input
-                        id="documento"
-                        name="documento"
-                        type="text"
-                        value="{{ form.get('documento', '') }}"
-                        required
-                    >
+                                    <input
+                                        id="nombres"
+                                        name="nombres"
+                                        type="text"
+                                        value="{{ form.get('nombres', '') }}"
+                                    >
 
-                </div>
-
-            </div>
-
-        </div>
+                                </div>
 
 
-        <!-- =====================================
-             EMPRESA
-        ====================================== -->
+                                <div class="form-field">
 
-        <div
-            class="form-section"
-            id="empresaSection"
-            hidden
-        >
+                                    <label for="apellidoPaterno">
+                                        Apellido paterno
+                                    </label>
 
-            <h2>
-                Empresa
-            </h2>
+                                    <input
+                                        id="apellidoPaterno"
+                                        name="apellidoPaterno"
+                                        type="text"
+                                        value="{{ form.get('apellidoPaterno', '') }}"
+                                    >
 
-            <div class="form-grid">
-
-                <div class="form-field form-full">
-
-                    <label for="razonSocial">
-                        Razón social
-                    </label>
-
-                    <input
-                        id="razonSocial"
-                        name="razonSocial"
-                        type="text"
-                        value="{{ form.get('razonSocial', '') }}"
-                    >
-
-                </div>
-
-            </div>
-
-        </div>
+                                </div>
 
 
-        <!-- =====================================
-             PERSONA NATURAL
-        ====================================== -->
+                                <div class="form-field">
 
-        <div
-            class="form-section"
-            id="personaSection"
-            hidden
-        >
+                                    <label for="apellidoMaterno">
+                                        Apellido materno
+                                    </label>
 
-            <h2>
-                Datos personales
-            </h2>
+                                    <input
+                                        id="apellidoMaterno"
+                                        name="apellidoMaterno"
+                                        type="text"
+                                        value="{{ form.get('apellidoMaterno', '') }}"
+                                    >
 
-            <div class="form-grid form-grid-3">
+                                </div>
 
-                <div class="form-field">
+                            </div>
 
-                    <label for="nombres">
-                        Nombres
-                    </label>
-
-                    <input
-                        id="nombres"
-                        name="nombres"
-                        type="text"
-                        value="{{ form.get('nombres', '') }}"
-                    >
-
-                </div>
+                        </div>
 
 
-                <div class="form-field">
+                        <!-- =====================================
+                            CONTACTO
+                        ====================================== -->
 
-                    <label for="apellidoPaterno">
-                        Apellido paterno
-                    </label>
+                        <div class="form-section">
 
-                    <input
-                        id="apellidoPaterno"
-                        name="apellidoPaterno"
-                        type="text"
-                        value="{{ form.get('apellidoPaterno', '') }}"
-                    >
+                            <h2>
+                                Contacto
+                            </h2>
 
-                </div>
+                            <div class="form-grid">
 
 
-                <div class="form-field">
+                                <div class="form-field">
 
-                    <label for="apellidoMaterno">
-                        Apellido materno
-                    </label>
+                                    <label for="email">
+                                        Correo
+                                    </label>
 
-                    <input
-                        id="apellidoMaterno"
-                        name="apellidoMaterno"
-                        type="text"
-                        value="{{ form.get('apellidoMaterno', '') }}"
-                    >
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        value="{{ form.get('email', '') }}"
+                                        placeholder="correo@empresa.com"
+                                    >
 
-                </div>
-
-            </div>
-
-        </div>
+                                </div>
 
 
-        <!-- =====================================
-             CONTACTO
-        ====================================== -->
+                                <div class="form-field">
 
-        <div class="form-section">
+                                    <label for="telefono">
+                                        Teléfono
+                                    </label>
 
-            <h2>
-                Contacto
-            </h2>
+                                    <input
+                                        id="telefono"
+                                        name="telefono"
+                                        type="text"
+                                        value="{{ form.get('telefono', '') }}"
+                                        placeholder="999999999"
+                                    >
 
-            <div class="form-grid">
+                                </div>
 
-                <div class="form-field">
+                            </div>
 
-                    <label for="email">
-                        Correo
-                    </label>
-
-                    <input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value="{{ form.get('email', '') }}"
-                        placeholder="correo@empresa.com"
-                    >
-
-                </div>
+                        </div>
 
 
-                <div class="form-field">
+                        <!-- =====================================
+                            ACCESO API
+                        ====================================== -->
 
-                    <label for="telefono">
-                        Teléfono
-                    </label>
+                        <div class="form-section">
 
-                    <input
-                        id="telefono"
-                        name="telefono"
-                        type="text"
-                        value="{{ form.get('telefono', '') }}"
-                        placeholder="999999999"
-                    >
+                            <h2>
+                                Acceso API
+                            </h2>
 
-                </div>
+                            <div class="form-grid">
+
+
+                                <div class="form-field">
+
+                                    <label for="creditosIniciales">
+                                        Créditos iniciales
+                                    </label>
+
+                                    <input
+                                        id="creditosIniciales"
+                                        name="creditosIniciales"
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        value="{{ form.get('creditosIniciales', '0') }}"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <div class="form-field">
+
+                                    <label for="fechaVencimiento">
+                                        Vencimiento del token
+                                    </label>
+
+                                    <input
+                                        id="fechaVencimiento"
+                                        name="fechaVencimiento"
+                                        type="datetime-local"
+                                        value="{{ form.get('fechaVencimiento', '') }}"
+                                    >
+
+                                    <small>
+                                        Opcional. Déjalo vacío para que el token no tenga vencimiento.
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- =====================================
+                            ACCIONES
+                        ====================================== -->
+
+                        <div class="form-actions">
+
+                            <a
+                                href="{{ url_for('clientes') }}"
+                                class="cancel-action"
+                            >
+                                Cancelar
+                            </a>
+
+                            <button
+                                type="submit"
+                                class="primary-action"
+                            >
+                                Crear cliente
+                            </button>
+
+                        </div>
+
+                    </form>
+
+                </section>
 
             </div>
 
-        </div>
-
-
-        <!-- =====================================
-             ACCESO API
-        ====================================== -->
-
-        <div class="form-section">
-
-            <h2>
-                Acceso API
-            </h2>
-
-            <div class="form-grid">
-
-                <div class="form-field">
-
-                    <label for="creditosIniciales">
-                        Créditos iniciales
-                    </label>
-
-                    <input
-                        id="creditosIniciales"
-                        name="creditosIniciales"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value="{{ form.get('creditosIniciales', '0') }}"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="form-field">
-
-                    <label for="fechaVencimiento">
-                        Vencimiento del token
-                    </label>
-
-                    <input
-                        id="fechaVencimiento"
-                        name="fechaVencimiento"
-                        type="datetime-local"
-                        value="{{ form.get('fechaVencimiento', '') }}"
-                    >
-
-                    <small>
-                        Opcional. Déjalo vacío para que el token no tenga vencimiento.
-                    </small>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- =====================================
-             ACCIONES
-        ====================================== -->
-
-        <div class="form-actions">
-
-            <a
-                href="{{ url_for('clientes') }}"
-                class="cancel-action"
-            >
-                Cancelar
-            </a>
-
-            <button
-                type="submit"
-                class="primary-action"
-            >
-                Crear cliente
-            </button>
-
-        </div>
-
-    </form>
-
-</section>
+        </main>
 
     </div>
 
-</main>
 
-</div>
+    <script>
 
+        // =====================================================
+        // ELEMENTOS
+        // =====================================================
 
-<script>
-
-    const tipoDocumento =
-        document.getElementById(
-            "tipoDocumento"
-        );
-
-    const empresaSection =
-        document.getElementById(
-            "empresaSection"
-        );
-
-    const personaSection =
-        document.getElementById(
-            "personaSection"
-        );
-
-    const razonSocial =
-        document.getElementById(
-            "razonSocial"
-        );
-
-    const nombres =
-        document.getElementById(
-            "nombres"
-        );
+        const tipoDocumento =
+            document.getElementById(
+                "tipoDocumento"
+            );
 
 
-    function actualizarFormulario() {
+        const documento =
+            document.getElementById(
+                "documento"
+            );
 
-        const tipo =
-            tipoDocumento.value;
+
+        const documentoAyuda =
+            document.getElementById(
+                "documentoAyuda"
+            );
 
 
-        if (tipo === "RUC") {
+        const empresaSection =
+            document.getElementById(
+                "empresaSection"
+            );
 
-            empresaSection.hidden =
-                false;
 
-            personaSection.hidden =
-                true;
+        const personaSection =
+            document.getElementById(
+                "personaSection"
+            );
 
-            razonSocial.required =
-                true;
 
-            nombres.required =
-                false;
+        const razonSocial =
+            document.getElementById(
+                "razonSocial"
+            );
 
-        } else if (
-            tipo === "DNI" ||
-            tipo === "CE" ||
-            tipo === "PASAPORTE"
-        ) {
 
-            empresaSection.hidden =
-                true;
+        const nombres =
+            document.getElementById(
+                "nombres"
+            );
 
-            personaSection.hidden =
-                false;
 
-            razonSocial.required =
-                false;
+        // =====================================================
+        // REGLAS DE DOCUMENTO
+        // =====================================================
 
-            nombres.required =
-                true;
+        const reglasDocumento = {
 
-        } else {
+            DNI: {
+                maxLength: 8,
+                exactLength: 8,
+                soloNumeros: true,
+                placeholder: "12345678",
+                ayuda: "El DNI debe contener exactamente 8 dígitos.",
+                mensaje:
+                    "El DNI debe contener exactamente 8 dígitos."
+            },
 
-            empresaSection.hidden =
-                true;
 
-            personaSection.hidden =
-                true;
+            RUC: {
+                maxLength: 11,
+                exactLength: 11,
+                soloNumeros: true,
+                placeholder: "20123456789",
+                ayuda: "El RUC debe contener exactamente 11 dígitos.",
+                mensaje:
+                    "El RUC debe contener exactamente 11 dígitos."
+            },
 
-            razonSocial.required =
-                false;
 
-            nombres.required =
-                false;
+            CE: {
+                maxLength: 20,
+                exactLength: null,
+                soloNumeros: false,
+                alfanumerico: true,
+                placeholder: "Carnet de extranjería",
+                ayuda:
+                    "Máximo 20 caracteres alfanuméricos.",
+                mensaje:
+                    "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres."
+            },
+
+
+            PASAPORTE: {
+                maxLength: 20,
+                exactLength: null,
+                soloNumeros: false,
+                alfanumerico: true,
+                placeholder: "Pasaporte",
+                ayuda:
+                    "Máximo 20 caracteres alfanuméricos.",
+                mensaje:
+                    "El pasaporte debe ser alfanumérico y no superar 20 caracteres."
+            }
+
+        };
+
+
+        // =====================================================
+        // FORMULARIO EMPRESA / PERSONA
+        // =====================================================
+
+        function actualizarFormulario() {
+
+            const tipo =
+                tipoDocumento.value;
+
+
+            if (tipo === "RUC") {
+
+                empresaSection.hidden =
+                    false;
+
+                personaSection.hidden =
+                    true;
+
+                razonSocial.required =
+                    true;
+
+                nombres.required =
+                    false;
+
+
+            } else if (
+                tipo === "DNI" ||
+                tipo === "CE" ||
+                tipo === "PASAPORTE"
+            ) {
+
+                empresaSection.hidden =
+                    true;
+
+                personaSection.hidden =
+                    false;
+
+                razonSocial.required =
+                    false;
+
+                nombres.required =
+                    true;
+
+
+            } else {
+
+                empresaSection.hidden =
+                    true;
+
+                personaSection.hidden =
+                    true;
+
+                razonSocial.required =
+                    false;
+
+                nombres.required =
+                    false;
+
+            }
+
         }
-    }
 
 
-    tipoDocumento.addEventListener(
-        "change",
-        actualizarFormulario
-    );
+        // =====================================================
+        // CONFIGURAR CAMPO DOCUMENTO
+        // =====================================================
+
+        function actualizarReglaDocumento() {
+
+            const tipo =
+                tipoDocumento.value;
+
+            const regla =
+                reglasDocumento[tipo];
 
 
-    actualizarFormulario();
+            documento.setCustomValidity("");
 
-</script>
 
-</body>
+            if (!regla) {
+
+                documento.removeAttribute(
+                    "maxlength"
+                );
+
+                documento.removeAttribute(
+                    "placeholder"
+                );
+
+                documento.inputMode =
+                    "text";
+
+                documentoAyuda.textContent =
+                    "";
+
+                return;
+
+            }
+
+
+            documento.maxLength =
+                regla.maxLength;
+
+
+            documento.placeholder =
+                regla.placeholder;
+
+
+            documento.inputMode =
+                regla.soloNumeros
+                    ? "numeric"
+                    : "text";
+
+
+            documentoAyuda.textContent =
+                regla.ayuda;
+
+
+            normalizarDocumento();
+
+            validarDocumento();
+
+        }
+
+
+        // =====================================================
+        // NORMALIZAR DOCUMENTO
+        // =====================================================
+
+        function normalizarDocumento() {
+
+            const tipo =
+                tipoDocumento.value;
+
+            const regla =
+                reglasDocumento[tipo];
+
+
+            if (!regla) {
+                return;
+            }
+
+
+            let valor =
+                documento.value;
+
+
+            // DNI y RUC:
+            // solamente números
+
+            if (regla.soloNumeros) {
+
+                valor =
+                    valor.replace(
+                        /\D/g,
+                        ""
+                    );
+
+            }
+
+
+            // CE y PASAPORTE:
+            // solamente letras y números
+
+            if (regla.alfanumerico) {
+
+                valor =
+                    valor
+                        .replace(
+                            /[^A-Za-z0-9]/g,
+                            ""
+                        )
+                        .toUpperCase();
+
+            }
+
+
+            // Limitar físicamente la longitud
+
+            valor =
+                valor.substring(
+                    0,
+                    regla.maxLength
+                );
+
+
+            documento.value =
+                valor;
+
+        }
+
+
+        // =====================================================
+        // VALIDAR DOCUMENTO
+        // =====================================================
+
+        function validarDocumento() {
+
+            const tipo =
+                tipoDocumento.value;
+
+            const regla =
+                reglasDocumento[tipo];
+
+
+            documento.setCustomValidity("");
+
+
+            if (!regla) {
+                return true;
+            }
+
+
+            const valor =
+                documento.value.trim();
+
+
+            if (!valor) {
+
+                return true;
+
+            }
+
+
+            // Longitud exacta:
+            // DNI = 8
+            // RUC = 11
+
+            if (
+                regla.exactLength &&
+                valor.length !==
+                    regla.exactLength
+            ) {
+
+                documento.setCustomValidity(
+                    regla.mensaje
+                );
+
+                return false;
+
+            }
+
+
+            // Validación numérica
+
+            if (
+                regla.soloNumeros &&
+                !/^\d+$/.test(valor)
+            ) {
+
+                documento.setCustomValidity(
+                    regla.mensaje
+                );
+
+                return false;
+
+            }
+
+
+            // Validación alfanumérica
+
+            if (
+                regla.alfanumerico &&
+                !/^[A-Za-z0-9]+$/.test(valor)
+            ) {
+
+                documento.setCustomValidity(
+                    regla.mensaje
+                );
+
+                return false;
+
+            }
+
+
+            return true;
+
+        }
+
+
+        // =====================================================
+        // EVENTO DEL DOCUMENTO
+        // =====================================================
+
+        documento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumento();
+
+                validarDocumento();
+
+            }
+        );
+
+
+        documento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumento();
+
+            }
+        );
+
+
+        // =====================================================
+        // CAMBIO DE TIPO DE DOCUMENTO
+        // =====================================================
+
+        tipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                // Si cambia DNI → RUC → CE, etc.,
+                // limpiamos el documento anterior.
+
+                documento.value =
+                    "";
+
+                actualizarFormulario();
+
+                actualizarReglaDocumento();
+
+                documento.focus();
+
+            }
+        );
+
+
+        // =====================================================
+        // VALIDACIÓN ANTES DE ENVIAR
+        // =====================================================
+
+        document
+            .getElementById(
+                "clienteForm"
+            )
+            .addEventListener(
+                "submit",
+                function (event) {
+
+                    normalizarDocumento();
+
+                    const documentoValido =
+                        validarDocumento();
+
+
+                    if (!documentoValido) {
+
+                        event.preventDefault();
+
+                        documento.reportValidity();
+
+                        documento.focus();
+
+                    }
+
+                }
+            );
+
+
+        // =====================================================
+        // INICIALIZACIÓN
+        // =====================================================
+
+        actualizarFormulario();
+
+        actualizarReglaDocumento();
+
+    </script>
+
+
+    </body>
 
 </html>

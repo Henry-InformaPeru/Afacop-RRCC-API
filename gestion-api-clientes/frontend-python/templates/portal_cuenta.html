@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="es">
 
 <head>
@@ -16,7 +17,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=10"
+        href="{{ url_for('static', filename='css/style.css') }}?v=15"
     >
 
 </head>
@@ -25,6 +26,11 @@
 <body class="portal-body">
 
 <div class="portal-shell">
+
+
+    <!-- =====================================
+         HEADER
+    ====================================== -->
 
     <header class="portal-header">
 
@@ -66,7 +72,13 @@
     </header>
 
 
+
+    <!-- =====================================
+         CONTENIDO
+    ====================================== -->
+
     <main class="portal-content">
+
 
         {% if error %}
 
@@ -77,7 +89,13 @@
         {% endif %}
 
 
+
         {% if cuenta %}
+
+
+        <!-- =====================================
+             CUENTA
+        ====================================== -->
 
         <section class="portal-welcome">
 
@@ -97,7 +115,13 @@
         </section>
 
 
+
+        <!-- =====================================
+             CRÉDITOS
+        ====================================== -->
+
         <section class="portal-credit-grid">
+
 
             <article class="portal-credit-card">
 
@@ -139,45 +163,158 @@
 
         </section>
 
-            <!-- =====================================
-             CONSULTA RRCC
+
+
+        <!-- =====================================
+             BOTÓN PARA ABRIR CONSULTA
         ====================================== -->
 
-        <section class="portal-query-panel">
+        <section class="portal-query-launch">
 
-            <div class="portal-query-header">
+            <div>
 
-                <div>
+                <span class="portal-label">
+                    Consulta RRCC
+                </span>
 
-                    <h2>
-                        Consulta RRCC
-                    </h2>
+                <h2>
+                    Consulta de calificación
+                </h2>
 
-                    <p>
-                        Ingresa el documento que deseas consultar.
-                    </p>
-
-                </div>
-
-
-                <div class="portal-query-cost">
-                    1 crédito por consulta exitosa
-                </div>
+                <p>
+                    Consulta información utilizando DNI, RUC,
+                    Carnet de Extranjería o Pasaporte.
+                </p>
 
             </div>
 
 
+            <div class="portal-query-launch-actions">
+
+                <span class="portal-query-cost">
+                    1 crédito por consulta
+                </span>
+
+                <button
+                    type="button"
+                    class="portal-query-button"
+                    id="abrirConsultaModal"
+                >
+                    Nueva consulta
+                </button>
+
+            </div>
+
+        </section>
+
+
+        {% endif %}
+
+    </main>
+
+</div>
+
+
+
+<!-- ==================================================
+     MODAL CONSULTA RRCC
+================================================== -->
+
+{% if cuenta %}
+
+<div
+    class="portal-modal-overlay"
+    id="consultaModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if consulta_json else 'false' }}"
+>
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consultaModalTitulo"
+    >
+
+
+        <!-- ==========================================
+             HEADER MODAL
+        =========================================== -->
+
+        <div class="portal-modal-header">
+
+            <div>
+
+                <h2 id="consultaModalTitulo">
+                    Consulta de calificación de personas
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarConsultaModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+        </div>
+
+
+
+        <!-- ==========================================
+             BODY MODAL
+        =========================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <!-- COSTO -->
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ======================================
+                 FORMULARIO
+            ======================================= -->
+
             <form
+                id="consultaForm"
                 method="POST"
                 action="{{ url_for('portal_consulta') }}"
-                class="portal-query-form"
+                class="portal-modal-form"
             >
+
+
+                <!-- TIPO DOCUMENTO -->
 
                 <div class="portal-query-field">
 
                     <label for="tipoDocumento">
                         Tipo de documento
                     </label>
+
 
                     <select
                         id="tipoDocumento"
@@ -216,7 +353,7 @@
                             selected
                             {% endif %}
                         >
-                            CE
+                            Carnet de Extranjería
                         </option>
 
 
@@ -234,11 +371,15 @@
                 </div>
 
 
+
+                <!-- DOCUMENTO -->
+
                 <div class="portal-query-field portal-document-field">
 
                     <label for="documento">
                         Documento
                     </label>
+
 
                     <input
                         id="documento"
@@ -250,10 +391,16 @@
                         required
                     >
 
+
+                    <small id="documentoAyuda"></small>
+
                 </div>
 
 
-                <div class="portal-query-submit">
+
+                <!-- BOTÓN -->
+
+                <div class="portal-modal-submit">
 
                     <button
                         type="submit"
@@ -266,71 +413,2344 @@
 
             </form>
 
-        </section>
 
 
-        <!-- =====================================
-             RESPUESTA JSON
-        ====================================== -->
+            <!-- ======================================
+                 RESULTADO
+            ======================================= -->
 
-        {% if consulta_json %}
+            {% if consulta_json %}
 
-        <section class="portal-json-panel">
+            <div class="portal-modal-result">
 
-            <div class="portal-json-header">
+                <!-- SELECTOR DE VISTA -->
+                <div class="portal-result-tabs">
 
-                <div>
+                    <button
+                        type="button"
+                        class="portal-result-tab active"
+                        id="resumenTab"
+                    >
+                        Vista resumen
+                    </button>
 
-                    <span class="portal-label">
-                        Respuesta API
-                    </span>
-
-                    <h2>
-                        Resultado JSON
-                    </h2>
-
-                    <p>
-                        Respuesta completa devuelta por el servicio.
-                    </p>
+                    <button
+                        type="button"
+                        class="portal-result-tab"
+                        id="jsonTab"
+                    >
+                        Vista JSON
+                    </button>
 
                 </div>
 
 
-                <button
-                    type="button"
-                    class="copy-json-button"
-                    id="copyJsonButton"
-                    onclick="copiarJson()"
+                <!-- ==================================
+                     VISTA RESUMEN
+                =================================== -->
+
+                <div
+                    class="portal-result-view active"
+                    id="resumenView"
                 >
-                    Copiar JSON
-                </button>
+
+                    <div
+                        class="portal-result-error"
+                        id="consultaErrorView"
+                        hidden
+                    ></div>
+
+
+                    <div id="resumenContenido">
+
+                        <!-- METADATOS -->
+                        <div class="portal-report-meta">
+
+                            <div class="portal-report-meta-item">
+
+                                <span>
+                                    Documento
+                                </span>
+
+                                <strong id="resumenDocumento">
+                                    -
+                                </strong>
+
+                            </div>
+
+
+                            <div class="portal-report-meta-item portal-report-name">
+
+                                <span>
+                                    Nombre
+                                </span>
+
+                                <strong id="resumenNombre">
+                                    -
+                                </strong>
+
+                            </div>
+
+
+                            <div class="portal-report-meta-item">
+
+                                <span>
+                                    Consulta
+                                </span>
+
+                                <strong id="resumenConsulta">
+                                    -
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- CALIFICACIÓN CREDITICIA -->
+                        <section class="portal-report-section">
+
+                            <div class="portal-report-section-title">
+                                Calificación crediticia
+                            </div>
+
+
+                            <div class="portal-rating-bar">
+
+                                <span
+                                    id="ratingBarNOR"
+                                    class="rating-nor"
+                                ></span>
+
+                                <span
+                                    id="ratingBarCPP"
+                                    class="rating-cpp"
+                                ></span>
+
+                                <span
+                                    id="ratingBarDEF"
+                                    class="rating-def"
+                                ></span>
+
+                                <span
+                                    id="ratingBarDUD"
+                                    class="rating-dud"
+                                ></span>
+
+                                <span
+                                    id="ratingBarPER"
+                                    class="rating-per"
+                                ></span>
+
+                                <span
+                                    id="ratingBarReportan"
+                                    class="rating-reportan"
+                                ></span>
+
+                            </div>
+
+
+                            <div class="portal-rating-grid">
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Normal
+                                    </span>
+
+                                    <strong
+                                        id="ratingNOR"
+                                        class="rating-value-nor"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Prob. Potenciales
+                                    </span>
+
+                                    <strong
+                                        id="ratingCPP"
+                                        class="rating-value-cpp"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Deficiente
+                                    </span>
+
+                                    <strong
+                                        id="ratingDEF"
+                                        class="rating-value-def"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Dudoso
+                                    </span>
+
+                                    <strong
+                                        id="ratingDUD"
+                                        class="rating-value-dud"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Pérdida
+                                    </span>
+
+                                    <strong
+                                        id="ratingPER"
+                                        class="rating-value-per"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Reportan
+                                    </span>
+
+                                    <strong
+                                        id="ratingReportan"
+                                        class="rating-value-reportan"
+                                    >
+                                        0
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- DETALLE DE DEUDA -->
+                        <section class="portal-report-section">
+
+                            <div class="portal-report-section-title">
+                                Detalle de deuda
+                            </div>
+
+
+                            <div class="portal-report-table-wrap">
+
+                                <table class="portal-report-table">
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th>
+                                                Entidad
+                                            </th>
+
+                                            <th>
+                                                Tipo de deuda
+                                            </th>
+
+                                            <th>
+                                                Calificación
+                                            </th>
+
+                                            <th>
+                                                Días
+                                            </th>
+
+                                            <th class="align-right">
+                                                Capital
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody id="deudasBody">
+
+                                        <tr>
+
+                                            <td
+                                                colspan="5"
+                                                class="portal-report-empty"
+                                            >
+                                                Sin información.
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- LÍNEAS DE CRÉDITO -->
+                        <section class="portal-report-section">
+
+                            <div class="portal-report-section-title">
+                                Líneas de crédito
+                            </div>
+
+
+                            <div class="portal-report-table-wrap">
+
+                                <table class="portal-report-table">
+
+                                    <thead>
+
+                                        <tr>
+
+                                            <th>
+                                                Entidad reportante
+                                            </th>
+
+                                            <th>
+                                                Tipo de línea
+                                            </th>
+
+                                            <th>
+                                                % utilizado
+                                            </th>
+
+                                            <th>
+                                                % no utilizado
+                                            </th>
+
+                                            <th class="align-right">
+                                                Línea de crédito
+                                            </th>
+
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody id="lineasBody">
+
+                                        <tr>
+
+                                            <td
+                                                colspan="5"
+                                                class="portal-report-empty"
+                                            >
+                                                Sin información.
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </section>
+
+
+                        <!-- PERIODO -->
+                        <div
+                            class="portal-report-period"
+                            id="reportePeriodo"
+                        >
+                            Reporte actualizado con el periodo -
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ==================================
+                     VISTA JSON
+                =================================== -->
+
+                <div
+                    class="portal-result-view"
+                    id="jsonView"
+                >
+
+                    <div class="portal-json-header">
+
+                        <div>
+
+                            <span class="portal-label">
+                                Respuesta API
+                            </span>
+
+                            <h2>
+                                Resultado JSON
+                            </h2>
+
+                            <p>
+                                Respuesta completa devuelta por el servicio.
+                            </p>
+
+                        </div>
+
+
+                        <button
+                            type="button"
+                            class="copy-json-button"
+                            id="copyJsonButton"
+                            onclick="copiarJson()"
+                        >
+                            Copiar JSON
+                        </button>
+
+                    </div>
+
+
+                    <div class="portal-json-container">
+
+                        <pre
+                            id="jsonResponse"
+                            class="portal-json-response"
+                        >{{ consulta_json }}</pre>
+
+                    </div>
+
+                </div>
 
             </div>
 
+            {% endif %}
 
-            <div class="portal-json-container">
+        </div>
 
-                <pre
-                    id="jsonResponse"
-                    class="portal-json-response"
-                >{{ consulta_json }}</pre>
-
-            </div>
-
-        </section>
-
-        {% endif %}
-
-
-        <!-- CIERRA: if cuenta -->
-
-        {% endif %}
-
-    </main>
+    </div>
 
 </div>
 
-    <script>
+{% endif %}
+
+
+
+<script>
+
+    // =====================================================
+    // REGLAS DE DOCUMENTOS
+    // =====================================================
+
+    const reglasDocumento = {
+
+        DNI: {
+
+            maxLength: 8,
+
+            exactLength: 8,
+
+            soloNumeros: true,
+
+            alfanumerico: false,
+
+            placeholder:
+                "Ingrese DNI",
+
+            ayuda:
+                "El DNI debe contener exactamente 8 dígitos.",
+
+            mensaje:
+                "El DNI debe contener exactamente 8 dígitos."
+        },
+
+
+        RUC: {
+
+            maxLength: 11,
+
+            exactLength: 11,
+
+            soloNumeros: true,
+
+            alfanumerico: false,
+
+            placeholder:
+                "Ingrese RUC",
+
+            ayuda:
+                "El RUC debe contener exactamente 11 dígitos.",
+
+            mensaje:
+                "El RUC debe contener exactamente 11 dígitos."
+        },
+
+
+        CE: {
+
+            maxLength: 20,
+
+            exactLength: null,
+
+            soloNumeros: false,
+
+            alfanumerico: true,
+
+            placeholder:
+                "Carnet de extranjería",
+
+            ayuda:
+                "Máximo 20 caracteres alfanuméricos.",
+
+            mensaje:
+                "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres."
+        },
+
+
+        PASAPORTE: {
+
+            maxLength: 20,
+
+            exactLength: null,
+
+            soloNumeros: false,
+
+            alfanumerico: true,
+
+            placeholder:
+                "Pasaporte",
+
+            ayuda:
+                "Máximo 20 caracteres alfanuméricos.",
+
+            mensaje:
+                "El pasaporte debe ser alfanumérico y no superar 20 caracteres."
+        }
+
+    };
+
+
+
+    // =====================================================
+    // ELEMENTOS
+    // =====================================================
+
+    const consultaForm =
+        document.getElementById(
+            "consultaForm"
+        );
+
+
+    const tipoDocumento =
+        document.getElementById(
+            "tipoDocumento"
+        );
+
+
+    const documento =
+        document.getElementById(
+            "documento"
+        );
+
+
+    const documentoAyuda =
+        document.getElementById(
+            "documentoAyuda"
+        );
+
+
+    const consultaModal =
+        document.getElementById(
+            "consultaModal"
+        );
+
+
+    const abrirConsultaModal =
+        document.getElementById(
+            "abrirConsultaModal"
+        );
+
+
+    const cerrarConsultaModal =
+        document.getElementById(
+            "cerrarConsultaModal"
+        );
+
+    // =====================================================
+// VISTAS DEL RESULTADO
+    // =====================================================
+
+    const resumenTab =
+        document.getElementById(
+            "resumenTab"
+        );
+
+
+    const jsonTab =
+        document.getElementById(
+            "jsonTab"
+        );
+
+
+    const resumenView =
+        document.getElementById(
+            "resumenView"
+        );
+
+
+    const jsonView =
+        document.getElementById(
+            "jsonView"
+        );
+
+
+    // -----------------------------------------------------
+    // CAMBIAR VISTA
+    // -----------------------------------------------------
+
+    function cambiarVistaResultado(
+        vista
+    ) {
+
+        if (
+            !resumenTab ||
+            !jsonTab ||
+            !resumenView ||
+            !jsonView
+        ) {
+
+            return;
+        }
+
+
+        const mostrarResumen =
+            vista === "resumen";
+
+
+        resumenTab.classList.toggle(
+            "active",
+            mostrarResumen
+        );
+
+
+        jsonTab.classList.toggle(
+            "active",
+            !mostrarResumen
+        );
+
+
+        resumenView.classList.toggle(
+            "active",
+            mostrarResumen
+        );
+
+
+        jsonView.classList.toggle(
+            "active",
+            !mostrarResumen
+        );
+    }
+
+
+    if (resumenTab) {
+
+        resumenTab.addEventListener(
+            "click",
+            function () {
+
+                cambiarVistaResultado(
+                    "resumen"
+                );
+
+            }
+        );
+    }
+
+
+    if (jsonTab) {
+
+        jsonTab.addEventListener(
+            "click",
+            function () {
+
+                cambiarVistaResultado(
+                    "json"
+                );
+
+            }
+        );
+    }
+
+
+    // =====================================================
+    // FORMATEADORES DE LA VISTA RESUMEN
+    // =====================================================
+
+    function valorNumerico(
+        valor
+    ) {
+
+        const numero =
+            Number(
+                valor
+            );
+
+
+        return Number.isFinite(
+            numero
+        )
+            ? numero
+            : 0;
+    }
+
+
+    function formatoMoneda(
+        valor
+    ) {
+
+        return valorNumerico(
+            valor
+        ).toLocaleString(
+            "es-PE",
+            {
+                style:
+                    "currency",
+
+                currency:
+                    "PEN",
+
+                minimumFractionDigits:
+                    2,
+
+                maximumFractionDigits:
+                    2
+            }
+        );
+    }
+
+
+    function formatoPorcentaje(
+        valor
+    ) {
+
+        return (
+            valorNumerico(
+                valor
+            ).toFixed(
+                2
+            )
+            +
+            "%"
+        );
+    }
+
+
+    function formatoPeriodo(
+        periodo
+    ) {
+
+        const texto =
+            String(
+                periodo || ""
+            ).trim();
+
+
+        if (
+            !/^\d{6}$/.test(
+                texto
+            )
+        ) {
+
+            return (
+                texto ||
+                "-"
+            );
+        }
+
+
+        const anio =
+            texto.slice(
+                0,
+                4
+            );
+
+
+        const mes =
+            Number(
+                texto.slice(
+                    4,
+                    6
+                )
+            );
+
+
+        const meses = [
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre"
+        ];
+
+
+        if (
+            mes < 1 ||
+            mes > 12
+        ) {
+
+            return texto;
+        }
+
+
+        return (
+            `${meses[mes - 1]} ${anio}`
+        );
+    }
+
+
+    function formatoFechaConsulta(
+        valor
+    ) {
+
+        const fecha =
+            valor
+                ? new Date(
+                    valor
+                )
+                : new Date();
+
+
+        if (
+            Number.isNaN(
+                fecha.getTime()
+            )
+        ) {
+
+            return "-";
+        }
+
+
+        return fecha.toLocaleString(
+            "es-PE",
+            {
+                timeZone:
+                    "America/Lima",
+
+                day:
+                    "2-digit",
+
+                month:
+                    "2-digit",
+
+                year:
+                    "numeric",
+
+                hour:
+                    "2-digit",
+
+                minute:
+                    "2-digit"
+            }
+        );
+    }
+
+
+    function textoSeguro(
+        valor,
+        alternativo = "-"
+    ) {
+
+        if (
+            valor === null ||
+            valor === undefined ||
+            valor === ""
+        ) {
+
+            return alternativo;
+        }
+
+
+        return String(
+            valor
+        );
+    }
+
+
+    function crearCelda(
+        texto,
+        clase = ""
+    ) {
+
+        const td =
+            document.createElement(
+                "td"
+            );
+
+
+        if (clase) {
+
+            td.className =
+                clase;
+        }
+
+
+        td.textContent =
+            texto;
+
+
+        return td;
+    }
+
+
+    // =====================================================
+    // RENDER DEUDAS
+    // =====================================================
+
+    function renderizarDeudas(
+        deudas,
+        totalInformado
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "deudasBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.replaceChildren();
+
+
+        const lista =
+            Array.isArray(
+                deudas
+            )
+                ? deudas
+                : [];
+
+
+        if (
+            lista.length === 0
+        ) {
+
+            const fila =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const celda =
+                document.createElement(
+                    "td"
+                );
+
+
+            celda.colSpan =
+                5;
+
+
+            celda.className =
+                "portal-report-empty";
+
+
+            celda.textContent =
+                "No se registran deudas para el período consultado.";
+
+
+            fila.appendChild(
+                celda
+            );
+
+
+            tbody.appendChild(
+                fila
+            );
+
+
+            return;
+        }
+
+
+        let totalCalculado =
+            0;
+
+
+        lista.forEach(
+            function (
+                deuda
+            ) {
+
+                const fila =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                const saldo =
+                    valorNumerico(
+                        deuda?.saldo
+                        ??
+                        deuda?.capital
+                        ??
+                        0
+                    );
+
+
+                totalCalculado +=
+                    saldo;
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.entidad
+                        ),
+                        "entity-cell"
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.tipoDeuda
+                        )
+                    )
+                );
+
+
+                const tdCalificacion =
+                    document.createElement(
+                        "td"
+                    );
+
+
+                const calificacion =
+                    textoSeguro(
+                        deuda?.calificacion
+                    )
+                        .trim()
+                        .toUpperCase();
+
+
+                const badge =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                badge.className =
+                    "portal-calificacion";
+
+
+                const texto =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                texto.textContent =
+                    calificacion;
+
+
+                const punto =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                const clasesValidas =
+                    [
+                        "NOR",
+                        "CPP",
+                        "DEF",
+                        "DUD",
+                        "PER"
+                    ];
+
+
+                punto.className =
+                    "portal-calificacion-dot";
+
+
+                if (
+                    clasesValidas.includes(
+                        calificacion
+                    )
+                ) {
+
+                    punto.classList.add(
+                        `calificacion-${calificacion.toLowerCase()}`
+                    );
+                }
+
+
+                badge.appendChild(
+                    texto
+                );
+
+
+                badge.appendChild(
+                    punto
+                );
+
+
+                tdCalificacion.appendChild(
+                    badge
+                );
+
+
+                fila.appendChild(
+                    tdCalificacion
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.dias
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoMoneda(
+                            saldo
+                        ),
+                        "align-right amount-cell"
+                    )
+                );
+
+
+                tbody.appendChild(
+                    fila
+                );
+            }
+        );
+
+
+        const total =
+            totalInformado !== null &&
+            totalInformado !== undefined
+                ? valorNumerico(
+                    totalInformado
+                )
+                : totalCalculado;
+
+
+        const filaTotal =
+            document.createElement(
+                "tr"
+            );
+
+
+        filaTotal.className =
+            "portal-total-row";
+
+
+        const vacio =
+            document.createElement(
+                "td"
+            );
+
+
+        vacio.colSpan =
+            3;
+
+
+        filaTotal.appendChild(
+            vacio
+        );
+
+
+        filaTotal.appendChild(
+            crearCelda(
+                "TOTAL"
+            )
+        );
+
+
+        const totalCelda =
+            crearCelda(
+                formatoMoneda(
+                    total
+                ),
+                "align-right"
+            );
+
+
+        const strong =
+            document.createElement(
+                "strong"
+            );
+
+
+        strong.textContent =
+            totalCelda.textContent;
+
+
+        totalCelda.replaceChildren(
+            strong
+        );
+
+
+        filaTotal.appendChild(
+            totalCelda
+        );
+
+
+        tbody.appendChild(
+            filaTotal
+        );
+    }
+
+
+    // =====================================================
+    // RENDER LÍNEAS DE CRÉDITO
+    // =====================================================
+
+    function renderizarLineas(
+        lineas,
+        totalInformado
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "lineasBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.replaceChildren();
+
+
+        const lista =
+            Array.isArray(
+                lineas
+            )
+                ? lineas
+                : [];
+
+
+        if (
+            lista.length === 0
+        ) {
+
+            const fila =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const celda =
+                document.createElement(
+                    "td"
+                );
+
+
+            celda.colSpan =
+                5;
+
+
+            celda.className =
+                "portal-report-empty";
+
+
+            celda.textContent =
+                "No se registran líneas de crédito para el período consultado.";
+
+
+            fila.appendChild(
+                celda
+            );
+
+
+            tbody.appendChild(
+                fila
+            );
+
+
+            return;
+        }
+
+
+        let totalCalculado =
+            0;
+
+
+        lista.forEach(
+            function (
+                linea
+            ) {
+
+                const fila =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                const lineaCredito =
+                    valorNumerico(
+                        linea?.lineaCredito
+                        ??
+                        linea?.linea
+                        ??
+                        0
+                    );
+
+
+                totalCalculado +=
+                    lineaCredito;
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            linea?.entidad
+                        ),
+                        "entity-cell"
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            linea?.tipo
+                            ??
+                            linea?.tipoLinea
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoPorcentaje(
+                            linea?.porcentajeUtilizado
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoPorcentaje(
+                            linea?.porcentajeNoUtilizado
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoMoneda(
+                            lineaCredito
+                        ),
+                        "align-right amount-cell"
+                    )
+                );
+
+
+                tbody.appendChild(
+                    fila
+                );
+            }
+        );
+
+
+        const total =
+            totalInformado !== null &&
+            totalInformado !== undefined
+                ? valorNumerico(
+                    totalInformado
+                )
+                : totalCalculado;
+
+
+        const filaTotal =
+            document.createElement(
+                "tr"
+            );
+
+
+        filaTotal.className =
+            "portal-total-row";
+
+
+        const vacio =
+            document.createElement(
+                "td"
+            );
+
+
+        vacio.colSpan =
+            3;
+
+
+        filaTotal.appendChild(
+            vacio
+        );
+
+
+        filaTotal.appendChild(
+            crearCelda(
+                "TOTAL"
+            )
+        );
+
+
+        const totalCelda =
+            crearCelda(
+                formatoMoneda(
+                    total
+                ),
+                "align-right"
+            );
+
+
+        const strong =
+            document.createElement(
+                "strong"
+            );
+
+
+        strong.textContent =
+            totalCelda.textContent;
+
+
+        totalCelda.replaceChildren(
+            strong
+        );
+
+
+        filaTotal.appendChild(
+            totalCelda
+        );
+
+
+        tbody.appendChild(
+            filaTotal
+        );
+    }
+
+
+    // =====================================================
+    // RENDER COMPLETO DE LA VISTA RESUMEN
+    // =====================================================
+
+    function renderizarResumenConsulta() {
+
+        const jsonResponse =
+            document.getElementById(
+                "jsonResponse"
+            );
+
+
+        if (!jsonResponse) {
+            return;
+        }
+
+
+        const errorView =
+            document.getElementById(
+                "consultaErrorView"
+            );
+
+
+        const contenido =
+            document.getElementById(
+                "resumenContenido"
+            );
+
+
+        let respuesta;
+
+
+        try {
+
+            respuesta =
+                JSON.parse(
+                    jsonResponse.textContent
+                );
+
+        } catch (error) {
+
+            if (errorView) {
+
+                errorView.hidden =
+                    false;
+
+
+                errorView.textContent =
+                    "No se pudo interpretar la respuesta de la consulta.";
+            }
+
+
+            if (contenido) {
+
+                contenido.hidden =
+                    true;
+            }
+
+
+            return;
+        }
+
+
+        const esObjeto =
+            respuesta &&
+            typeof respuesta ===
+                "object";
+
+
+        const datos =
+            esObjeto &&
+            respuesta.data &&
+            typeof respuesta.data ===
+                "object" &&
+            !Array.isArray(
+                respuesta.data
+            )
+                ? respuesta.data
+                : respuesta;
+
+
+        const fallo =
+            !esObjeto ||
+            respuesta.success === false ||
+            !datos ||
+            typeof datos !==
+                "object";
+
+
+        if (fallo) {
+
+            const mensaje =
+                respuesta?.error
+                ||
+                respuesta?.message
+                ||
+                respuesta?.mensaje
+                ||
+                "No fue posible realizar la consulta.";
+
+
+            if (errorView) {
+
+                errorView.hidden =
+                    false;
+
+
+                errorView.textContent =
+                    mensaje;
+            }
+
+
+            if (contenido) {
+
+                contenido.hidden =
+                    true;
+            }
+
+
+            return;
+        }
+
+
+        if (errorView) {
+
+            errorView.hidden =
+                true;
+        }
+
+
+        if (contenido) {
+
+            contenido.hidden =
+                false;
+        }
+
+
+        const documentoResumen =
+            document.getElementById(
+                "resumenDocumento"
+            );
+
+
+        const nombreResumen =
+            document.getElementById(
+                "resumenNombre"
+            );
+
+
+        const consultaResumen =
+            document.getElementById(
+                "resumenConsulta"
+            );
+
+
+        if (documentoResumen) {
+
+            documentoResumen.textContent =
+                textoSeguro(
+                    datos.documento
+                );
+        }
+
+
+        if (nombreResumen) {
+
+            nombreResumen.textContent =
+                textoSeguro(
+                    datos.nombre
+                ).toUpperCase();
+        }
+
+
+        if (consultaResumen) {
+
+            consultaResumen.textContent =
+                formatoFechaConsulta(
+                    datos.fechaConsulta
+                    ??
+                    respuesta.fechaConsulta
+                    ??
+                    null
+                );
+        }
+
+
+        const rating =
+            datos.rating &&
+            typeof datos.rating ===
+                "object"
+                ? datos.rating
+                : {};
+
+
+        const ratingNOR =
+            valorNumerico(
+                rating.NOR
+                ??
+                rating.normal
+            );
+
+
+        const ratingCPP =
+            valorNumerico(
+                rating.CPP
+                ??
+                rating.problemas
+            );
+
+
+        const ratingDEF =
+            valorNumerico(
+                rating.DEF
+                ??
+                rating.deficiente
+            );
+
+
+        const ratingDUD =
+            valorNumerico(
+                rating.DUD
+                ??
+                rating.dudoso
+            );
+
+
+        const ratingPER =
+            valorNumerico(
+                rating.PER
+                ??
+                rating.perdida
+            );
+
+
+        const ratingReportan =
+            valorNumerico(
+                rating.reportan
+            );
+
+
+        const valoresRating = {
+            ratingNOR:
+                `${ratingNOR}%`,
+
+            ratingCPP:
+                `${ratingCPP}%`,
+
+            ratingDEF:
+                `${ratingDEF}%`,
+
+            ratingDUD:
+                `${ratingDUD}%`,
+
+            ratingPER:
+                `${ratingPER}%`,
+
+            ratingReportan:
+                String(
+                    ratingReportan
+                )
+        };
+
+
+        Object.entries(
+            valoresRating
+        ).forEach(
+            function (
+                [id, valor]
+            ) {
+
+                const elemento =
+                    document.getElementById(
+                        id
+                    );
+
+
+                if (elemento) {
+
+                    elemento.textContent =
+                        valor;
+                }
+            }
+        );
+
+
+        const barras = [
+            [
+                "ratingBarNOR",
+                ratingNOR
+            ],
+            [
+                "ratingBarCPP",
+                ratingCPP
+            ],
+            [
+                "ratingBarDEF",
+                ratingDEF
+            ],
+            [
+                "ratingBarDUD",
+                ratingDUD
+            ],
+            [
+                "ratingBarPER",
+                ratingPER
+            ],
+            [
+                "ratingBarReportan",
+                ratingReportan
+            ]
+        ];
+
+
+        barras.forEach(
+            function (
+                [id, valor]
+            ) {
+
+                const elemento =
+                    document.getElementById(
+                        id
+                    );
+
+
+                if (elemento) {
+
+                    elemento.style.flexGrow =
+                        String(
+                            valor > 0
+                                ? valor
+                                : 0.5
+                        );
+                }
+            }
+        );
+
+
+        renderizarDeudas(
+            datos.deudas,
+            datos.totalCapital
+            ??
+            datos.totalSaldo
+            ??
+            null
+        );
+
+
+        renderizarLineas(
+            datos.lineas,
+            datos.totalLineaCredito
+            ??
+            null
+        );
+
+
+        const reportePeriodo =
+            document.getElementById(
+                "reportePeriodo"
+            );
+
+
+        if (reportePeriodo) {
+
+            reportePeriodo.textContent =
+                (
+                    "Reporte actualizado con el periodo "
+                    +
+                    formatoPeriodo(
+                        datos.periodo
+                    )
+                );
+        }
+    }
+
+
+    // =====================================================
+    // ABRIR MODAL
+    // =====================================================
+
+    function abrirModalConsulta() {
+
+        if (!consultaModal) {
+            return;
+        }
+
+
+        consultaModal.classList.add(
+            "is-open"
+        );
+
+
+        consultaModal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.classList.add(
+            "portal-modal-open"
+        );
+
+
+        setTimeout(
+            () => {
+
+                if (tipoDocumento) {
+
+                    tipoDocumento.focus();
+
+                }
+
+            },
+            100
+        );
+    }
+
+
+
+    // =====================================================
+    // CERRAR MODAL
+    // =====================================================
+
+    function cerrarModalConsulta() {
+
+        if (!consultaModal) {
+            return;
+        }
+
+
+        consultaModal.classList.remove(
+            "is-open"
+        );
+
+
+        consultaModal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        document.body.classList.remove(
+            "portal-modal-open"
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTO ABRIR
+    // =====================================================
+
+    if (abrirConsultaModal) {
+
+        abrirConsultaModal.addEventListener(
+            "click",
+            abrirModalConsulta
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTO CERRAR
+    // =====================================================
+
+    if (cerrarConsultaModal) {
+
+        cerrarConsultaModal.addEventListener(
+            "click",
+            cerrarModalConsulta
+        );
+    }
+
+
+
+    // =====================================================
+    // CERRAR AL HACER CLICK EN EL FONDO
+    // =====================================================
+
+    if (consultaModal) {
+
+        consultaModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    consultaModal
+                ) {
+
+                    cerrarModalConsulta();
+
+                }
+
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // CERRAR CON ESC
+    // =====================================================
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key === "Escape" &&
+                consultaModal &&
+                consultaModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModalConsulta();
+
+            }
+
+        }
+    );
+
+
+
+    // =====================================================
+    // NORMALIZAR DOCUMENTO
+    // =====================================================
+
+    function normalizarDocumento() {
+
+        if (
+            !tipoDocumento ||
+            !documento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                tipoDocumento.value
+            ];
+
+
+        if (!regla) {
+            return;
+        }
+
+
+        let valor =
+            documento.value;
+
+
+        // DNI / RUC
+        // solo números
+
+        if (regla.soloNumeros) {
+
+            valor =
+                valor.replace(
+                    /\D/g,
+                    ""
+                );
+        }
+
+
+        // CE / PASAPORTE
+        // solo letras y números
+
+        if (regla.alfanumerico) {
+
+            valor =
+                valor
+                    .replace(
+                        /[^A-Za-z0-9]/g,
+                        ""
+                    )
+                    .toUpperCase();
+        }
+
+
+        valor =
+            valor.substring(
+                0,
+                regla.maxLength
+            );
+
+
+        documento.value =
+            valor;
+    }
+
+
+
+    // =====================================================
+    // CONFIGURAR DOCUMENTO
+    // =====================================================
+
+    function configurarDocumento() {
+
+        if (
+            !tipoDocumento ||
+            !documento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                tipoDocumento.value
+            ];
+
+
+        documento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+
+            documento.removeAttribute(
+                "maxlength"
+            );
+
+
+            documento.placeholder =
+                "Ingrese documento";
+
+
+            documento.inputMode =
+                "text";
+
+
+            if (documentoAyuda) {
+
+                documentoAyuda.textContent =
+                    "";
+            }
+
+
+            return;
+        }
+
+
+        documento.maxLength =
+            regla.maxLength;
+
+
+        documento.inputMode =
+            regla.soloNumeros
+                ? "numeric"
+                : "text";
+
+
+        documento.placeholder =
+            regla.placeholder;
+
+
+        if (documentoAyuda) {
+
+            documentoAyuda.textContent =
+                regla.ayuda;
+        }
+
+
+        normalizarDocumento();
+    }
+
+
+
+    // =====================================================
+    // VALIDAR DOCUMENTO
+    // =====================================================
+
+    function validarDocumento() {
+
+        if (
+            !tipoDocumento ||
+            !documento
+        ) {
+
+            return true;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                tipoDocumento.value
+            ];
+
+
+        documento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+
+            return true;
+        }
+
+
+        const valor =
+            documento.value.trim();
+
+
+        if (!valor) {
+
+            return true;
+        }
+
+
+        // LONGITUD EXACTA
+
+        if (
+            regla.exactLength &&
+            valor.length !==
+                regla.exactLength
+        ) {
+
+            documento.setCustomValidity(
+                regla.mensaje
+            );
+
+
+            return false;
+        }
+
+
+        // SOLO NÚMEROS
+
+        if (
+            regla.soloNumeros &&
+            !/^\d+$/.test(
+                valor
+            )
+        ) {
+
+            documento.setCustomValidity(
+                regla.mensaje
+            );
+
+
+            return false;
+        }
+
+
+        // ALFANUMÉRICO
+
+        if (
+            regla.alfanumerico &&
+            !/^[A-Za-z0-9]+$/.test(
+                valor
+            )
+        ) {
+
+            documento.setCustomValidity(
+                regla.mensaje
+            );
+
+
+            return false;
+        }
+
+
+        return true;
+    }
+
+
+
+    // =====================================================
+    // EVENTOS DEL FORMULARIO
+    // =====================================================
+
+    if (
+        consultaForm &&
+        tipoDocumento &&
+        documento
+    ) {
+
+
+        // AL ESCRIBIR
+
+        documento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumento();
+
+                validarDocumento();
+            }
+        );
+
+
+
+        // AL SALIR
+
+        documento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumento();
+            }
+        );
+
+
+
+        // CAMBIAR TIPO
+
+        tipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                documento.value =
+                    "";
+
+                configurarDocumento();
+
+                documento.focus();
+            }
+        );
+
+
+
+        // SUBMIT
+
+        consultaForm.addEventListener(
+            "submit",
+            function (event) {
+
+                normalizarDocumento();
+
+
+                const valido =
+                    validarDocumento();
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    documento.reportValidity();
+
+                    documento.focus();
+
+                    return;
+                }
+
+
+                const boton =
+                    consultaForm.querySelector(
+                        ".portal-query-button"
+                    );
+
+
+                if (boton) {
+
+                    boton.disabled =
+                        true;
+
+                    boton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+
+
+        configurarDocumento();
+    }
+
+
+
+    // =====================================================
+    // COPIAR JSON
+    // =====================================================
 
     async function copiarJson() {
 
@@ -339,6 +2759,7 @@
                 "jsonResponse"
             );
 
+
         const boton =
             document.getElementById(
                 "copyJsonButton"
@@ -346,6 +2767,7 @@
 
 
         if (!elemento) {
+
             return;
         }
 
@@ -356,35 +2778,87 @@
 
         try {
 
-            await navigator.clipboard.writeText(
-                contenido
-            );
+            await navigator
+                .clipboard
+                .writeText(
+                    contenido
+                );
 
 
-            boton.textContent =
-                "JSON copiado ✓";
+            if (boton) {
+
+                boton.textContent =
+                    "JSON copiado ✓";
 
 
-            setTimeout(
-                () => {
+                setTimeout(
+                    () => {
 
-                    boton.textContent =
-                        "Copiar JSON";
+                        boton.textContent =
+                            "Copiar JSON";
 
-                },
-                1800
-            );
+                    },
+                    1800
+                );
+            }
 
 
         } catch (error) {
 
-            alert(
-                "No se pudo copiar automáticamente."
-            );
+            if (boton) {
+
+                boton.textContent =
+                    "No se pudo copiar";
+
+
+                setTimeout(
+                    () => {
+
+                        boton.textContent =
+                            "Copiar JSON";
+
+                    },
+                    1800
+                );
+            }
         }
     }
 
+
+
+    // =====================================================
+    // SI YA EXISTE RESPUESTA DE UNA CONSULTA,
+    // ABRIR AUTOMÁTICAMENTE EL MODAL
+    // =====================================================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+            renderizarResumenConsulta();
+
+
+            if (!consultaModal) {
+                return;
+            }
+
+
+            const abrirAutomaticamente =
+                consultaModal.dataset.autoOpen ===
+                "true";
+
+
+            if (abrirAutomaticamente) {
+
+                abrirModalConsulta();
+
+            }
+        }
+    );
+    
+
 </script>
+
 
 </body>
 
