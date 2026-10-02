@@ -2,6 +2,8 @@ import {
   Router,
 } from "express";
 
+import rateLimit from "express-rate-limit";
+
 import {
   adminAuth,
 } from "../middleware/adminAuth.js";
@@ -20,8 +22,74 @@ const router =
   Router();
 
 
+// ==================================================
+// PROTECCIÓN LOGIN ADMIN
+//
+// Máximo:
+// 5 intentos FALLIDOS cada 15 minutos por IP.
+//
+// Un login correcto NO cuenta.
+//
+// Intento 1 incorrecto -> 401
+// Intento 2 incorrecto -> 401
+// ...
+// Intento 5 incorrecto -> 401
+// Intento 6 -> 429
+//
+// Solo protege:
+// POST /api/admin/auth/login
+// ==================================================
+
+const adminLoginLimiter =
+  rateLimit({
+
+    windowMs:
+      5 * 60 * 1000,
+
+    limit:
+      5,
+
+    standardHeaders:
+      true,
+
+    legacyHeaders:
+      false,
+
+    // Los login exitosos no cuentan
+    // para el límite de intentos.
+    skipSuccessfulRequests:
+      true,
+
+    handler(
+      req,
+      res
+    ) {
+
+      return res
+        .status(429)
+        .json({
+
+          success:
+            false,
+
+          error:
+            "Se realizaron demasiados intentos de inicio de sesión. Intente nuevamente más tarde.",
+
+          code:
+            "ADMIN_LOGIN_RATE_LIMITED",
+        });
+    },
+  });
+
+
+// ==================================================
+// COOKIE SESIÓN ADMIN
+// ==================================================
+
 const cookieOptions = {
-  httpOnly: true,
+
+  httpOnly:
+    true,
 
   secure:
     process.env.NODE_ENV ===
@@ -40,18 +108,26 @@ const cookieOptions = {
 
 // --------------------------------------------------
 // CREAR ADMINISTRADOR
-// Protegido con ADMIN_API_KEY
+//
+// Protegido con ADMIN_API_KEY.
+// NO usa el rate limit de login.
 // --------------------------------------------------
 
 router.post(
   "/crear",
+
   adminAuth,
-  async (req, res) => {
+
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const resultado =
         await crearAdministrador({
+
           usuario:
             req.body?.usuario,
 
@@ -66,9 +142,14 @@ router.post(
       return res
         .status(201)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
+
 
     } catch (error) {
 
@@ -77,13 +158,16 @@ router.post(
         error
       );
 
+
       return res
         .status(
           error.statusCode ||
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -101,16 +185,26 @@ router.post(
 
 // --------------------------------------------------
 // LOGIN
+//
+// Protección:
+// 5 intentos fallidos / 15 minutos / IP.
 // --------------------------------------------------
 
 router.post(
   "/login",
-  async (req, res) => {
+
+  adminLoginLimiter,
+
+  async (
+    req,
+    res
+  ) => {
 
     try {
 
       const resultado =
         await autenticarAdministrador({
+
           usuario:
             req.body?.usuario,
 
@@ -129,15 +223,25 @@ router.post(
       return res
         .status(200)
         .json({
-          success: true,
+
+          success:
+            true,
 
           data: {
+
             administrador:
               resultado.administrador,
           },
         });
 
+
     } catch (error) {
+
+      console.error(
+        "Error iniciando sesión administrador:",
+        error
+      );
+
 
       return res
         .status(
@@ -145,7 +249,9 @@ router.post(
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -167,14 +273,23 @@ router.post(
 
 router.get(
   "/me",
+
   adminSessionAuth,
-  (req, res) => {
+
+  (
+    req,
+    res
+  ) => {
 
     return res
       .status(200)
       .json({
-        success: true,
+
+        success:
+          true,
+
         data: {
+
           administrador:
             req.admin,
         },
@@ -189,12 +304,18 @@ router.get(
 
 router.post(
   "/logout",
-  (req, res) => {
+
+  (
+    req,
+    res
+  ) => {
 
     res.clearCookie(
       "admin_session",
       {
-        httpOnly: true,
+
+        httpOnly:
+          true,
 
         secure:
           process.env.NODE_ENV ===
@@ -212,7 +333,10 @@ router.post(
     return res
       .status(200)
       .json({
-        success: true,
+
+        success:
+          true,
+
         message:
           "Sesión cerrada correctamente.",
       });

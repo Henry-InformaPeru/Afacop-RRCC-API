@@ -9,6 +9,7 @@ function crearError(
   statusCode,
   code
 ) {
+
   const error =
     new Error(message);
 
@@ -22,8 +23,56 @@ function crearError(
 }
 
 
+function validarIds(
+  idCliente,
+  idToken
+) {
+
+  const cliente =
+    Number(idCliente);
+
+  const token =
+    Number(idToken);
+
+
+  if (
+    !Number.isInteger(cliente) ||
+    cliente <= 0
+  ) {
+
+    throw crearError(
+      "El cliente no es válido.",
+      400,
+      "INVALID_CLIENT"
+    );
+  }
+
+
+  if (
+    !Number.isInteger(token) ||
+    token <= 0
+  ) {
+
+    throw crearError(
+      "El token no es válido.",
+      400,
+      "INVALID_TOKEN_ID"
+    );
+  }
+
+
+  return {
+    idCliente:
+      cliente,
+
+    idToken:
+      token,
+  };
+}
+
+
 // --------------------------------------------------
-// RESERVAR / CONSUMIR 1 CRÉDITO
+// RESERVAR / CONSUMIR 1 CRÉDITO DEL TOKEN
 // --------------------------------------------------
 
 export async function reservarCredito({
@@ -31,8 +80,18 @@ export async function reservarCredito({
   idToken,
 }) {
 
+  ({
+    idCliente,
+    idToken,
+  } = validarIds(
+    idCliente,
+    idToken
+  ));
+
+
   const pool =
     await getSqlPool();
+
 
   const transaction =
     new sql.Transaction(pool);
@@ -46,11 +105,13 @@ export async function reservarCredito({
 
 
     // --------------------------------------------------
-    // BLOQUEAR SALDO
+    // VALIDAR TOKEN DENTRO DE LA TRANSACCIÓN
     // --------------------------------------------------
 
-    const saldoResult =
-      await new sql.Request(transaction)
+    const tokenResult =
+      await new sql.Request(
+        transaction
+      )
 
         .input(
           "idCliente",
@@ -58,30 +119,151 @@ export async function reservarCredito({
           idCliente
         )
 
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
+        )
+
         .query(`
           SELECT
+            T.ID_TOKEN,
+            T.ID_CLIENTE,
+            T.ESTADO AS TOKEN_ESTADO,
+            T.FECHA_VENCIMIENTO,
+            C.ESTADO AS CLIENTE_ESTADO
+
+          FROM
+            GestionAPIClientes.Tokens T
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          INNER JOIN
+            GestionAPIClientes.Clientes C
+              ON C.ID_CLIENTE =
+                 T.ID_CLIENTE
+
+          WHERE
+            T.ID_TOKEN =
+              @idToken
+
+            AND T.ID_CLIENTE =
+              @idCliente
+        `);
+
+
+    if (
+      tokenResult.recordset.length === 0
+    ) {
+
+      throw crearError(
+        "El token no pertenece al cliente indicado.",
+        401,
+        "INVALID_TOKEN"
+      );
+    }
+
+
+    const token =
+      tokenResult.recordset[0];
+
+
+    if (
+      token.TOKEN_ESTADO !==
+      "ACTIVO"
+    ) {
+
+      throw crearError(
+        "El token no se encuentra activo.",
+        403,
+        "TOKEN_NOT_ACTIVE"
+      );
+    }
+
+
+    if (
+      token.CLIENTE_ESTADO !==
+      "ACTIVO"
+    ) {
+
+      throw crearError(
+        "El cliente no se encuentra activo.",
+        403,
+        "CLIENT_NOT_ACTIVE"
+      );
+    }
+
+
+    if (
+      token.FECHA_VENCIMIENTO &&
+      new Date(
+        token.FECHA_VENCIMIENTO
+      ) <= new Date()
+    ) {
+
+      throw crearError(
+        "El token ha vencido.",
+        403,
+        "TOKEN_EXPIRED"
+      );
+    }
+
+
+    // --------------------------------------------------
+    // BLOQUEAR SALDO DEL TOKEN
+    // --------------------------------------------------
+
+    const saldoResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
+        )
+
+        .query(`
+          SELECT
+            ID_CLIENTE,
+            ID_TOKEN,
             CREDITOS_DISPONIBLES,
             TOTAL_ASIGNADO,
             TOTAL_CONSUMIDO
 
-          FROM GestionAPIClientes.Saldos
-            WITH (
-              UPDLOCK,
-              HOLDLOCK
-            )
+          FROM
+            GestionAPIClientes.Saldos
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
 
           WHERE
-            ID_CLIENTE = @idCliente
+            ID_TOKEN =
+              @idToken
+
+            AND ID_CLIENTE =
+              @idCliente
         `);
 
 
     if (
       saldoResult.recordset.length === 0
     ) {
+
       throw crearError(
-        "No existe saldo para este cliente.",
-        404,
-        "BALANCE_NOT_FOUND"
+        "No existe saldo para este token.",
+        409,
+        "TOKEN_BALANCE_NOT_FOUND"
       );
     }
 
@@ -94,7 +276,9 @@ export async function reservarCredito({
       );
 
 
-    if (saldoAntes <= 0) {
+    if (
+      saldoAntes <= 0
+    ) {
 
       throw crearError(
         "No tiene créditos disponibles para realizar consultas.",
@@ -109,46 +293,80 @@ export async function reservarCredito({
 
 
     // --------------------------------------------------
-    // DESCONTAR
+    // DESCONTAR CRÉDITO
     // --------------------------------------------------
 
-    await new sql.Request(transaction)
-
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
+    const updateResult =
+      await new sql.Request(
+        transaction
       )
-
-      .query(`
-        UPDATE GestionAPIClientes.Saldos
-
-        SET
-          CREDITOS_DISPONIBLES =
-            CREDITOS_DISPONIBLES - 1,
-
-          TOTAL_CONSUMIDO =
-            TOTAL_CONSUMIDO + 1,
-
-          FECHA_ACTUALIZACION =
-            SYSDATETIME()
-
-        WHERE
-          ID_CLIENTE = @idCliente
-      `);
-
-
-    // --------------------------------------------------
-    // MOVIMIENTO DE CONSUMO
-    // --------------------------------------------------
-
-    const movimientoResult =
-      await new sql.Request(transaction)
 
         .input(
           "idCliente",
           sql.BigInt,
           idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
+        )
+
+        .query(`
+          UPDATE
+            GestionAPIClientes.Saldos
+
+          SET
+            CREDITOS_DISPONIBLES =
+              CREDITOS_DISPONIBLES - 1,
+
+            TOTAL_CONSUMIDO =
+              TOTAL_CONSUMIDO + 1,
+
+            FECHA_ACTUALIZACION =
+              SYSDATETIME()
+
+          WHERE
+            ID_TOKEN =
+              @idToken
+
+            AND ID_CLIENTE =
+              @idCliente
+        `);
+
+
+    if (
+      updateResult.rowsAffected[0] !== 1
+    ) {
+
+      throw crearError(
+        "No fue posible descontar el crédito del token.",
+        409,
+        "CREDIT_UPDATE_FAILED"
+      );
+    }
+
+
+    // --------------------------------------------------
+    // MOVIMIENTO
+    // --------------------------------------------------
+
+    const movimientoResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
         )
 
         .input(
@@ -168,10 +386,14 @@ export async function reservarCredito({
             GestionAPIClientes.Movimientos
           (
             ID_CLIENTE,
+            ID_TOKEN,
+
             TIPO,
             CANTIDAD,
+
             SALDO_ANTES,
             SALDO_DESPUES,
+
             ORIGEN,
             OBSERVACION
           )
@@ -182,10 +404,14 @@ export async function reservarCredito({
           VALUES
           (
             @idCliente,
+            @idToken,
+
             'CONSUMO',
             1,
+
             @saldoAntes,
             @saldoDespues,
+
             'CONSULTA',
             'Reserva de crédito para consulta'
           )
@@ -199,10 +425,12 @@ export async function reservarCredito({
 
 
     // --------------------------------------------------
-    // ÚLTIMO USO DEL TOKEN
+    // ÚLTIMO USO
     // --------------------------------------------------
 
-    await new sql.Request(transaction)
+    await new sql.Request(
+      transaction
+    )
 
       .input(
         "idToken",
@@ -211,14 +439,16 @@ export async function reservarCredito({
       )
 
       .query(`
-        UPDATE GestionAPIClientes.Tokens
+        UPDATE
+          GestionAPIClientes.Tokens
 
         SET
           ULTIMO_USO =
             SYSDATETIME()
 
         WHERE
-          ID_TOKEN = @idToken
+          ID_TOKEN =
+            @idToken
       `);
 
 
@@ -226,21 +456,33 @@ export async function reservarCredito({
 
 
     return {
+
+      idCliente,
+      idToken,
+
       idMovimiento,
+
       saldoAntes,
+
       saldoActual:
         saldoDespues,
-      creditosConsumidos: 1,
+
+      creditosConsumidos:
+        1,
     };
 
 
   } catch (error) {
 
     try {
+
       await transaction.rollback();
+
     } catch {
+
       // Ya pudo haberse revertido.
     }
+
 
     throw error;
   }
@@ -250,14 +492,43 @@ export async function reservarCredito({
 // --------------------------------------------------
 // REVERTIR CRÉDITO
 // --------------------------------------------------
+// La consulta normal NO utiliza esta función.
+// Se conserva únicamente por compatibilidad.
 
 export async function revertirCredito({
+
   idCliente,
-  idMovimientoOriginal,
+  idToken = null,
+  idMovimientoOriginal = null,
+
 }) {
+
+  idCliente =
+    Number(idCliente);
+
+
+  idToken =
+    idToken === null
+      ? null
+      : Number(idToken);
+
+
+  if (
+    !Number.isInteger(idCliente) ||
+    idCliente <= 0
+  ) {
+
+    throw crearError(
+      "El cliente no es válido.",
+      400,
+      "INVALID_CLIENT"
+    );
+  }
+
 
   const pool =
     await getSqlPool();
+
 
   const transaction =
     new sql.Transaction(pool);
@@ -270,8 +541,75 @@ export async function revertirCredito({
     );
 
 
+    if (
+      (
+        !Number.isInteger(idToken) ||
+        idToken <= 0
+      ) &&
+      idMovimientoOriginal
+    ) {
+
+      const movimientoOriginalResult =
+        await new sql.Request(
+          transaction
+        )
+
+          .input(
+            "idCliente",
+            sql.BigInt,
+            idCliente
+          )
+
+          .input(
+            "idMovimientoOriginal",
+            sql.BigInt,
+            Number(
+              idMovimientoOriginal
+            )
+          )
+
+          .query(`
+            SELECT TOP 1
+              ID_TOKEN
+
+            FROM
+              GestionAPIClientes.Movimientos
+
+            WHERE
+              ID_MOVIMIENTO =
+                @idMovimientoOriginal
+
+              AND ID_CLIENTE =
+                @idCliente
+          `);
+
+
+      idToken =
+        Number(
+          movimientoOriginalResult
+            .recordset[0]
+            ?.ID_TOKEN
+        );
+    }
+
+
+    if (
+      !Number.isInteger(idToken) ||
+      idToken <= 0
+    ) {
+
+      throw crearError(
+        "No se pudo determinar el token que debe recibir la reversión.",
+        400,
+        "REVERSAL_TOKEN_REQUIRED"
+      );
+    }
+
+
     const saldoResult =
-      await new sql.Request(transaction)
+      await new sql.Request(
+        transaction
+      )
 
         .input(
           "idCliente",
@@ -279,29 +617,41 @@ export async function revertirCredito({
           idCliente
         )
 
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
+        )
+
         .query(`
           SELECT
             CREDITOS_DISPONIBLES,
             TOTAL_CONSUMIDO
 
-          FROM GestionAPIClientes.Saldos
-            WITH (
-              UPDLOCK,
-              HOLDLOCK
-            )
+          FROM
+            GestionAPIClientes.Saldos
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
 
           WHERE
-            ID_CLIENTE = @idCliente
+            ID_TOKEN =
+              @idToken
+
+            AND ID_CLIENTE =
+              @idCliente
         `);
 
 
     if (
       saldoResult.recordset.length === 0
     ) {
+
       throw crearError(
-        "No existe saldo para este cliente.",
+        "No existe saldo para este token.",
         404,
-        "BALANCE_NOT_FOUND"
+        "TOKEN_BALANCE_NOT_FOUND"
       );
     }
 
@@ -313,15 +663,14 @@ export async function revertirCredito({
           .CREDITOS_DISPONIBLES
       );
 
+
     const saldoDespues =
       saldoAntes + 1;
 
 
-    // --------------------------------------------------
-    // DEVOLVER CRÉDITO
-    // --------------------------------------------------
-
-    await new sql.Request(transaction)
+    await new sql.Request(
+      transaction
+    )
 
       .input(
         "idCliente",
@@ -329,8 +678,15 @@ export async function revertirCredito({
         idCliente
       )
 
+      .input(
+        "idToken",
+        sql.BigInt,
+        idToken
+      )
+
       .query(`
-        UPDATE GestionAPIClientes.Saldos
+        UPDATE
+          GestionAPIClientes.Saldos
 
         SET
           CREDITOS_DISPONIBLES =
@@ -347,26 +703,36 @@ export async function revertirCredito({
             SYSDATETIME()
 
         WHERE
-          ID_CLIENTE = @idCliente
+          ID_TOKEN =
+            @idToken
+
+          AND ID_CLIENTE =
+            @idCliente
       `);
 
 
-    // --------------------------------------------------
-    // REGISTRAR REVERSIÓN
-    // --------------------------------------------------
-
     const observacion =
       idMovimientoOriginal
+
         ? `Reversión del movimiento ${idMovimientoOriginal} por consulta no cobrada`
+
         : "Reversión de crédito por consulta no cobrada";
 
 
-    await new sql.Request(transaction)
+    await new sql.Request(
+      transaction
+    )
 
       .input(
         "idCliente",
         sql.BigInt,
         idCliente
+      )
+
+      .input(
+        "idToken",
+        sql.BigInt,
+        idToken
       )
 
       .input(
@@ -392,10 +758,14 @@ export async function revertirCredito({
           GestionAPIClientes.Movimientos
         (
           ID_CLIENTE,
+          ID_TOKEN,
+
           TIPO,
           CANTIDAD,
+
           SALDO_ANTES,
           SALDO_DESPUES,
+
           ORIGEN,
           OBSERVACION
         )
@@ -403,10 +773,14 @@ export async function revertirCredito({
         VALUES
         (
           @idCliente,
+          @idToken,
+
           'AJUSTE',
           1,
+
           @saldoAntes,
           @saldoDespues,
+
           'SISTEMA',
           @observacion
         )
@@ -417,20 +791,31 @@ export async function revertirCredito({
 
 
     return {
+
+      idCliente,
+      idToken,
+
       saldoAntes,
+
       saldoActual:
         saldoDespues,
-      creditosRevertidos: 1,
+
+      creditosRevertidos:
+        1,
     };
 
 
   } catch (error) {
 
     try {
+
       await transaction.rollback();
+
     } catch {
+
       // Ya pudo haberse revertido.
     }
+
 
     throw error;
   }

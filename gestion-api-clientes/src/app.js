@@ -1,54 +1,83 @@
 import express from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
+
 import clienteRoutes from "./routes/cliente.routes.js";
 
-import adminRoutes  from "./routes/admin.routes.js";
-
-import {getSqlPool,} from "./config/sqlserver.js";
-
-import cookieParser from "cookie-parser";
+import adminRoutes from "./routes/admin.routes.js";
 
 import authRoutes from "./routes/auth.routes.js";
 
-const app = express();
+import {
+  getSqlPool,
+} from "./config/sqlserver.js";
+
+
+const app =
+  express();
+
+
+// --------------------------------------------------
+// SEGURIDAD HTTP
+// --------------------------------------------------
 
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy:
+      false,
   })
 );
 
+
+// --------------------------------------------------
+// JSON
+// --------------------------------------------------
+
 app.use(
   express.json({
-    limit: "100kb",
+    limit:
+      "100kb",
   })
 );
+
+
+// --------------------------------------------------
+// COOKIES
+// --------------------------------------------------
 
 app.use(
   cookieParser()
 );
 
-app.use(
-  rateLimit({
-    windowMs: 60 * 1000,
-    limit: 120,
-    standardHeaders: true,
-    legacyHeaders: false,
-  })
-);
 
 // --------------------------------------------------
 // HEALTH
 // --------------------------------------------------
 
-app.get("/health", (req, res) => {
-  return res.status(200).json({
-    status: "ok",
-    service: "gestion-api-clientes",
-    timestamp: new Date().toISOString(),
-  });
-});
+app.get(
+  "/health",
+  (
+    req,
+    res
+  ) => {
+
+    return res
+      .status(200)
+      .json({
+
+        status:
+          "ok",
+
+        service:
+          "gestion-api-clientes",
+
+        timestamp:
+          new Date()
+            .toISOString(),
+      });
+  }
+);
+
 
 // --------------------------------------------------
 // HEALTH SQL SERVER
@@ -56,56 +85,130 @@ app.get("/health", (req, res) => {
 
 app.get(
   "/health/sqlserver",
-  async (req, res) => {
+
+  async (
+    req,
+    res
+  ) => {
+
     try {
+
       const pool =
         await getSqlPool();
+
 
       const result =
         await pool
           .request()
           .query(`
             SELECT
-              DB_NAME() AS base_datos,
-              @@SERVERNAME AS servidor
+              DB_NAME()
+                AS base_datos,
+
+              @@SERVERNAME
+                AS servidor
           `);
 
-      return res.status(200).json({
-        status: "ok",
-        conectado: true,
-        sqlServer:
-          result.recordset[0],
-      });
+
+      return res
+        .status(200)
+        .json({
+
+          status:
+            "ok",
+
+          conectado:
+            true,
+
+          sqlServer:
+            result.recordset[0],
+        });
+
 
     } catch (error) {
+
       console.error(
         "Error conectando a SQL Server:",
         error
       );
 
-      return res.status(500).json({
-        status: "error",
-        conectado: false,
-        mensaje:
-          "No se pudo conectar a SQL Server.",
-      });
+
+      return res
+        .status(500)
+        .json({
+
+          status:
+            "error",
+
+          conectado:
+            false,
+
+          mensaje:
+            "No se pudo conectar a SQL Server.",
+        });
     }
   }
 );
+
+
+// --------------------------------------------------
+// AUTENTICACIÓN ADMIN
+// --------------------------------------------------
+
+app.use(
+  "/api/admin/auth",
+  authRoutes
+);
+
+
+// --------------------------------------------------
+// ADMIN
+// --------------------------------------------------
 
 app.use(
   "/api/admin",
   adminRoutes
 );
 
+
+// --------------------------------------------------
+// CLIENTE / API COMERCIAL
+//
+// Los rate limits específicos están dentro
+// de cliente.routes.js.
+// --------------------------------------------------
+
 app.use(
   "/api/cliente",
   clienteRoutes
 );
 
+
+// --------------------------------------------------
+// 404 API
+// --------------------------------------------------
+
 app.use(
-  "/api/admin/auth",
-  authRoutes
+  (
+    req,
+    res
+  ) => {
+
+    return res
+      .status(404)
+      .json({
+
+        success:
+          false,
+
+        error:
+          "Ruta no encontrada.",
+
+        code:
+          "ROUTE_NOT_FOUND",
+      });
+  }
 );
+
 
 export default app;

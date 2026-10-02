@@ -2706,8 +2706,31 @@
             "submit",
             function (event) {
 
+                // =============================================
+                // EVITAR DOBLE ENVÍO
+                // =============================================
+
+                if (
+                    consultaForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                // =============================================
+                // NORMALIZAR DOCUMENTO
+                // =============================================
+
                 normalizarDocumento();
 
+
+                // =============================================
+                // VALIDAR DOCUMENTO
+                // =============================================
 
                 const valido =
                     validarDocumento();
@@ -2724,6 +2747,18 @@
                     return;
                 }
 
+
+                // =============================================
+                // MARCAR FORMULARIO COMO ENVIANDO
+                // =============================================
+
+                consultaForm.dataset.enviando =
+                    "true";
+
+
+                // =============================================
+                // BLOQUEAR BOTÓN
+                // =============================================
 
                 const boton =
                     consultaForm.querySelector(

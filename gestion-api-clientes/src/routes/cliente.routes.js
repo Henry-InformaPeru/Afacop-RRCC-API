@@ -7,6 +7,13 @@ import {
 } from "../middleware/clientToken.js";
 
 import {
+  clienteIpLimiter,
+  cuentaTokenLimiter,
+  consultaTokenLimiter,
+  limitarConsultasConcurrentes,
+} from "../middleware/clienteSecurity.js";
+
+import {
   consultarRRCC,
   validarDocumento,
 } from "../services/consulta.service.js";
@@ -30,8 +37,20 @@ const router =
 
 router.get(
   "/cuenta",
+
+  // 1. Protección general
+  clienteIpLimiter,
+
+  // 2. Validar token
   clientTokenAuth,
-  async (req, res) => {
+
+  // 3. Protección por token
+  cuentaTokenLimiter,
+
+  async (
+    req,
+    res
+  ) => {
 
     const cliente =
       req.clienteApi;
@@ -52,12 +71,16 @@ router.get(
       .status(200)
       .json({
 
-        success: true,
+        success:
+          true,
 
         data: {
 
           idCliente:
             cliente.idCliente,
+
+          idToken:
+            cliente.idToken,
 
           nombre,
 
@@ -95,8 +118,26 @@ router.get(
 
 router.post(
   "/consulta",
+
+  // ------------------------------------------------
+  // SEGURIDAD
+  //
+  // Todo esto ocurre ANTES de reservar crédito.
+  // ------------------------------------------------
+
+  clienteIpLimiter,
+
   clientTokenAuth,
-  async (req, res) => {
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+
+  async (
+    req,
+    res
+  ) => {
 
     const inicio =
       Date.now();
@@ -123,10 +164,9 @@ router.post(
       // ==============================================
       // 1. VALIDAR DOCUMENTO
       //
-      // Si el documento es inválido:
-      // - no se reserva crédito
-      // - no se llama a RRCC
-      // - no se consume crédito
+      // Documento inválido:
+      // NO consume crédito.
+      // NO llama RRCC.
       // ==============================================
 
       datosConsulta =
@@ -137,17 +177,7 @@ router.post(
 
 
       // ==============================================
-      // 2. RESERVAR / DESCONTAR 1 CRÉDITO
-      //
-      // Si no tiene créditos disponibles,
-      // reservarCredito debe lanzar el error
-      // correspondiente y NO se llama a RRCC.
-      //
-      // Desde que esta operación termina
-      // correctamente, el crédito se considera
-      // consumido.
-      //
-      // NO HAY REVERSIÓN.
+      // 2. RESERVAR 1 CRÉDITO DEL TOKEN
       // ==============================================
 
       reserva =
@@ -163,6 +193,8 @@ router.post(
 
       // ==============================================
       // 3. CONSULTAR RRCC
+      //
+      // Desde este punto el crédito ya fue consumido.
       // ==============================================
 
       const rrcc =
@@ -238,7 +270,8 @@ router.post(
           )
           .json({
 
-            success: true,
+            success:
+              true,
 
             data:
               rrcc.data?.data ??
@@ -248,15 +281,16 @@ router.post(
 
 
       // ==============================================
-      // 5. RRCC RESPONDIÓ SIN RESULTADO
-      //    O DEVOLVIÓ ALGÚN ERROR HTTP
+      // 5. RRCC SIN DATOS O ERROR HTTP
       //
-      // También consume 1 crédito.
+      // También consume crédito.
       // ==============================================
 
       const estado =
         rrcc.status === 404
+
           ? "SIN_DATOS"
+
           : "ERROR";
 
 
@@ -266,7 +300,9 @@ router.post(
         rrcc.data?.mensaje ||
         (
           rrcc.status === 404
+
             ? "No se encontró información para el documento consultado."
+
             : "La consulta fue procesada con error."
         );
 
@@ -275,7 +311,9 @@ router.post(
         rrcc.data?.code ||
         (
           rrcc.status === 404
+
             ? "SIN_DATOS"
+
             : "RRCC_ERROR"
         );
 
@@ -298,10 +336,6 @@ router.post(
         documento:
           datosConsulta
             .documento,
-
-        // --------------------------------------------
-        // SIN DATOS / ERROR TAMBIÉN CONSUME 1
-        // --------------------------------------------
 
         creditosConsumidos:
           1,
@@ -331,7 +365,8 @@ router.post(
         )
         .json({
 
-          success: false,
+          success:
+            false,
 
           error:
             mensaje,
@@ -358,18 +393,10 @@ router.post(
 
 
       // ==============================================
-      // 6. ERROR DESPUÉS DE HABER RESERVADO CRÉDITO
+      // ERROR DESPUÉS DE RESERVAR
       //
-      // Ejemplos:
-      // - timeout de RRCC
-      // - conexión caída
-      // - respuesta inválida
-      // - error técnico
-      //
-      // Como ya se inició una consulta válida,
-      // también consume 1 crédito.
-      //
-      // NO SE REVIERTE.
+      // Se registra como ERROR.
+      // NO se devuelve el crédito.
       // ==============================================
 
       if (
@@ -436,10 +463,6 @@ router.post(
       }
 
 
-      // ==============================================
-      // 7. RESPUESTA DEL ERROR
-      // ==============================================
-
       return res
         .status(
           error.statusCode ||
@@ -447,11 +470,14 @@ router.post(
         )
         .json({
 
-          success: false,
+          success:
+            false,
 
           error:
             error.statusCode
+
               ? error.message
+
               : "Error interno del servidor.",
 
           code:

@@ -19,7 +19,6 @@ function crearError(
 
 // --------------------------------------------------
 // REORDENAR NOMBRE
-// NOMBRES APELLIDOS -> APELLIDOS NOMBRES
 // --------------------------------------------------
 
 function reordenarNombre(nombre) {
@@ -36,6 +35,7 @@ function reordenarNombre(nombre) {
 
 
   if (!nombre) {
+
     return nombre;
   }
 
@@ -44,22 +44,17 @@ function reordenarNombre(nombre) {
     nombre.split(" ");
 
 
-  // Se asume que RRCC devuelve:
-  // NOMBRE(S) + APELLIDO PATERNO + APELLIDO MATERNO
-  //
-  // Ejemplo:
-  // CARMEN ROSA SAMILLAN LIMO
-  //
-  // Resultado:
-  // SAMILLAN LIMO CARMEN ROSA
+  if (
+    partes.length < 3
+  ) {
 
-  if (partes.length < 3) {
     return nombre;
   }
 
 
   const apellidos =
     partes.slice(-2);
+
 
   const nombres =
     partes.slice(
@@ -76,7 +71,7 @@ function reordenarNombre(nombre) {
 
 
 // --------------------------------------------------
-// ADAPTAR RESPUESTA RRCC PARA ESTE PROYECTO
+// ADAPTAR DATOS RRCC
 // --------------------------------------------------
 
 function adaptarDatosRRCC(datos) {
@@ -90,10 +85,6 @@ function adaptarDatosRRCC(datos) {
     return datos;
   }
 
-
-  // --------------------------------------------------
-  // RATING
-  // --------------------------------------------------
 
   let rating =
     datos.rating;
@@ -139,73 +130,60 @@ function adaptarDatosRRCC(datos) {
   }
 
 
-  // --------------------------------------------------
-  // DEUDAS
-  // capital -> saldo
-  // quitar codigoEmpresa
-  // --------------------------------------------------
-
   const deudas =
-  Array.isArray(
-    datos.deudas
-  )
-    ? datos.deudas.map(
-        (deuda) => {
+    Array.isArray(
+      datos.deudas
+    )
 
-          const {
-            capital,
-            codigoEmpresa,
-            ...resto
-          } = deuda;
+      ? datos.deudas.map(
+          (deuda) => {
 
-          return {
-            ...resto,
-
-            saldo:
-              capital ??
-              deuda.saldo,
-          };
-        }
-      )
-
-    : datos.deudas;
+            const {
+              capital,
+              codigoEmpresa,
+              ...resto
+            } = deuda;
 
 
-  // --------------------------------------------------
-  // LÍNEAS
-  // quitar:
-  // codigoEmpresa
-  // diferencia
-  // consistente
-  // --------------------------------------------------
+            return {
+              ...resto,
+
+              saldo:
+                capital ??
+                deuda.saldo,
+            };
+          }
+        )
+
+      : datos.deudas;
+
 
   const lineas =
-  Array.isArray(
-    datos.lineas
-  )
-    ? datos.lineas.map(
-        (linea) => {
+    Array.isArray(
+      datos.lineas
+    )
 
-          const {
-            codigoEmpresa,
-            diferencia,
-            consistencia,
-            consistente,
-            ...resto
-          } = linea;
+      ? datos.lineas.map(
+          (linea) => {
 
-          return resto;
-        }
-      )
-
-    : datos.lineas;
+            const {
+              codigoEmpresa,
+              diferencia,
+              consistencia,
+              consistente,
+              ...resto
+            } = linea;
 
 
-  // --------------------------------------------------
-  // RESPUESTA ADAPTADA
-  // --------------------------------------------------
+            return resto;
+          }
+        )
+
+      : datos.lineas;
+
 
   return {
+
     ...datos,
 
     nombre:
@@ -223,7 +201,7 @@ function adaptarDatosRRCC(datos) {
 
 
 // --------------------------------------------------
-// ADAPTAR WRAPPER DE RRCC
+// ADAPTAR WRAPPER
 // --------------------------------------------------
 
 function adaptarRespuestaRRCC(
@@ -239,22 +217,17 @@ function adaptarRespuestaRRCC(
   }
 
 
-  // La API RRCC normalmente devuelve:
-  //
-  // {
-  //   success: true,
-  //   data: {...}
-  // }
-
   if (
     respuesta.data &&
-    typeof respuesta.data === "object" &&
+    typeof respuesta.data ===
+      "object" &&
     !Array.isArray(
       respuesta.data
     )
   ) {
 
     return {
+
       ...respuesta,
 
       data:
@@ -264,9 +237,6 @@ function adaptarRespuestaRRCC(
     };
   }
 
-
-  // Por si en algún momento RRCC devuelve
-  // directamente el objeto.
 
   return adaptarDatosRRCC(
     respuesta
@@ -360,6 +330,45 @@ export function validarDocumento(
   }
 
 
+  if (
+    tipoDocumento === "CE" &&
+    (
+      documento.length < 1 ||
+      documento.length > 20 ||
+      !/^[A-Za-z0-9]+$/.test(
+        documento
+      )
+    )
+  ) {
+
+    throw crearError(
+      "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres.",
+      400,
+      "INVALID_CE"
+    );
+  }
+
+
+  if (
+    tipoDocumento ===
+      "PASAPORTE" &&
+    (
+      documento.length < 1 ||
+      documento.length > 20 ||
+      !/^[A-Za-z0-9]+$/.test(
+        documento
+      )
+    )
+  ) {
+
+    throw crearError(
+      "El pasaporte debe ser alfanumérico y no superar 20 caracteres.",
+      400,
+      "INVALID_PASSPORT"
+    );
+  }
+
+
   return {
     tipoDocumento,
     documento,
@@ -368,12 +377,14 @@ export function validarDocumento(
 
 
 // --------------------------------------------------
-// CONSULTAR API RRCC EXISTENTE
+// CONSULTAR RRCC
 // --------------------------------------------------
 
 export async function consultarRRCC({
+
   tipoDocumento,
   documento,
+
 }) {
 
   const datos =
@@ -432,10 +443,12 @@ export async function consultarRRCC({
       await fetch(
         url,
         {
+
           method:
             "GET",
 
           headers: {
+
             Accept:
               "application/json",
 
@@ -452,6 +465,21 @@ export async function consultarRRCC({
 
 
   } catch (error) {
+
+    if (
+      error?.name ===
+        "TimeoutError" ||
+      error?.name ===
+        "AbortError"
+    ) {
+
+      throw crearError(
+        "El servicio RRCC excedió el tiempo de espera.",
+        504,
+        "RRCC_TIMEOUT"
+      );
+    }
+
 
     throw crearError(
       "No se pudo conectar con el servicio RRCC.",
@@ -472,9 +500,11 @@ export async function consultarRRCC({
 
     data =
       texto
+
         ? JSON.parse(
             texto
           )
+
         : {};
 
 
@@ -488,15 +518,13 @@ export async function consultarRRCC({
   }
 
 
-  // --------------------------------------------------
-  // SOLO TRANSFORMAR RESPUESTAS EXITOSAS
-  // --------------------------------------------------
-
   const dataAdaptada =
     response.ok
+
       ? adaptarRespuestaRRCC(
           data
         )
+
       : data;
 
 

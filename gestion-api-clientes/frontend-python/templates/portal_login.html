@@ -1,141 +1,208 @@
 <!DOCTYPE html>
 <html lang="es">
 
-<head>
+    <head>
+        
+        <meta charset="UTF-8">
 
-    <meta charset="UTF-8">
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0"
+        >
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+        <title>
+            Acceso clientes | Gestión API
+        </title>
 
-    <title>
-        Acceso clientes | Gestión API
-    </title>
+        <link
+            rel="stylesheet"
+            href="{{ url_for('static', filename='css/style.css') }}?v=8"
+        >
 
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=8"
-    >
-
-</head>
-
-
-<body class="portal-login-body">
-
-<div class="portal-login-layout">
-
-    <section class="portal-brand">
-
-        <div class="portal-brand-content">
-
-            <div class="portal-api-logo">
-                API
-            </div>
-
-            <h1>
-                Consulta
-                <span>
-                    RRCC
-                </span>
-            </h1>
-
-            <p>
-                Accede a tus consultas utilizando
-                el token proporcionado por el
-                administrador del servicio.
-            </p>
-
-        </div>
-
-    </section>
+    </head>
 
 
-    <section class="portal-login-area">
+    <body class="portal-login-body">
 
-        <div class="portal-login-card">
+    <div class="portal-login-layout">
 
-            <div class="portal-login-header">
+        <section class="portal-brand">
 
-                <span class="portal-label">
-                    Portal de clientes
-                </span>
+            <div class="portal-brand-content">
 
-                <h2>
-                    Ingresar
-                </h2>
+                <div class="portal-api-logo">
+                    API
+                </div>
+
+                <h1>
+                    Consulta
+                    <span>
+                        RRCC
+                    </span>
+                </h1>
 
                 <p>
-                    Introduce tu token de acceso
-                    para continuar.
+                    Accede a tus consultas utilizando
+                    el token proporcionado por el
+                    administrador del servicio.
                 </p>
 
             </div>
 
-
-            {% if error %}
-
-            <div class="alert-error">
-                {{ error }}
-            </div>
-
-            {% endif %}
+        </section>
 
 
-            <form
-                method="POST"
-                action="{{ url_for('portal_login') }}"
-            >
+        <section class="portal-login-area">
 
-                <div class="portal-token-field">
+            <div class="portal-login-card">
 
-                    <label for="token">
-                        Token de acceso
-                    </label>
+                <div class="portal-login-header">
 
-                    <input
-                        id="token"
-                        name="token"
-                        type="password"
-                        placeholder="rrcc_live_..."
-                        autocomplete="off"
-                        required
-                    >
+                    <span class="portal-label">
+                        Portal de clientes
+                    </span>
+
+                    <h2>
+                        Ingresar
+                    </h2>
+
+                    <p>
+                        Introduce tu token de acceso
+                        para continuar.
+                    </p>
 
                 </div>
 
 
-                <button
-                    type="submit"
-                    class="portal-login-button"
+                {% if error %}
+
+                <div class="alert-error">
+                    {{ error }}
+                </div>
+
+                {% endif %}
+
+
+                <form
+                    id="portalLoginForm"
+                    method="POST"
+                    action="{{ url_for('portal_login') }}"
                 >
-                    Ingresar al portal
-                </button>
 
-            </form>
+                    <div class="portal-token-field">
+
+                        <label for="token">
+                            Token de acceso
+                        </label>
+
+                        <input
+                            id="token"
+                            name="token"
+                            type="password"
+                            placeholder="rrcc_live_..."
+                            autocomplete="off"
+                            required
+                        >
+
+                    </div>
 
 
-            <div class="portal-help">
+                    <button
+                        id="portalLoginButton"
+                        type="submit"
+                        class="portal-login-button"
+                    >
+                        Ingresar al portal
+                    </button>
 
-                <p>
-                    ¿No tienes un token o dejó de
-                    funcionar?
-                </p>
+                </form>
 
-                <span>
-                    Solicita uno nuevo al
-                    administrador del servicio.
-                </span>
+
+                <div class="portal-help">
+
+                    <p>
+                        ¿No tienes un token o dejó de
+                        funcionar?
+                    </p>
+
+                    <span>
+                        Solicita uno nuevo al
+                        administrador del servicio.
+                    </span>
+
+                </div>
 
             </div>
 
-        </div>
+        </section>
 
-    </section>
+    </div>
 
-</div>
 
-</body>
+    <script>
+
+        // =====================================================
+        // EVITAR MÚLTIPLES ENVÍOS DEL LOGIN
+        // =====================================================
+
+        const portalLoginForm =
+            document.getElementById(
+                "portalLoginForm"
+            );
+
+
+        const portalLoginButton =
+            document.getElementById(
+                "portalLoginButton"
+            );
+
+
+        let loginEnProceso =
+            false;
+
+
+        if (
+            portalLoginForm &&
+            portalLoginButton
+        ) {
+
+            portalLoginForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    // -----------------------------------------
+                    // EVITAR SEGUNDO ENVÍO
+                    // -----------------------------------------
+
+                    if (loginEnProceso) {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    loginEnProceso =
+                        true;
+
+
+                    // -----------------------------------------
+                    // BLOQUEAR BOTÓN
+                    // -----------------------------------------
+
+                    portalLoginButton.disabled =
+                        true;
+
+
+                    portalLoginButton.textContent =
+                        "Validando...";
+                }
+            );
+        }
+
+    </script>
+
+
+    </body>
 
 </html>

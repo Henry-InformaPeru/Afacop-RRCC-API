@@ -5,6 +5,7 @@ import {
   sql,
 } from "../config/sqlserver.js";
 
+
 function generarHash(token) {
   return crypto
     .createHash("sha256")
@@ -13,27 +14,27 @@ function generarHash(token) {
     .toUpperCase();
 }
 
+
 export async function clientTokenAuth(
   req,
   res,
   next
 ) {
-  try {
 
-    // -----------------------------------------------
-    // OBTENER TOKEN
-    // -----------------------------------------------
+  try {
 
     const authorization =
       String(
         req.get("authorization") || ""
       ).trim();
 
+
     if (
       !authorization
         .toLowerCase()
         .startsWith("bearer ")
     ) {
+
       return res
         .status(401)
         .json({
@@ -44,13 +45,16 @@ export async function clientTokenAuth(
             "TOKEN_REQUIRED",
         });
     }
+
 
     const token =
       authorization
         .substring(7)
         .trim();
 
+
     if (!token) {
+
       return res
         .status(401)
         .json({
@@ -62,19 +66,14 @@ export async function clientTokenAuth(
         });
     }
 
-    // -----------------------------------------------
-    // HASH
-    // -----------------------------------------------
 
     const tokenHash =
       generarHash(token);
 
-    // -----------------------------------------------
-    // BUSCAR TOKEN
-    // -----------------------------------------------
 
     const pool =
       await getSqlPool();
+
 
     const result =
       await pool
@@ -92,6 +91,7 @@ export async function clientTokenAuth(
             T.ID_CLIENTE,
             T.ESTADO AS TOKEN_ESTADO,
             T.FECHA_VENCIMIENTO,
+            T.ULTIMO_USO,
 
             C.ESTADO AS CLIENTE_ESTADO,
             C.TIPO_DOCUMENTO_CLIENTE,
@@ -101,30 +101,34 @@ export async function clientTokenAuth(
             C.APELLIDO_MATERNO,
             C.RAZON_SOCIAL,
 
+            S.ID_TOKEN AS SALDO_ID_TOKEN,
             S.CREDITOS_DISPONIBLES,
             S.TOTAL_ASIGNADO,
             S.TOTAL_CONSUMIDO
 
-          FROM GestionAPIClientes.Tokens T
+          FROM
+            GestionAPIClientes.Tokens T
 
           INNER JOIN
             GestionAPIClientes.Clientes C
               ON C.ID_CLIENTE =
                  T.ID_CLIENTE
 
-          INNER JOIN
+          LEFT JOIN
             GestionAPIClientes.Saldos S
-              ON S.ID_CLIENTE =
-                 T.ID_CLIENTE
+              ON S.ID_TOKEN =
+                 T.ID_TOKEN
 
           WHERE
             T.TOKEN_HASH =
               @tokenHash
         `);
 
+
     if (
       result.recordset.length === 0
     ) {
+
       return res
         .status(401)
         .json({
@@ -136,17 +140,16 @@ export async function clientTokenAuth(
         });
     }
 
+
     const acceso =
       result.recordset[0];
 
-    // -----------------------------------------------
-    // TOKEN ACTIVO
-    // -----------------------------------------------
 
     if (
       acceso.TOKEN_ESTADO !==
       "ACTIVO"
     ) {
+
       return res
         .status(403)
         .json({
@@ -158,14 +161,12 @@ export async function clientTokenAuth(
         });
     }
 
-    // -----------------------------------------------
-    // CLIENTE ACTIVO
-    // -----------------------------------------------
 
     if (
       acceso.CLIENTE_ESTADO !==
       "ACTIVO"
     ) {
+
       return res
         .status(403)
         .json({
@@ -177,9 +178,6 @@ export async function clientTokenAuth(
         });
     }
 
-    // -----------------------------------------------
-    // VENCIMIENTO
-    // -----------------------------------------------
 
     if (
       acceso.FECHA_VENCIMIENTO &&
@@ -187,6 +185,7 @@ export async function clientTokenAuth(
         acceso.FECHA_VENCIMIENTO
       ) <= new Date()
     ) {
+
       return res
         .status(403)
         .json({
@@ -198,11 +197,38 @@ export async function clientTokenAuth(
         });
     }
 
-    // -----------------------------------------------
-    // GUARDAR DATOS EN REQUEST
-    // -----------------------------------------------
+
+    if (
+      acceso.SALDO_ID_TOKEN === null ||
+      acceso.SALDO_ID_TOKEN === undefined
+    ) {
+
+      console.error(
+        "Token activo sin registro de saldo:",
+        {
+          idToken:
+            acceso.ID_TOKEN,
+
+          idCliente:
+            acceso.ID_CLIENTE,
+        }
+      );
+
+
+      return res
+        .status(409)
+        .json({
+          success: false,
+          error:
+            "El token no tiene un registro de créditos asociado.",
+          code:
+            "TOKEN_BALANCE_NOT_FOUND",
+        });
+    }
+
 
     req.clienteApi = {
+
       idCliente:
         acceso.ID_CLIENTE,
 
@@ -210,8 +236,7 @@ export async function clientTokenAuth(
         acceso.ID_TOKEN,
 
       tipoDocumentoCliente:
-        acceso
-          .TIPO_DOCUMENTO_CLIENTE,
+        acceso.TIPO_DOCUMENTO_CLIENTE,
 
       documentoCliente:
         acceso.DOCUMENTO_CLIENTE,
@@ -230,8 +255,7 @@ export async function clientTokenAuth(
 
       creditosDisponibles:
         Number(
-          acceso
-            .CREDITOS_DISPONIBLES
+          acceso.CREDITOS_DISPONIBLES
         ),
 
       totalAsignado:
@@ -245,7 +269,9 @@ export async function clientTokenAuth(
         ),
     };
 
-    next();
+
+    return next();
+
 
   } catch (error) {
 
@@ -253,6 +279,7 @@ export async function clientTokenAuth(
       "Error validando token cliente:",
       error
     );
+
 
     return res
       .status(500)

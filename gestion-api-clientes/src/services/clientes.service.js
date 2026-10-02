@@ -17,6 +17,7 @@ function generarToken() {
       .randomBytes(32)
       .toString("hex");
 
+
   return `rrcc_live_${secreto}`;
 }
 
@@ -47,6 +48,40 @@ function crearError(
     code;
 
   return error;
+}
+
+
+function normalizarFechaVencimiento(
+  fechaVencimiento
+) {
+
+  if (!fechaVencimiento) {
+
+    return null;
+  }
+
+
+  const fecha =
+    new Date(
+      fechaVencimiento
+    );
+
+
+  if (
+    Number.isNaN(
+      fecha.getTime()
+    )
+  ) {
+
+    throw crearError(
+      "La fecha de vencimiento no es válida.",
+      400,
+      "INVALID_EXPIRATION_DATE"
+    );
+  }
+
+
+  return fecha;
 }
 
 
@@ -90,55 +125,63 @@ export async function crearCliente({
 
   nombres =
     nombres
+
       ? String(
           nombres
         ).trim()
+
       : null;
 
 
   apellidoPaterno =
     apellidoPaterno
+
       ? String(
           apellidoPaterno
         ).trim()
+
       : null;
 
 
   apellidoMaterno =
     apellidoMaterno
+
       ? String(
           apellidoMaterno
         ).trim()
+
       : null;
 
 
   razonSocial =
     razonSocial
+
       ? String(
           razonSocial
         ).trim()
+
       : null;
 
 
   email =
     email
+
       ? String(
           email
         ).trim()
+
       : null;
 
 
   telefono =
     telefono
+
       ? String(
           telefono
         ).trim()
+
       : null;
 
-
-  // --------------------------------------------------
-  // VALIDACIONES
-  // --------------------------------------------------
 
   const tiposPermitidos = [
     "DNI",
@@ -172,10 +215,6 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // DNI
-  // --------------------------------------------------
-
   if (
     tipoDocumento === "DNI" &&
     !/^\d{8}$/.test(
@@ -191,10 +230,6 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // RUC
-  // --------------------------------------------------
-
   if (
     tipoDocumento === "RUC" &&
     !/^\d{11}$/.test(
@@ -209,10 +244,6 @@ export async function crearCliente({
     );
   }
 
-
-  // --------------------------------------------------
-  // CARNET DE EXTRANJERÍA
-  // --------------------------------------------------
 
   if (
     tipoDocumento === "CE" &&
@@ -233,10 +264,6 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // PASAPORTE
-  // --------------------------------------------------
-
   if (
     tipoDocumento === "PASAPORTE" &&
     (
@@ -256,10 +283,6 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // RAZÓN SOCIAL
-  // --------------------------------------------------
-
   if (
     tipoDocumento === "RUC" &&
     !razonSocial
@@ -273,10 +296,6 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // NOMBRES
-  // --------------------------------------------------
-
   if (
     tipoDocumento !== "RUC" &&
     !nombres
@@ -289,10 +308,6 @@ export async function crearCliente({
     );
   }
 
-
-  // --------------------------------------------------
-  // CRÉDITOS INICIALES
-  // --------------------------------------------------
 
   const creditos =
     Number(
@@ -315,41 +330,11 @@ export async function crearCliente({
   }
 
 
-  // --------------------------------------------------
-  // FECHA DE VENCIMIENTO
-  // --------------------------------------------------
+  const fechaVencimientoSql =
+    normalizarFechaVencimiento(
+      fechaVencimiento
+    );
 
-  let fechaVencimientoSql =
-    null;
-
-
-  if (fechaVencimiento) {
-
-    fechaVencimientoSql =
-      new Date(
-        fechaVencimiento
-      );
-
-
-    if (
-      Number.isNaN(
-        fechaVencimientoSql
-          .getTime()
-      )
-    ) {
-
-      throw crearError(
-        "La fecha de vencimiento no es válida.",
-        400,
-        "INVALID_EXPIRATION_DATE"
-      );
-    }
-  }
-
-
-  // --------------------------------------------------
-  // GENERAR TOKEN
-  // --------------------------------------------------
 
   const token =
     generarToken();
@@ -367,10 +352,6 @@ export async function crearCliente({
       24
     );
 
-
-  // --------------------------------------------------
-  // CONEXIÓN
-  // --------------------------------------------------
 
   const pool =
     await getSqlPool();
@@ -427,9 +408,7 @@ export async function crearCliente({
 
 
     if (
-      duplicado
-        .recordset
-        .length > 0
+      duplicado.recordset.length > 0
     ) {
 
       throw crearError(
@@ -539,55 +518,15 @@ export async function crearCliente({
 
 
     const idCliente =
-      clienteResult
-        .recordset[0]
-        .ID_CLIENTE;
+      Number(
+        clienteResult
+          .recordset[0]
+          .ID_CLIENTE
+      );
 
 
     // --------------------------------------------------
-    // CREAR SALDO
-    // --------------------------------------------------
-
-    await new sql.Request(
-      transaction
-    )
-
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
-
-      .input(
-        "creditos",
-        sql.Int,
-        creditos
-      )
-
-      .query(`
-        INSERT INTO
-          GestionAPIClientes.Saldos
-        (
-          ID_CLIENTE,
-
-          CREDITOS_DISPONIBLES,
-          TOTAL_ASIGNADO,
-          TOTAL_CONSUMIDO
-        )
-
-        VALUES
-        (
-          @idCliente,
-
-          @creditos,
-          @creditos,
-          0
-        )
-      `);
-
-
-    // --------------------------------------------------
-    // CREAR TOKEN
+    // CREAR TOKEN PRIMERO
     // --------------------------------------------------
 
     const tokenResult =
@@ -651,16 +590,70 @@ export async function crearCliente({
 
 
     const idToken =
-      tokenResult
-        .recordset[0]
-        .ID_TOKEN;
+      Number(
+        tokenResult
+          .recordset[0]
+          .ID_TOKEN
+      );
+
+
+    // --------------------------------------------------
+    // CREAR SALDO DEL TOKEN
+    // --------------------------------------------------
+
+    await new sql.Request(
+      transaction
+    )
+
+      .input(
+        "idCliente",
+        sql.BigInt,
+        idCliente
+      )
+
+      .input(
+        "idToken",
+        sql.BigInt,
+        idToken
+      )
+
+      .input(
+        "creditos",
+        sql.Int,
+        creditos
+      )
+
+      .query(`
+        INSERT INTO
+          GestionAPIClientes.Saldos
+        (
+          ID_CLIENTE,
+          ID_TOKEN,
+
+          CREDITOS_DISPONIBLES,
+          TOTAL_ASIGNADO,
+          TOTAL_CONSUMIDO
+        )
+
+        VALUES
+        (
+          @idCliente,
+          @idToken,
+
+          @creditos,
+          @creditos,
+          0
+        )
+      `);
 
 
     // --------------------------------------------------
     // MOVIMIENTO INICIAL
     // --------------------------------------------------
 
-    if (creditos > 0) {
+    if (
+      creditos > 0
+    ) {
 
       await new sql.Request(
         transaction
@@ -670,6 +663,12 @@ export async function crearCliente({
           "idCliente",
           sql.BigInt,
           idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
         )
 
         .input(
@@ -683,6 +682,7 @@ export async function crearCliente({
             GestionAPIClientes.Movimientos
           (
             ID_CLIENTE,
+            ID_TOKEN,
 
             TIPO,
             CANTIDAD,
@@ -697,6 +697,7 @@ export async function crearCliente({
           VALUES
           (
             @idCliente,
+            @idToken,
 
             'CARGA',
             @creditos,
@@ -734,19 +735,13 @@ export async function crearCliente({
 
   } catch (error) {
 
-    if (
-      transaction._aborted !== true
-    ) {
+    try {
 
-      try {
+      await transaction.rollback();
 
-        await transaction.rollback();
+    } catch {
 
-      } catch {
-
-        // La transacción ya pudo haber sido revertida.
-
-      }
+      // Ya pudo haberse revertido.
     }
 
 
@@ -756,7 +751,7 @@ export async function crearCliente({
 
 
 // ==================================================
-// RECARGAR CRÉDITOS
+// RECARGAR CRÉDITOS DEL TOKEN ACTIVO
 // ==================================================
 
 export async function recargarCreditos(
@@ -765,21 +760,15 @@ export async function recargarCreditos(
 ) {
 
   idCliente =
-    Number(
-      idCliente
-    );
+    Number(idCliente);
 
 
   cantidad =
-    Number(
-      cantidad
-    );
+    Number(cantidad);
 
 
   if (
-    !Number.isInteger(
-      idCliente
-    ) ||
+    !Number.isInteger(idCliente) ||
     idCliente <= 0
   ) {
 
@@ -792,9 +781,7 @@ export async function recargarCreditos(
 
 
   if (
-    !Number.isInteger(
-      cantidad
-    ) ||
+    !Number.isInteger(cantidad) ||
     cantidad <= 0
   ) {
 
@@ -811,9 +798,7 @@ export async function recargarCreditos(
 
 
   const transaction =
-    new sql.Transaction(
-      pool
-    );
+    new sql.Transaction(pool);
 
 
   try {
@@ -845,6 +830,10 @@ export async function recargarCreditos(
 
           FROM
             GestionAPIClientes.Clientes
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
 
           WHERE
             ID_CLIENTE =
@@ -853,9 +842,7 @@ export async function recargarCreditos(
 
 
     if (
-      clienteResult
-        .recordset
-        .length === 0
+      clienteResult.recordset.length === 0
     ) {
 
       throw crearError(
@@ -867,7 +854,78 @@ export async function recargarCreditos(
 
 
     // --------------------------------------------------
-    // BLOQUEAR Y OBTENER SALDO
+    // BUSCAR TOKEN ACTIVO
+    // --------------------------------------------------
+
+    const tokenResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .query(`
+          SELECT
+            ID_TOKEN,
+            FECHA_VENCIMIENTO
+
+          FROM
+            GestionAPIClientes.Tokens
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+
+            AND ESTADO =
+              'ACTIVO'
+
+          ORDER BY
+            ID_TOKEN DESC
+        `);
+
+
+    if (
+      tokenResult.recordset.length === 0
+    ) {
+
+      throw crearError(
+        "El cliente no tiene un token activo.",
+        409,
+        "ACTIVE_TOKEN_NOT_FOUND"
+      );
+    }
+
+
+    if (
+      tokenResult.recordset.length > 1
+    ) {
+
+      throw crearError(
+        "El cliente tiene más de un token activo. No se puede determinar qué token recargar.",
+        409,
+        "MULTIPLE_ACTIVE_TOKENS"
+      );
+    }
+
+
+    const idToken =
+      Number(
+        tokenResult
+          .recordset[0]
+          .ID_TOKEN
+      );
+
+
+    // --------------------------------------------------
+    // SALDO DEL TOKEN
     // --------------------------------------------------
 
     const saldoResult =
@@ -879,6 +937,12 @@ export async function recargarCreditos(
           "idCliente",
           sql.BigInt,
           idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
         )
 
         .query(`
@@ -897,19 +961,20 @@ export async function recargarCreditos(
           WHERE
             ID_CLIENTE =
               @idCliente
+
+            AND ID_TOKEN =
+              @idToken
         `);
 
 
     if (
-      saldoResult
-        .recordset
-        .length === 0
+      saldoResult.recordset.length === 0
     ) {
 
       throw crearError(
-        "El cliente no tiene un registro de saldo.",
+        "El token activo no tiene un registro de saldo.",
         409,
-        "BALANCE_NOT_FOUND"
+        "TOKEN_BALANCE_NOT_FOUND"
       );
     }
 
@@ -931,6 +996,75 @@ export async function recargarCreditos(
     // ACTUALIZAR SALDO
     // --------------------------------------------------
 
+    const updateResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idToken",
+          sql.BigInt,
+          idToken
+        )
+
+        .input(
+          "cantidad",
+          sql.Int,
+          cantidad
+        )
+
+        .input(
+          "saldoDespues",
+          sql.Int,
+          saldoDespues
+        )
+
+        .query(`
+          UPDATE
+            GestionAPIClientes.Saldos
+
+          SET
+            CREDITOS_DISPONIBLES =
+              @saldoDespues,
+
+            TOTAL_ASIGNADO =
+              TOTAL_ASIGNADO +
+              @cantidad,
+
+            FECHA_ACTUALIZACION =
+              SYSDATETIME()
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+
+            AND ID_TOKEN =
+              @idToken
+        `);
+
+
+    if (
+      updateResult.rowsAffected[0] !== 1
+    ) {
+
+      throw crearError(
+        "No fue posible actualizar los créditos del token.",
+        409,
+        "CREDIT_UPDATE_FAILED"
+      );
+    }
+
+
+    // --------------------------------------------------
+    // MOVIMIENTO
+    // --------------------------------------------------
+
     await new sql.Request(
       transaction
     )
@@ -942,50 +1076,9 @@ export async function recargarCreditos(
       )
 
       .input(
-        "cantidad",
-        sql.Int,
-        cantidad
-      )
-
-      .input(
-        "saldoDespues",
-        sql.Int,
-        saldoDespues
-      )
-
-      .query(`
-        UPDATE
-          GestionAPIClientes.Saldos
-
-        SET
-          CREDITOS_DISPONIBLES =
-            @saldoDespues,
-
-          TOTAL_ASIGNADO =
-            TOTAL_ASIGNADO +
-            @cantidad,
-
-          FECHA_ACTUALIZACION =
-            SYSDATETIME()
-
-        WHERE
-          ID_CLIENTE =
-            @idCliente
-      `);
-
-
-    // --------------------------------------------------
-    // REGISTRAR MOVIMIENTO
-    // --------------------------------------------------
-
-    await new sql.Request(
-      transaction
-    )
-
-      .input(
-        "idCliente",
+        "idToken",
         sql.BigInt,
-        idCliente
+        idToken
       )
 
       .input(
@@ -1011,6 +1104,7 @@ export async function recargarCreditos(
           GestionAPIClientes.Movimientos
         (
           ID_CLIENTE,
+          ID_TOKEN,
 
           TIPO,
           CANTIDAD,
@@ -1025,6 +1119,7 @@ export async function recargarCreditos(
         VALUES
         (
           @idCliente,
+          @idToken,
 
           'CARGA',
           @cantidad,
@@ -1044,6 +1139,7 @@ export async function recargarCreditos(
     return {
 
       idCliente,
+      idToken,
 
       creditosAgregados:
         cantidad,
@@ -1064,7 +1160,6 @@ export async function recargarCreditos(
     } catch {
 
       // Ya pudo haberse revertido.
-
     }
 
 
@@ -1086,21 +1181,15 @@ export async function listarClientes({
 }) {
 
   page =
-    Number(
-      page
-    );
+    Number(page);
 
 
   limit =
-    Number(
-      limit
-    );
+    Number(limit);
 
 
   if (
-    !Number.isInteger(
-      page
-    ) ||
+    !Number.isInteger(page) ||
     page < 1
   ) {
 
@@ -1109,9 +1198,7 @@ export async function listarClientes({
 
 
   if (
-    !Number.isInteger(
-      limit
-    ) ||
+    !Number.isInteger(limit) ||
     limit < 1 ||
     limit > 100
   ) {
@@ -1137,7 +1224,7 @@ export async function listarClientes({
 
 
   // --------------------------------------------------
-  // TOTAL DE CLIENTES
+  // TOTAL
   // --------------------------------------------------
 
   const totalResult =
@@ -1235,9 +1322,12 @@ export async function listarClientes({
           C.FECHA_CREACION,
           C.FECHA_ACTUALIZACION,
 
-          S.CREDITOS_DISPONIBLES,
-          S.TOTAL_ASIGNADO,
-          S.TOTAL_CONSUMIDO,
+          SB.ID_TOKEN
+            AS SALDO_ID_TOKEN,
+
+          SB.CREDITOS_DISPONIBLES,
+          SB.TOTAL_ASIGNADO,
+          SB.TOTAL_CONSUMIDO,
 
           (
             SELECT
@@ -1257,10 +1347,39 @@ export async function listarClientes({
         FROM
           GestionAPIClientes.Clientes C
 
-        LEFT JOIN
-          GestionAPIClientes.Saldos S
-            ON S.ID_CLIENTE =
-               C.ID_CLIENTE
+        OUTER APPLY
+        (
+          SELECT TOP 1
+
+            S.ID_TOKEN,
+
+            S.CREDITOS_DISPONIBLES,
+            S.TOTAL_ASIGNADO,
+            S.TOTAL_CONSUMIDO
+
+          FROM
+            GestionAPIClientes.Saldos S
+
+          INNER JOIN
+            GestionAPIClientes.Tokens TSaldo
+              ON TSaldo.ID_TOKEN =
+                 S.ID_TOKEN
+
+          WHERE
+            S.ID_CLIENTE =
+              C.ID_CLIENTE
+
+          ORDER BY
+
+            CASE
+              WHEN TSaldo.ESTADO =
+                'ACTIVO'
+              THEN 0
+              ELSE 1
+            END,
+
+            S.ID_TOKEN DESC
+        ) SB
 
         WHERE
           @search = '%%'
@@ -1335,6 +1454,10 @@ export async function listarClientes({
 
           creditos: {
 
+            idToken:
+              cliente
+                .SALDO_ID_TOKEN,
+
             disponibles:
               Number(
                 cliente
@@ -1407,9 +1530,7 @@ export async function obtenerClienteDetalle(
 ) {
 
   idCliente =
-    Number(
-      idCliente
-    );
+    Number(idCliente);
 
 
   pageConsumos =
@@ -1425,9 +1546,7 @@ export async function obtenerClienteDetalle(
 
 
   if (
-    !Number.isInteger(
-      idCliente
-    ) ||
+    !Number.isInteger(idCliente) ||
     idCliente <= 0
   ) {
 
@@ -1438,10 +1557,6 @@ export async function obtenerClienteDetalle(
     );
   }
 
-
-  // --------------------------------------------------
-  // PAGINACIÓN
-  // --------------------------------------------------
 
   const limit =
     10;
@@ -1454,7 +1569,8 @@ export async function obtenerClienteDetalle(
     pageConsumos < 1
   ) {
 
-    pageConsumos = 1;
+    pageConsumos =
+      1;
   }
 
 
@@ -1465,7 +1581,8 @@ export async function obtenerClienteDetalle(
     pageMovimientos < 1
   ) {
 
-    pageMovimientos = 1;
+    pageMovimientos =
+      1;
   }
 
 
@@ -1508,17 +1625,49 @@ export async function obtenerClienteDetalle(
           C.FECHA_CREACION,
           C.FECHA_ACTUALIZACION,
 
-          S.CREDITOS_DISPONIBLES,
-          S.TOTAL_ASIGNADO,
-          S.TOTAL_CONSUMIDO
+          SB.ID_TOKEN
+            AS SALDO_ID_TOKEN,
+
+          SB.CREDITOS_DISPONIBLES,
+          SB.TOTAL_ASIGNADO,
+          SB.TOTAL_CONSUMIDO
 
         FROM
           GestionAPIClientes.Clientes C
 
-        LEFT JOIN
-          GestionAPIClientes.Saldos S
-            ON S.ID_CLIENTE =
-               C.ID_CLIENTE
+        OUTER APPLY
+        (
+          SELECT TOP 1
+
+            S.ID_TOKEN,
+
+            S.CREDITOS_DISPONIBLES,
+            S.TOTAL_ASIGNADO,
+            S.TOTAL_CONSUMIDO
+
+          FROM
+            GestionAPIClientes.Saldos S
+
+          INNER JOIN
+            GestionAPIClientes.Tokens TSaldo
+              ON TSaldo.ID_TOKEN =
+                 S.ID_TOKEN
+
+          WHERE
+            S.ID_CLIENTE =
+              C.ID_CLIENTE
+
+          ORDER BY
+
+            CASE
+              WHEN TSaldo.ESTADO =
+                'ACTIVO'
+              THEN 0
+              ELSE 1
+            END,
+
+            S.ID_TOKEN DESC
+        ) SB
 
         WHERE
           C.ID_CLIENTE =
@@ -1527,9 +1676,7 @@ export async function obtenerClienteDetalle(
 
 
   if (
-    clienteResult
-      .recordset
-      .length === 0
+    clienteResult.recordset.length === 0
   ) {
 
     throw crearError(
@@ -1557,7 +1704,7 @@ export async function obtenerClienteDetalle(
 
 
   // --------------------------------------------------
-  // TOKENS
+  // TOKENS + SALDO
   // --------------------------------------------------
 
   const tokensResult =
@@ -1572,28 +1719,38 @@ export async function obtenerClienteDetalle(
 
       .query(`
         SELECT
-          ID_TOKEN,
-          TOKEN_PREFIJO,
-          ESTADO,
-          FECHA_CREACION,
-          FECHA_VENCIMIENTO,
-          ULTIMO_USO
+          T.ID_TOKEN,
+          T.TOKEN_PREFIJO,
+          T.ESTADO,
+
+          T.FECHA_CREACION,
+          T.FECHA_VENCIMIENTO,
+          T.ULTIMO_USO,
+
+          S.CREDITOS_DISPONIBLES,
+          S.TOTAL_ASIGNADO,
+          S.TOTAL_CONSUMIDO
 
         FROM
-          GestionAPIClientes.Tokens
+          GestionAPIClientes.Tokens T
+
+        LEFT JOIN
+          GestionAPIClientes.Saldos S
+            ON S.ID_TOKEN =
+               T.ID_TOKEN
 
         WHERE
-          ID_CLIENTE =
+          T.ID_CLIENTE =
             @idCliente
 
         ORDER BY
-          ID_TOKEN DESC
+          T.ID_TOKEN DESC
       `);
 
 
-  // ==================================================
-  // TOTAL DE CONSULTAS
-  // ==================================================
+  // --------------------------------------------------
+  // TOTAL CONSULTAS
+  // --------------------------------------------------
 
   const totalConsumosResult =
     await pool
@@ -1633,10 +1790,6 @@ export async function obtenerClienteDetalle(
     );
 
 
-  // --------------------------------------------------
-  // EVITAR PÁGINAS DE CONSULTAS FUERA DE RANGO
-  // --------------------------------------------------
-
   if (
     totalPaginasConsumos > 0 &&
     pageConsumos >
@@ -1653,9 +1806,9 @@ export async function obtenerClienteDetalle(
     limit;
 
 
-  // ==================================================
-  // CONSULTAS PAGINADAS
-  // ==================================================
+  // --------------------------------------------------
+  // CONSULTAS
+  // --------------------------------------------------
 
   const consumosResult =
     await pool
@@ -1716,9 +1869,9 @@ export async function obtenerClienteDetalle(
       `);
 
 
-  // ==================================================
-  // TOTAL DE MOVIMIENTOS
-  // ==================================================
+  // --------------------------------------------------
+  // TOTAL MOVIMIENTOS
+  // --------------------------------------------------
 
   const totalMovimientosResult =
     await pool
@@ -1758,10 +1911,6 @@ export async function obtenerClienteDetalle(
     );
 
 
-  // --------------------------------------------------
-  // EVITAR PÁGINAS DE MOVIMIENTOS FUERA DE RANGO
-  // --------------------------------------------------
-
   if (
     totalPaginasMovimientos > 0 &&
     pageMovimientos >
@@ -1778,9 +1927,9 @@ export async function obtenerClienteDetalle(
     limit;
 
 
-  // ==================================================
-  // MOVIMIENTOS PAGINADOS
-  // ==================================================
+  // --------------------------------------------------
+  // MOVIMIENTOS
+  // --------------------------------------------------
 
   const movimientosResult =
     await pool
@@ -1807,10 +1956,14 @@ export async function obtenerClienteDetalle(
       .query(`
         SELECT
           ID_MOVIMIENTO,
+          ID_TOKEN,
+
           TIPO,
           CANTIDAD,
+
           SALDO_ANTES,
           SALDO_DESPUES,
+
           ORIGEN,
           OBSERVACION,
           FECHA
@@ -1833,17 +1986,16 @@ export async function obtenerClienteDetalle(
       `);
 
 
-  // ==================================================
+  // --------------------------------------------------
   // RESPUESTA
-  // ==================================================
+  // --------------------------------------------------
 
   return {
 
     cliente: {
 
       idCliente:
-        cliente
-          .ID_CLIENTE,
+        cliente.ID_CLIENTE,
 
       tipoDocumento:
         cliente
@@ -1890,6 +2042,10 @@ export async function obtenerClienteDetalle(
 
 
     creditos: {
+
+      idToken:
+        cliente
+          .SALDO_ID_TOKEN,
 
       disponibles:
         Number(
@@ -1943,13 +2099,37 @@ export async function obtenerClienteDetalle(
             ultimoUso:
               token
                 .ULTIMO_USO,
+
+            creditos:
+              token
+                .CREDITOS_DISPONIBLES ===
+                null
+
+                ? null
+
+                : {
+
+                    disponibles:
+                      Number(
+                        token
+                          .CREDITOS_DISPONIBLES
+                      ),
+
+                    totalAsignado:
+                      Number(
+                        token
+                          .TOTAL_ASIGNADO
+                      ),
+
+                    totalConsumido:
+                      Number(
+                        token
+                          .TOTAL_CONSUMIDO
+                      ),
+                  },
           })
         ),
 
-
-    // --------------------------------------------------
-    // CONSULTAS
-    // --------------------------------------------------
 
     consumos:
       consumosResult
@@ -2011,10 +2191,6 @@ export async function obtenerClienteDetalle(
         ),
 
 
-    // --------------------------------------------------
-    // PAGINACIÓN CONSULTAS
-    // --------------------------------------------------
-
     paginacionConsumos: {
 
       page:
@@ -2030,10 +2206,6 @@ export async function obtenerClienteDetalle(
     },
 
 
-    // --------------------------------------------------
-    // MOVIMIENTOS
-    // --------------------------------------------------
-
     movimientos:
       movimientosResult
         .recordset
@@ -2043,6 +2215,10 @@ export async function obtenerClienteDetalle(
             idMovimiento:
               movimiento
                 .ID_MOVIMIENTO,
+
+            idToken:
+              movimiento
+                .ID_TOKEN,
 
             tipo:
               movimiento
@@ -2075,10 +2251,6 @@ export async function obtenerClienteDetalle(
         ),
 
 
-    // --------------------------------------------------
-    // PAGINACIÓN MOVIMIENTOS
-    // --------------------------------------------------
-
     paginacionMovimientos: {
 
       page:
@@ -2097,7 +2269,7 @@ export async function obtenerClienteDetalle(
 
 
 // ==================================================
-// ACTUALIZAR ESTADO DE CLIENTE
+// ACTUALIZAR ESTADO CLIENTE
 // ==================================================
 
 export async function actualizarEstadoCliente(
@@ -2106,9 +2278,7 @@ export async function actualizarEstadoCliente(
 ) {
 
   idCliente =
-    Number(
-      idCliente
-    );
+    Number(idCliente);
 
 
   estado =
@@ -2120,9 +2290,7 @@ export async function actualizarEstadoCliente(
 
 
   if (
-    !Number.isInteger(
-      idCliente
-    ) ||
+    !Number.isInteger(idCliente) ||
     idCliente <= 0
   ) {
 
@@ -2158,10 +2326,6 @@ export async function actualizarEstadoCliente(
     await getSqlPool();
 
 
-  // --------------------------------------------------
-  // VALIDAR CLIENTE
-  // --------------------------------------------------
-
   const clienteResult =
     await pool
       .request()
@@ -2187,9 +2351,7 @@ export async function actualizarEstadoCliente(
 
 
   if (
-    clienteResult
-      .recordset
-      .length === 0
+    clienteResult.recordset.length === 0
   ) {
 
     throw crearError(
@@ -2205,10 +2367,6 @@ export async function actualizarEstadoCliente(
       .recordset[0]
       .ESTADO;
 
-
-  // --------------------------------------------------
-  // ACTUALIZAR ESTADO
-  // --------------------------------------------------
 
   await pool
     .request()
