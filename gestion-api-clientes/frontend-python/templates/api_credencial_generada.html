@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="robots"
+        content="noindex,nofollow,noarchive"
+    >
+
+    <title>
+        Credencial API | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=14"
+    >
+
+</head>
+
+
+<body class="token-page">
+
+<div class="token-container">
+
+    <div class="token-card">
+
+        <div class="token-success-icon">
+            ✓
+        </div>
+
+
+        <h1>
+
+            {% if accion == "regenerada" %}
+
+                Credencial API regenerada
+
+            {% else %}
+
+                Credencial API generada
+
+            {% endif %}
+
+        </h1>
+
+
+        <p class="token-description">
+
+            Estas credenciales permiten consumir
+            la API comercial mediante HTTP Basic
+            Authentication.
+
+        </p>
+
+
+        <div class="token-warning">
+
+            <strong>Importante:</strong>
+
+            el CLIENT_SECRET se mostrará únicamente
+            en esta pantalla.
+
+            Guárdalo antes de continuar.
+
+        </div>
+
+
+        <!-- ======================================
+             CLIENT ID
+        ======================================= -->
+
+        <div
+            style="
+                margin-top: 24px;
+                margin-bottom: 8px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #596579;
+            "
+        >
+            CLIENT_ID
+        </div>
+
+
+        <div
+            class="generated-token"
+            id="client-id-value"
+        >
+
+            <code>
+                {{ client_id }}
+            </code>
+
+        </div>
+
+
+        <div class="token-copy">
+
+            <button
+                type="button"
+                class="api-action-button api-action-secondary"
+                onclick="copiarValor(
+                    'client-id-value',
+                    this
+                )"
+            >
+                Copiar CLIENT_ID
+            </button>
+
+        </div>
+
+
+        <!-- ======================================
+             CLIENT SECRET
+        ======================================= -->
+
+        <div
+            style="
+                margin-top: 28px;
+                margin-bottom: 8px;
+                font-size: 13px;
+                font-weight: 700;
+                color: #596579;
+            "
+        >
+            CLIENT_SECRET
+        </div>
+
+
+        <div
+            class="generated-token"
+            id="client-secret-value"
+        >
+
+            <code>
+                {{ client_secret }}
+            </code>
+
+        </div>
+
+
+        <div class="token-copy">
+
+            <button
+                type="button"
+                class="primary-action"
+                onclick="copiarValor(
+                    'client-secret-value',
+                    this
+                )"
+            >
+                Copiar CLIENT_SECRET
+            </button>
+
+        </div>
+
+
+        <!-- ======================================
+             AUTENTICACIÓN
+        ======================================= -->
+
+        <div
+            style="
+                margin-top: 30px;
+                padding-top: 22px;
+                border-top: 1px solid #e3e8ef;
+            "
+        >
+
+            <div
+                style="
+                    margin-bottom: 8px;
+                    font-size: 13px;
+                    font-weight: 700;
+                    color: #596579;
+                "
+            >
+                Tipo de autenticación
+            </div>
+
+            <div class="generated-token">
+
+                <code>
+                    Authorization: Basic &lt;credencial&gt;
+                </code>
+
+            </div>
+
+            <p
+                style="
+                    margin-top: 10px;
+                    color: #778294;
+                    font-size: 13px;
+                    line-height: 1.6;
+                "
+            >
+
+                El cliente utilizará su CLIENT_ID
+                y CLIENT_SECRET como credenciales
+                HTTP Basic para consumir los
+                endpoints GET comerciales.
+
+            </p>
+
+        </div>
+
+
+        <!-- ======================================
+             VOLVER
+        ======================================= -->
+
+        <div
+            style="
+                margin-top: 30px;
+            "
+        >
+
+            <a
+                href="{{ url_for(
+                    'cliente_detalle',
+                    id_cliente=id_cliente
+                ) }}"
+                class="token-return"
+                style="margin-left: 0;"
+            >
+                ← Volver al cliente
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+async function copiarValor(
+    elementoId,
+    boton
+) {
+
+    const elemento =
+        document.getElementById(
+            elementoId
+        );
+
+    if (!elemento) {
+        return;
+    }
+
+
+    const valor =
+        elemento
+            .innerText
+            .trim();
+
+
+    try {
+
+        await navigator
+            .clipboard
+            .writeText(
+                valor
+            );
+
+
+        const textoAnterior =
+            boton.innerText;
+
+
+        boton.innerText =
+            "Copiado ✓";
+
+
+        setTimeout(
+            () => {
+
+                boton.innerText =
+                    textoAnterior;
+
+            },
+            1500
+        );
+
+
+    } catch (
+        error
+    ) {
+
+        console.error(
+            "No fue posible copiar:",
+            error
+        );
+
+
+        alert(
+            "No fue posible copiar automáticamente. "
+            + "Seleccione el valor y cópielo manualmente."
+        );
+    }
+}
+
+</script>
+
+
+</body>
+
+</html>

@@ -2485,6 +2485,39 @@ for (
         T.ID_TOKEN DESC
     `);
 
+    // ==================================================
+// CREDENCIAL API COMERCIAL
+// ==================================================
+
+const apiCredencialResult =
+  await pool
+    .request()
+
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
+
+    .query(`
+      SELECT
+        ID_CREDENCIAL,
+        ID_CLIENTE,
+        CLIENT_ID,
+        ESTADO,
+        FECHA_CREACION,
+        FECHA_ACTUALIZACION,
+        ULTIMO_USO,
+        FECHA_REVOCACION
+
+      FROM
+        GestionAPIClientes.ApiCredenciales
+
+      WHERE
+        ID_CLIENTE =
+          @idCliente
+    `);
+
 
   // ==================================================
   // TOTAL DE CONSUMOS
@@ -2848,6 +2881,55 @@ creditos: {
 
 creditosPorServicio,
 
+// --------------------------------------------------
+// CREDENCIAL API COMERCIAL
+// --------------------------------------------------
+
+apiCredencial:
+  apiCredencialResult.recordset.length > 0
+
+    ? {
+
+        idCredencial:
+          Number(
+            apiCredencialResult
+              .recordset[0]
+              .ID_CREDENCIAL
+          ),
+
+        clientId:
+          apiCredencialResult
+            .recordset[0]
+            .CLIENT_ID,
+
+        estado:
+          apiCredencialResult
+            .recordset[0]
+            .ESTADO,
+
+        fechaCreacion:
+          apiCredencialResult
+            .recordset[0]
+            .FECHA_CREACION,
+
+        fechaActualizacion:
+          apiCredencialResult
+            .recordset[0]
+            .FECHA_ACTUALIZACION,
+
+        ultimoUso:
+          apiCredencialResult
+            .recordset[0]
+            .ULTIMO_USO,
+
+        fechaRevocacion:
+          apiCredencialResult
+            .recordset[0]
+            .FECHA_REVOCACION,
+
+      }
+
+    : null,
 
   // --------------------------------------------------
   // TOKENS

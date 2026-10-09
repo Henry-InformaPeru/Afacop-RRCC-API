@@ -6336,3 +6336,415 @@ body.portal-modal-open {
     }
 
 }
+
+/* =======================================
+   API COMERCIAL
+======================================= */
+
+.api-commercial-panel {
+    overflow: hidden;
+
+    margin-top: 28px;
+    margin-bottom: 28px;
+}
+
+
+/* CABECERA */
+
+.api-commercial-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 20px;
+}
+
+
+/* CUERPO */
+
+.api-commercial-body {
+    padding: 26px 40px 30px;
+}
+
+
+/* GRID DE CREDENCIAL */
+
+.api-credential-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(0, 1fr)
+        );
+
+    border:
+        1px solid #e4e9f0;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+}
+
+
+.api-credential-item {
+    min-height: 92px;
+
+    padding: 20px 22px;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+
+    border-right:
+        1px solid #edf0f4;
+
+    border-bottom:
+        1px solid #edf0f4;
+}
+
+
+.api-credential-label {
+    color: #7b8798;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.03em;
+}
+
+
+.api-credential-item strong {
+    color: #172033;
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+
+.api-client-id {
+    overflow-wrap: anywhere;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    color: #214e81 !important;
+}
+
+
+/* ACCIONES */
+
+.api-commercial-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    margin-top: 22px;
+}
+
+
+.api-commercial-actions form {
+    margin: 0;
+}
+
+
+/* =======================================
+   ESTADO VACÍO
+======================================= */
+
+.api-empty-state {
+    display: flex;
+    align-items: center;
+
+    gap: 18px;
+
+    padding: 28px 40px;
+}
+
+
+.api-empty-icon {
+    width: 48px;
+    height: 48px;
+
+    flex: 0 0 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background: #edf4fc;
+
+    color: #214e81;
+
+    font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+
+    font-size: 15px;
+    font-weight: 800;
+}
+
+
+.api-empty-content {
+    flex: 1;
+}
+
+
+.api-empty-content h3 {
+    margin: 0 0 5px;
+
+    color: #172033;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+
+.api-empty-content p {
+    margin: 0;
+
+    color: #7b8798;
+
+    font-size: 13px;
+
+    line-height: 1.55;
+}
+
+
+.api-generate-button {
+    min-width: 175px;
+}
+
+
+/* =======================================
+   RESPONSIVE
+======================================= */
+
+@media (
+    max-width: 900px
+) {
+
+    .api-credential-grid {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            );
+    }
+
+
+    .api-empty-state {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+
+    .api-empty-state form {
+        width: 100%;
+
+        padding-left: 66px;
+    }
+
+}
+
+
+@media (
+    max-width: 640px
+) {
+
+    .api-commercial-body {
+        padding:
+            22px
+            20px;
+    }
+
+
+    .api-credential-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .api-empty-state {
+        padding:
+            22px
+            20px;
+    }
+
+
+    .api-empty-state form {
+        padding-left: 0;
+    }
+
+
+    .api-generate-button {
+        width: 100%;
+    }
+
+}
+
+/* =======================================
+   ACCIONES API COMERCIAL
+======================================= */
+
+.api-commercial-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    margin-top: 24px;
+}
+
+
+.api-commercial-actions form {
+    margin: 0;
+}
+
+
+/* BOTÓN BASE */
+
+.api-action-button {
+    min-height: 46px;
+
+    padding:
+        0
+        22px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 11px;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
+
+    white-space: nowrap;
+}
+
+
+.api-action-button:hover {
+    transform: translateY(-1px);
+}
+
+
+/* REGENERAR */
+
+.api-action-primary {
+    border: 1px solid #1f4b80;
+
+    background: #1f4b80;
+
+    color: #ffffff;
+}
+
+
+.api-action-primary:hover {
+    border-color: #173c69;
+
+    background: #173c69;
+}
+
+
+/* BLOQUEAR */
+
+.api-action-danger {
+    border: 1px solid #e5a7a7;
+
+    background: #ffffff;
+
+    color: #b42318;
+}
+
+
+.api-action-danger:hover {
+    border-color: #d97d7d;
+
+    background: #fff3f2;
+
+    color: #991b1b;
+}
+
+
+/* ACTIVAR */
+
+.api-action-success {
+    border: 1px solid #86cba6;
+
+    background: #ffffff;
+
+    color: #167647;
+}
+
+
+.api-action-success:hover {
+    border-color: #5fb887;
+
+    background: #effaf4;
+
+    color: #12603b;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 640px) {
+
+    .api-commercial-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+
+    .api-commercial-actions form {
+        width: 100%;
+    }
+
+
+    .api-action-button {
+        width: 100%;
+    }
+
+}
+
+/* =======================================
+   BOTÓN SECUNDARIO API
+======================================= */
+
+.api-action-secondary {
+    border: 1px solid #cbd6e3;
+
+    background: #ffffff;
+
+    color: #214e81;
+}
+
+
+.api-action-secondary:hover {
+    border-color: #9fb4ca;
+
+    background: #f4f8fc;
+
+    color: #173c69;
+}

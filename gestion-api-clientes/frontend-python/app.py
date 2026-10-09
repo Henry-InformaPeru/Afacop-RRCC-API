@@ -3424,6 +3424,703 @@ def cliente_regenerar_token(id_cliente):
 
     return response
 
+# ==================================================
+# GENERAR CREDENCIAL API COMERCIAL
+# ==================================================
+
+@app.post(
+    "/clientes/<int:id_cliente>/api-credencial"
+)
+def cliente_generar_api_credencial(
+    id_cliente
+):
+
+    token = request.cookies.get(
+        "admin_session"
+    )
+
+    if not token:
+
+        return redirect(
+            url_for(
+                "login"
+            )
+        )
+
+
+    # ----------------------------------------------
+    # SOLICITAR CREDENCIAL AL BACKEND
+    # ----------------------------------------------
+
+    try:
+
+        response_backend = requests.post(
+
+            f"{BACKEND_URL}"
+            f"/api/admin/clientes/"
+            f"{id_cliente}/api-credencial",
+
+            json={},
+
+            cookies={
+                "admin_session":
+                    token
+            },
+
+            timeout=10
+        )
+
+
+        try:
+
+            resultado = (
+                response_backend.json()
+            )
+
+        except ValueError:
+
+            resultado = {}
+
+
+    except requests.RequestException:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    "No se pudo conectar "
+                    "con el backend."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # SESIÓN EXPIRADA
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 401
+    ):
+
+        response = make_response(
+            redirect(
+                url_for(
+                    "login"
+                )
+            )
+        )
+
+        response.delete_cookie(
+            "admin_session",
+            path="/"
+        )
+
+        return response
+
+
+    # ----------------------------------------------
+    # SIN PERMISOS
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 403
+    ):
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No tiene permisos para "
+                    "generar esta credencial."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ERROR
+    # ----------------------------------------------
+
+    if not response_backend.ok:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No fue posible generar "
+                    "la credencial API."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # CREDENCIAL GENERADA
+    # ----------------------------------------------
+
+    data = (
+        resultado.get(
+            "data",
+            {}
+        )
+    )
+
+
+    client_id = (
+        data.get(
+            "clientId"
+        )
+    )
+
+    client_secret = (
+        data.get(
+            "clientSecret"
+        )
+    )
+
+
+    # El CLIENT_SECRET solamente se muestra
+    # en esta respuesta.
+    response = make_response(
+
+        render_template(
+
+            "api_credencial_generada.html",
+
+            id_cliente=
+                id_cliente,
+
+            client_id=
+                client_id,
+
+            client_secret=
+                client_secret,
+
+            accion=
+                "generada"
+        )
+    )
+
+
+    # ----------------------------------------------
+    # SEGURIDAD
+    # ----------------------------------------------
+
+    response.headers[
+        "Cache-Control"
+    ] = (
+        "no-store, no-cache, "
+        "must-revalidate, private"
+    )
+
+    response.headers[
+        "Pragma"
+    ] = (
+        "no-cache"
+    )
+
+    response.headers[
+        "Expires"
+    ] = (
+        "0"
+    )
+
+    response.headers[
+        "Referrer-Policy"
+    ] = (
+        "no-referrer"
+    )
+
+
+    return response
+
+
+
+# ==================================================
+# REGENERAR CLIENT_SECRET
+# ==================================================
+
+@app.post(
+    "/clientes/<int:id_cliente>"
+    "/api-credencial/regenerar"
+)
+def cliente_regenerar_api_secret(
+    id_cliente
+):
+
+    token = request.cookies.get(
+        "admin_session"
+    )
+
+    if not token:
+
+        return redirect(
+            url_for(
+                "login"
+            )
+        )
+
+
+    # ----------------------------------------------
+    # REGENERAR EN BACKEND
+    # ----------------------------------------------
+
+    try:
+
+        response_backend = requests.post(
+
+            f"{BACKEND_URL}"
+            f"/api/admin/clientes/"
+            f"{id_cliente}"
+            "/api-credencial/regenerar",
+
+            json={},
+
+            cookies={
+                "admin_session":
+                    token
+            },
+
+            timeout=10
+        )
+
+
+        try:
+
+            resultado = (
+                response_backend.json()
+            )
+
+        except ValueError:
+
+            resultado = {}
+
+
+    except requests.RequestException:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    "No se pudo conectar "
+                    "con el backend."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # SESIÓN EXPIRADA
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 401
+    ):
+
+        response = make_response(
+            redirect(
+                url_for(
+                    "login"
+                )
+            )
+        )
+
+        response.delete_cookie(
+            "admin_session",
+            path="/"
+        )
+
+        return response
+
+
+    # ----------------------------------------------
+    # SIN PERMISOS
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 403
+    ):
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No tiene permisos para "
+                    "regenerar esta credencial."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ERROR
+    # ----------------------------------------------
+
+    if not response_backend.ok:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No fue posible regenerar "
+                    "el CLIENT_SECRET."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # NUEVO SECRET
+    # ----------------------------------------------
+
+    data = (
+        resultado.get(
+            "data",
+            {}
+        )
+    )
+
+
+    client_id = (
+        data.get(
+            "clientId"
+        )
+    )
+
+    client_secret = (
+        data.get(
+            "clientSecret"
+        )
+    )
+
+
+    response = make_response(
+
+        render_template(
+
+            "api_credencial_generada.html",
+
+            id_cliente=
+                id_cliente,
+
+            client_id=
+                client_id,
+
+            client_secret=
+                client_secret,
+
+            accion=
+                "regenerada"
+        )
+    )
+
+
+    # ----------------------------------------------
+    # SEGURIDAD
+    # ----------------------------------------------
+
+    response.headers[
+        "Cache-Control"
+    ] = (
+        "no-store, no-cache, "
+        "must-revalidate, private"
+    )
+
+    response.headers[
+        "Pragma"
+    ] = (
+        "no-cache"
+    )
+
+    response.headers[
+        "Expires"
+    ] = (
+        "0"
+    )
+
+    response.headers[
+        "Referrer-Policy"
+    ] = (
+        "no-referrer"
+    )
+
+
+    return response
+
+
+
+# ==================================================
+# CAMBIAR ESTADO CREDENCIAL API
+# ==================================================
+
+@app.post(
+    "/clientes/<int:id_cliente>"
+    "/api-credencial/estado"
+)
+def cliente_estado_api_credencial(
+    id_cliente
+):
+
+    token = request.cookies.get(
+        "admin_session"
+    )
+
+    if not token:
+
+        return redirect(
+            url_for(
+                "login"
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ESTADO
+    # ----------------------------------------------
+
+    estado = (
+        request.form
+        .get(
+            "estado",
+            ""
+        )
+        .strip()
+        .upper()
+    )
+
+
+    if estado not in (
+        "ACTIVO",
+        "BLOQUEADO",
+        "REVOCADO"
+    ):
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    "El estado de la credencial "
+                    "no es válido."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ACTUALIZAR EN BACKEND
+    # ----------------------------------------------
+
+    try:
+
+        response_backend = requests.patch(
+
+            f"{BACKEND_URL}"
+            f"/api/admin/clientes/"
+            f"{id_cliente}"
+            "/api-credencial/estado",
+
+            json={
+                "estado":
+                    estado
+            },
+
+            cookies={
+                "admin_session":
+                    token
+            },
+
+            timeout=10
+        )
+
+
+        try:
+
+            resultado = (
+                response_backend.json()
+            )
+
+        except ValueError:
+
+            resultado = {}
+
+
+    except requests.RequestException:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    "No se pudo conectar "
+                    "con el backend."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # SESIÓN EXPIRADA
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 401
+    ):
+
+        response = make_response(
+            redirect(
+                url_for(
+                    "login"
+                )
+            )
+        )
+
+        response.delete_cookie(
+            "admin_session",
+            path="/"
+        )
+
+        return response
+
+
+    # ----------------------------------------------
+    # SIN PERMISOS
+    # ----------------------------------------------
+
+    if (
+        response_backend.status_code
+        == 403
+    ):
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No tiene permisos para "
+                    "modificar esta credencial."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ERROR
+    # ----------------------------------------------
+
+    if not response_backend.ok:
+
+        return redirect(
+            url_for(
+                "cliente_detalle",
+
+                id_cliente=
+                    id_cliente,
+
+                error=(
+                    resultado.get(
+                        "error"
+                    )
+                    or
+                    "No fue posible actualizar "
+                    "la credencial API."
+                )
+            )
+        )
+
+
+    # ----------------------------------------------
+    # ÉXITO
+    # ----------------------------------------------
+
+    textos = {
+
+        "ACTIVO":
+            "activada",
+
+        "BLOQUEADO":
+            "bloqueada",
+
+        "REVOCADO":
+            "revocada",
+
+    }
+
+
+    return redirect(
+        url_for(
+            "cliente_detalle",
+
+            id_cliente=
+                id_cliente,
+
+            mensaje=(
+                "Credencial API "
+                f"{textos[estado]} "
+                "correctamente."
+            )
+        )
+    )
+
 # --------------------------------------------------
 # NUEVO CLIENTE
 # --------------------------------------------------

@@ -29,6 +29,12 @@ import {
 
 import {  superAdminAuth,} from "../middleware/superAdminAuth.js";
 
+import {
+  crearCredencialApiCliente,
+  regenerarSecretApiCliente,
+  cambiarEstadoCredencialApi,
+} from "../services/apiCredentials.service.js";
+
 
 const router =
   Router();
@@ -630,6 +636,225 @@ router.patch(
           code:
             error.code ||
             "INTERNAL_ERROR",
+        });
+    }
+  }
+);
+
+// ==================================================
+// CREAR CREDENCIAL API COMERCIAL
+// ==================================================
+
+router.post(
+  "/clientes/:id/api-credencial",
+
+  adminSessionAuth,
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const resultado =
+        await crearCredencialApiCliente(
+          req.params.id,
+          req.admin
+        );
+
+
+      return res
+        .status(201)
+        .json({
+
+          success:
+            true,
+
+          data:
+            resultado,
+
+        });
+
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Error creando credencial API:",
+        error
+      );
+
+
+      return res
+        .status(
+          error.statusCode ||
+          500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            error.statusCode
+
+              ? error.message
+
+              : "Error interno del servidor.",
+
+          code:
+            error.code ||
+            "INTERNAL_ERROR",
+
+        });
+    }
+  }
+);
+
+
+// ==================================================
+// REGENERAR CLIENT_SECRET
+// ==================================================
+
+router.post(
+  "/clientes/:id/api-credencial/regenerar",
+
+  adminSessionAuth,
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const resultado =
+        await regenerarSecretApiCliente(
+          req.params.id,
+          req.admin
+        );
+
+
+      return res
+        .status(200)
+        .json({
+
+          success:
+            true,
+
+          data:
+            resultado,
+
+        });
+
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Error regenerando CLIENT_SECRET:",
+        error
+      );
+
+
+      return res
+        .status(
+          error.statusCode ||
+          500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            error.statusCode
+
+              ? error.message
+
+              : "Error interno del servidor.",
+
+          code:
+            error.code ||
+            "INTERNAL_ERROR",
+
+        });
+    }
+  }
+);
+
+
+// ==================================================
+// CAMBIAR ESTADO CREDENCIAL API
+// ==================================================
+
+router.patch(
+  "/clientes/:id/api-credencial/estado",
+
+  adminSessionAuth,
+
+  async (
+    req,
+    res
+  ) => {
+
+    try {
+
+      const resultado =
+        await cambiarEstadoCredencialApi(
+          req.params.id,
+          req.body?.estado,
+          req.admin
+        );
+
+
+      return res
+        .status(200)
+        .json({
+
+          success:
+            true,
+
+          data:
+            resultado,
+
+        });
+
+
+    } catch (
+      error
+    ) {
+
+      console.error(
+        "Error actualizando credencial API:",
+        error
+      );
+
+
+      return res
+        .status(
+          error.statusCode ||
+          500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            error.statusCode
+
+              ? error.message
+
+              : "Error interno del servidor.",
+
+          code:
+            error.code ||
+            "INTERNAL_ERROR",
+
         });
     }
   }

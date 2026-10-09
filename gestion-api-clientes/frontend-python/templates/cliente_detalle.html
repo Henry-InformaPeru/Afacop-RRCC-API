@@ -24,7 +24,7 @@
 
             rel="stylesheet"
 
-            href="{{ url_for('static', filename='css/style.css') }}?v=12"
+            href="{{ url_for('static', filename='css/style.css') }}?v=13"
 
         >
 
@@ -882,6 +882,285 @@
         </section>
 
         {% endif %}
+
+        <!-- ==========================================
+    API COMERCIAL
+=========================================== -->
+
+<section class="panel detail-section api-commercial-panel">
+
+    <div class="panel-header api-commercial-header">
+
+        <div>
+
+            <h2>
+                API Comercial
+            </h2>
+
+            <p>
+                Acceso para consumir los endpoints GET
+                mediante HTTP Basic Authentication
+            </p>
+
+        </div>
+
+
+        {% if data.apiCredencial %}
+
+            {% if data.apiCredencial.estado == "ACTIVO" %}
+
+            <span class="badge badge-active">
+                ACTIVO
+            </span>
+
+            {% else %}
+
+            <span class="badge badge-blocked">
+                {{ data.apiCredencial.estado }}
+            </span>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+
+    {% if data.apiCredencial %}
+
+    <!-- ======================================
+        CREDENCIAL EXISTENTE
+    ======================================= -->
+
+    <div class="api-commercial-body">
+
+        <div class="api-credential-grid">
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    CLIENT_ID
+                </span>
+
+                <strong class="api-client-id">
+                    {{ data.apiCredencial.clientId }}
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Autenticación
+                </span>
+
+                <strong>
+                    HTTP Basic
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Fecha de creación
+                </span>
+
+                <strong>
+                    {{
+                        data.apiCredencial.fechaCreacion
+                        | fecha
+                    }}
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Última actualización
+                </span>
+
+                <strong>
+
+                    {% if data.apiCredencial.fechaActualizacion %}
+
+                        {{
+                            data.apiCredencial.fechaActualizacion
+                            | fecha
+                        }}
+
+                    {% else %}
+
+                        -
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Último uso
+                </span>
+
+                <strong>
+
+                    {% if data.apiCredencial.ultimoUso %}
+
+                        {{
+                            data.apiCredencial.ultimoUso
+                            | fecha
+                        }}
+
+                    {% else %}
+
+                        Nunca
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="api-commercial-actions">
+
+    <!-- REGENERAR CLIENT_SECRET -->
+
+    <form
+        method="POST"
+        action="{{ url_for(
+            'cliente_regenerar_api_secret',
+            id_cliente=data.cliente.idCliente
+        ) }}"
+    >
+        <button
+            type="submit"
+            class="api-action-button api-action-primary"
+        >
+            Regenerar CLIENT_SECRET
+        </button>
+
+    </form>
+
+
+    <!-- BLOQUEAR API -->
+
+    {% if data.apiCredencial.estado == "ACTIVO" %}
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_estado_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <input
+                type="hidden"
+                name="estado"
+                value="BLOQUEADO"
+            >
+
+            <button
+                type="submit"
+                class="api-action-button api-action-danger"
+            >
+                Bloquear API
+            </button>
+
+        </form>
+
+        {% elif data.apiCredencial.estado == "BLOQUEADO" %}
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_estado_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <input
+                type="hidden"
+                name="estado"
+                value="ACTIVO"
+            >
+
+            <button
+                type="submit"
+                class="api-action-button api-action-success"
+            >
+                Activar API
+            </button>
+
+        </form>
+
+        {% endif %}
+
+</div>
+
+    </div>
+
+
+    {% else %}
+
+    <!-- ======================================
+        SIN CREDENCIAL
+    ======================================= -->
+
+    <div class="api-empty-state">
+
+        <div class="api-empty-icon">
+            &lt;/&gt;
+        </div>
+
+
+        <div class="api-empty-content">
+
+            <h3>
+                Sin credencial API
+            </h3>
+
+            <p>
+                Este cliente todavía no tiene acceso
+                habilitado para consumir la API comercial.
+            </p>
+
+        </div>
+
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_generar_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <button
+                type="submit"
+                class="primary-action api-generate-button"
+            >
+                Generar credencial
+            </button>
+
+        </form>
+
+    </div>
+
+    {% endif %}
+
+</section>
 
             <!-- ==========================================
 

@@ -1,6 +1,17 @@
-import {  Router,} from "express";
+import {
+  Router,
+} from "express";
 
-import {  clientTokenAuth,} from "../middleware/clientToken.js";
+
+import {
+  clientTokenAuth,
+} from "../middleware/clientToken.js";
+
+
+import {
+  clientBasicAuth,
+} from "../middleware/clientBasicAuth.js";
+
 
 import {
   clienteIpLimiter,
@@ -9,42 +20,135 @@ import {
   limitarConsultasConcurrentes,
 } from "../middleware/clienteSecurity.js";
 
+
 import {
   consultarRRCC,
   validarDocumento,
 } from "../services/consulta.service.js";
 
-import {  reservarCredito,} from "../services/creditos.service.js";
 
-import {  registrarConsumo,} from "../services/consumos.service.js";
+import {
+  reservarCredito,
+} from "../services/creditos.service.js";
 
-import {  consultarSueldos,} from "../services/sueldos.service.js";
+
+import {
+  registrarConsumo,
+} from "../services/consumos.service.js";
+
+
+import {
+  consultarSueldos,
+} from "../services/sueldos.service.js";
+
 
 
 const router =
   Router();
 
 
-// --------------------------------------------------
+
+// ==================================================
+// UTILIDADES
+// ==================================================
+
+/**
+ * POST:
+ * {
+ *   "tipoDocumento": "DNI",
+ *   "documento": "16680268"
+ * }
+ *
+ * GET:
+ * ?tipoDocumento=DNI&documento=16680268
+ */
+function obtenerDatosEntrada(
+  req
+) {
+
+  if (
+    req.method === "GET"
+  ) {
+
+    return {
+
+      tipoDocumento:
+        req.query?.tipoDocumento,
+
+      documento:
+        req.query?.documento,
+
+    };
+  }
+
+
+  return {
+
+    tipoDocumento:
+      req.body?.tipoDocumento,
+
+    documento:
+      req.body?.documento,
+
+  };
+}
+
+
+
+/**
+ * Evita que navegador, proxy o Cloudflare
+ * almacenen respuestas de consultas.
+ */
+function aplicarNoCache(
+  res
+) {
+
+  res.set({
+
+    "Cache-Control":
+      "no-store, no-cache, must-revalidate, private",
+
+    Pragma:
+      "no-cache",
+
+    Expires:
+      "0",
+
+    "Surrogate-Control":
+      "no-store",
+
+  });
+}
+
+
+
+// ==================================================
 // CONSULTAR CUENTA / SALDOS
-// --------------------------------------------------
+//
+// Esta ruta continúa utilizando Bearer Token.
+// Es utilizada por el portal.
+// ==================================================
 
 router.get(
+
   "/cuenta",
 
-  // 1. Protección general
   clienteIpLimiter,
 
-  // 2. Validar token
   clientTokenAuth,
 
-  // 3. Protección por token
   cuentaTokenLimiter,
+
 
   async (
     req,
     res
   ) => {
+
+    aplicarNoCache(
+      res
+    );
+
 
     const cliente =
       req.clienteApi;
@@ -85,9 +189,9 @@ router.get(
             cliente.documentoCliente,
 
 
-          // ============================================
+          // ==========================================
           // TOTAL GENERAL
-          // ============================================
+          // ==========================================
 
           creditos: {
 
@@ -103,9 +207,9 @@ router.get(
           },
 
 
-          // ============================================
+          // ==========================================
           // SALDOS POR SERVICIO
-          // ============================================
+          // ==========================================
 
           creditosPorServicio:
             cliente.creditosPorServicio,
@@ -114,78 +218,85 @@ router.get(
 
       });
   }
+
 );
 
 
-// --------------------------------------------------
-// REALIZAR CONSULTA
-// --------------------------------------------------
 
-router.post(
-  "/consulta",
+// ==================================================
+// PROCESAR CONSULTA RRCC
+//
+// Esta función es compartida por:
+//
+// POST -> Portal
+// GET  -> API comercial
+// ==================================================
 
-  // ------------------------------------------------
-  // SEGURIDAD
-  //
-  // Todo esto ocurre ANTES de reservar crédito.
-  // ------------------------------------------------
+async function procesarConsultaRRCC(
+  req,
+  res
+) {
 
-  clienteIpLimiter,
-
-  clientTokenAuth,
-
-  consultaTokenLimiter,
-
-  limitarConsultasConcurrentes,
-
-
-  async (
-    req,
+  aplicarNoCache(
     res
-  ) => {
-
-    const inicio =
-      Date.now();
+  );
 
 
-    const cliente =
-      req.clienteApi;
+  const inicio =
+    Date.now();
 
 
-    let datosConsulta =
-      null;
+  const cliente =
+    req.clienteApi;
 
 
-    let reserva =
-      null;
+  let datosConsulta =
+    null;
 
 
-    let consumoRegistrado =
-      false;
+  let reserva =
+    null;
 
 
-    try {
-
-      // ==============================================
-      // 1. VALIDAR DOCUMENTO
-      //
-      // Documento inválido:
-      // NO consume crédito.
-      // NO llama RRCC.
-      // ==============================================
-
-      datosConsulta =
-        validarDocumento(
-          req.body?.tipoDocumento,
-          req.body?.documento
-        );
+  let consumoRegistrado =
+    false;
 
 
-      // ==============================================
-      // 2. RESERVAR 1 CRÉDITO DE LA BOLSA RRCC
-      // ==============================================
+  try {
 
-      reserva =
+    // ==============================================
+    // 1. OBTENER DATOS
+    //
+    // GET  -> req.query
+    // POST -> req.body
+    // ==============================================
+
+    const entrada =
+      obtenerDatosEntrada(
+        req
+      );
+
+
+    // ==============================================
+    // 2. VALIDAR DOCUMENTO
+    //
+    // Documento inválido:
+    // NO consume crédito.
+    // NO llama RRCC.
+    // ==============================================
+
+    datosConsulta =
+      validarDocumento(
+        entrada.tipoDocumento,
+        entrada.documento
+      );
+
+
+    // ==============================================
+    // 3. RESERVAR 1 CRÉDITO RRCC
+    // ==============================================
+
+    reserva =
       await reservarCredito({
 
         idCliente:
@@ -200,35 +311,239 @@ router.post(
       });
 
 
-      // ==============================================
-      // 3. CONSULTAR RRCC
-      //
-      // Desde este punto el crédito ya fue consumido.
-      // ==============================================
+    // ==============================================
+    // 4. CONSULTAR RRCC
+    //
+    // Desde este punto el crédito
+    // ya fue consumido.
+    // ==============================================
 
-      const rrcc =
-        await consultarRRCC({
+    const rrcc =
+      await consultarRRCC({
 
-          tipoDocumento:
-            datosConsulta
-              .tipoDocumento,
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
 
-          documento:
-            datosConsulta
-              .documento,
+        documento:
+          datosConsulta
+            .documento,
+
+      });
+
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    // ==============================================
+    // 5. CONSULTA EXITOSA
+    // ==============================================
+
+    if (
+      rrcc.ok
+    ) {
+
+      await registrarConsumo({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        idMovimiento:
+          reserva.idMovimiento,
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+        servicio:
+          "RRCC",
+
+        creditosConsumidos:
+          1,
+
+        estado:
+          "EXITOSA",
+
+        httpStatus:
+          rrcc.status ||
+          200,
+
+        mensaje:
+          "Consulta procesada correctamente.",
+
+        ipOrigen:
+          req.ip,
+
+        duracionMs,
+
+      });
+
+
+      consumoRegistrado =
+        true;
+
+
+      return res
+        .status(
+          rrcc.status ||
+          200
+        )
+        .json({
+
+          success:
+            true,
+
+          data:
+            rrcc.data?.data ??
+            rrcc.data,
+
         });
+    }
 
 
-      const duracionMs =
-        Date.now() -
-        inicio;
+    // ==============================================
+    // 6. SIN DATOS / ERROR RRCC
+    //
+    // La consulta ya fue ejecutada.
+    // Por lo tanto consume crédito.
+    // ==============================================
+
+    const estado =
+      rrcc.status === 404
+
+        ? "SIN_DATOS"
+
+        : "ERROR";
 
 
-      // ==============================================
-      // 4. CONSULTA EXITOSA
-      // ==============================================
+    const mensaje =
+      rrcc.data?.error ||
+      rrcc.data?.message ||
+      rrcc.data?.mensaje ||
+      (
+        rrcc.status === 404
 
-      if (rrcc.ok) {
+          ? "No se encontró información para el documento consultado."
+
+          : "La consulta fue procesada con error."
+      );
+
+
+    const codigo =
+      rrcc.data?.code ||
+      (
+        rrcc.status === 404
+
+          ? "SIN_DATOS"
+
+          : "RRCC_ERROR"
+      );
+
+
+    await registrarConsumo({
+
+      idCliente:
+        cliente.idCliente,
+
+      idToken:
+        cliente.idToken,
+
+      idMovimiento:
+        reserva.idMovimiento,
+
+      tipoDocumento:
+        datosConsulta
+          .tipoDocumento,
+
+      documento:
+        datosConsulta
+          .documento,
+
+      servicio:
+        "RRCC",
+
+      creditosConsumidos:
+        1,
+
+      estado,
+
+      httpStatus:
+        rrcc.status,
+
+      mensaje,
+
+      ipOrigen:
+        req.ip,
+
+      duracionMs,
+
+    });
+
+
+    consumoRegistrado =
+      true;
+
+
+    return res
+      .status(
+        rrcc.status ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          mensaje,
+
+        code:
+          codigo,
+
+        data:
+          rrcc.data,
+
+      });
+
+
+  } catch (
+    error
+  ) {
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    console.error(
+      "Error realizando consulta RRCC:",
+      error
+    );
+
+
+    // ==============================================
+    // ERROR DESPUÉS DE RESERVAR
+    //
+    // Si el crédito ya fue reservado,
+    // NO se devuelve.
+    // ==============================================
+
+    if (
+      reserva &&
+      datosConsulta &&
+      !consumoRegistrado
+    ) {
+
+      try {
 
         await registrarConsumo({
 
@@ -256,18 +571,21 @@ router.post(
             1,
 
           estado:
-            "EXITOSA",
+            "ERROR",
 
           httpStatus:
-            rrcc.status,
+            error.statusCode ||
+            500,
 
           mensaje:
-            "Consulta procesada correctamente.",
+            error.message ||
+            "Error procesando la consulta.",
 
           ipOrigen:
             req.ip,
 
           duracionMs,
+
         });
 
 
@@ -275,60 +593,229 @@ router.post(
           true;
 
 
-        return res
-          .status(
-            rrcc.status ||
-            200
-          )
-          .json({
+      } catch (
+        errorRegistro
+      ) {
 
-            success:
-              true,
-
-            data:
-              rrcc.data?.data ??
-              rrcc.data,
-          });
+        console.error(
+          "ERROR registrando consumo RRCC:",
+          errorRegistro
+        );
       }
+    }
 
 
-      // ==============================================
-      // 5. RRCC SIN DATOS O ERROR HTTP
-      //
-      // También consume crédito.
-      // ==============================================
+    return res
+      .status(
+        error.statusCode ||
+        500
+      )
+      .json({
 
-      const estado =
-        rrcc.status === 404
+        success:
+          false,
 
-          ? "SIN_DATOS"
+        error:
+          error.statusCode
 
-          : "ERROR";
+            ? error.message
 
+            : "Error interno del servidor.",
 
-      const mensaje =
-        rrcc.data?.error ||
-        rrcc.data?.message ||
-        rrcc.data?.mensaje ||
-        (
-          rrcc.status === 404
+        code:
+          error.code ||
+          "INTERNAL_ERROR",
 
-            ? "No se encontró información para el documento consultado."
-
-            : "La consulta fue procesada con error."
-        );
+      });
+  }
+}
 
 
-      const codigo =
-        rrcc.data?.code ||
-        (
-          rrcc.status === 404
 
-            ? "SIN_DATOS"
+// ==================================================
+// RRCC - POST
+//
+// PORTAL WEB
+//
+// Autenticación:
+// Authorization: Bearer <token>
+//
+// Datos:
+// BODY JSON
+// ==================================================
 
-            : "RRCC_ERROR"
-        );
+router.post(
 
+  "/consulta",
+
+  clienteIpLimiter,
+
+  clientTokenAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaRRCC
+
+);
+
+
+
+// ==================================================
+// RRCC - GET
+//
+// API COMERCIAL
+//
+// Autenticación:
+// Authorization: Basic <credencial>
+//
+// Ejemplo:
+//
+// GET
+// /api/cliente/consulta
+// ?tipoDocumento=DNI
+// &documento=16680268
+// ==================================================
+
+router.get(
+
+  "/consulta",
+
+  clienteIpLimiter,
+
+  clientBasicAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaRRCC
+
+);
+
+
+
+// ==================================================
+// PROCESAR CONSULTA SUELDOS
+//
+// Esta función es compartida por:
+//
+// POST -> Portal
+// GET  -> API comercial
+// ==================================================
+
+async function procesarConsultaSueldos(
+  req,
+  res
+) {
+
+  aplicarNoCache(
+    res
+  );
+
+
+  const inicio =
+    Date.now();
+
+
+  const cliente =
+    req.clienteApi;
+
+
+  let datosConsulta =
+    null;
+
+
+  let reserva =
+    null;
+
+
+  let consumoRegistrado =
+    false;
+
+
+  try {
+
+    // ==============================================
+    // 1. OBTENER DATOS
+    //
+    // GET  -> req.query
+    // POST -> req.body
+    // ==============================================
+
+    const entrada =
+      obtenerDatosEntrada(
+        req
+      );
+
+
+    // ==============================================
+    // 2. VALIDAR DOCUMENTO
+    //
+    // Documento inválido:
+    // NO consume crédito.
+    // ==============================================
+
+    datosConsulta =
+      validarDocumento(
+        entrada.tipoDocumento,
+        entrada.documento
+      );
+
+
+    // ==============================================
+    // 3. RESERVAR 1 CRÉDITO SUELDOS
+    // ==============================================
+
+    reserva =
+      await reservarCredito({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        servicio:
+          "SUELDOS",
+
+      });
+
+
+    // ==============================================
+    // 4. CONSULTAR SUELDOS
+    //
+    // Desde este punto el crédito
+    // ya fue consumido.
+    // ==============================================
+
+    const sueldos =
+      await consultarSueldos({
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+      });
+
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    // ==============================================
+    // 5. CONSULTA EXITOSA
+    // ==============================================
+
+    if (
+      sueldos.ok
+    ) {
 
       await registrarConsumo({
 
@@ -350,22 +837,26 @@ router.post(
             .documento,
 
         servicio:
-          "RRCC",
+          "SUELDOS",
 
         creditosConsumidos:
           1,
 
-        estado,
+        estado:
+          "EXITOSA",
 
         httpStatus:
-          rrcc.status,
+          sueldos.status ||
+          200,
 
-        mensaje,
+        mensaje:
+          "Consulta de sueldos procesada correctamente.",
 
         ipOrigen:
           req.ip,
 
         duracionMs,
+
       });
 
 
@@ -375,247 +866,155 @@ router.post(
 
       return res
         .status(
-          rrcc.status ||
-          500
+          sueldos.status ||
+          200
         )
         .json({
 
           success:
-            false,
-
-          error:
-            mensaje,
-
-          code:
-            codigo,
+            true,
 
           data:
-            rrcc.data,
+            sueldos.data,
+
         });
+    }
 
 
-    } catch (error) {
+    // ==============================================
+    // 6. SIN DATOS / ERROR
+    //
+    // La consulta ya fue ejecutada.
+    // Por lo tanto consume crédito.
+    // ==============================================
 
-      const duracionMs =
-        Date.now() -
-        inicio;
+    const estado =
+      sueldos.status === 404
+
+        ? "SIN_DATOS"
+
+        : "ERROR";
 
 
-      console.error(
-        "Error realizando consulta:",
-        error
+    const mensaje =
+      sueldos.data?.error ||
+      sueldos.data?.message ||
+      sueldos.data?.mensaje ||
+      (
+        sueldos.status === 404
+
+          ? "No se encontró información de sueldos para el documento consultado."
+
+          : "La consulta de sueldos fue procesada con error."
       );
 
 
-      // ==============================================
-      // ERROR DESPUÉS DE RESERVAR
-      //
-      // Se registra como ERROR.
-      // NO se devuelve el crédito.
-      // ==============================================
+    const codigo =
+      sueldos.data?.code ||
+      (
+        sueldos.status === 404
 
-      if (
-        reserva &&
-        datosConsulta &&
-        !consumoRegistrado
-      ) {
+          ? "SUELDOS_SIN_DATOS"
 
-        try {
+          : "SUELDOS_ERROR"
+      );
 
-          await registrarConsumo({
 
-            idCliente:
-              cliente.idCliente,
+    await registrarConsumo({
 
-            idToken:
-              cliente.idToken,
+      idCliente:
+        cliente.idCliente,
 
-            idMovimiento:
-              reserva.idMovimiento,
+      idToken:
+        cliente.idToken,
 
-            tipoDocumento:
-              datosConsulta
-                .tipoDocumento,
+      idMovimiento:
+        reserva.idMovimiento,
 
-            documento:
-              datosConsulta
-                .documento,
-            
-            servicio:
-              "RRCC",
+      tipoDocumento:
+        datosConsulta
+          .tipoDocumento,
 
-            creditosConsumidos:
-              1,
+      documento:
+        datosConsulta
+          .documento,
 
-            estado:
-              "ERROR",
+      servicio:
+        "SUELDOS",
 
-            httpStatus:
-              error.statusCode ||
-              500,
+      creditosConsumidos:
+        1,
 
-            mensaje:
-              error.message ||
-              "Error procesando la consulta.",
+      estado,
 
-            ipOrigen:
-              req.ip,
+      httpStatus:
+        sueldos.status,
 
-            duracionMs,
-          });
+      mensaje,
 
+      ipOrigen:
+        req.ip,
 
-          consumoRegistrado =
-            true;
+      duracionMs,
 
+    });
 
-        } catch (
-          errorRegistro
-        ) {
 
-          console.error(
-            "ERROR registrando consumo:",
-            errorRegistro
-          );
-        }
-      }
+    consumoRegistrado =
+      true;
 
 
-      return res
-        .status(
-          error.statusCode ||
-          500
-        )
-        .json({
+    return res
+      .status(
+        sueldos.status ||
+        500
+      )
+      .json({
 
-          success:
-            false,
+        success:
+          false,
 
-          error:
-            error.statusCode
+        error:
+          mensaje,
 
-              ? error.message
+        code:
+          codigo,
 
-              : "Error interno del servidor.",
+        data:
+          sueldos.data,
 
-          code:
-            error.code ||
-            "INTERNAL_ERROR",
-        });
-    }
-  }
-);
+      });
 
-// ==================================================
-// CONSULTAR SUELDOS
-// ==================================================
 
-router.post(
-  "/sueldos",
+  } catch (
+    error
+  ) {
 
-  // ------------------------------------------------
-  // SEGURIDAD
-  //
-  // Todo ocurre antes de reservar crédito.
-  // ------------------------------------------------
+    const duracionMs =
+      Date.now() -
+      inicio;
 
-  clienteIpLimiter,
 
-  clientTokenAuth,
+    console.error(
+      "Error realizando consulta de sueldos:",
+      error
+    );
 
-  consultaTokenLimiter,
 
-  limitarConsultasConcurrentes,
+    // ==============================================
+    // ERROR DESPUÉS DE RESERVAR
+    //
+    // Si ya se reservó crédito,
+    // NO se devuelve.
+    // ==============================================
 
-
-  async (
-    req,
-    res
-  ) => {
-
-    const inicio =
-      Date.now();
-
-
-    const cliente =
-      req.clienteApi;
-
-
-    let datosConsulta =
-      null;
-
-
-    let reserva =
-      null;
-
-
-    let consumoRegistrado =
-      false;
-
-
-    try {
-
-      // ==============================================
-      // 1. VALIDAR DOCUMENTO
-      //
-      // Reutilizamos exactamente las reglas de RRCC.
-      //
-      // Documento inválido:
-      // NO consume crédito.
-      // ==============================================
-
-      datosConsulta =
-        validarDocumento(
-          req.body?.tipoDocumento,
-          req.body?.documento
-        );
-
-
-      // 2. RESERVAR 1 CRÉDITO DE LA BOLSA SUELDOS
-
-      reserva =
-        await reservarCredito({
-
-          idCliente:
-            cliente.idCliente,
-
-          idToken:
-            cliente.idToken,
-
-          servicio:
-            "SUELDOS",
-        });
-
-
-      // ==============================================
-      // 3. CONSULTAR OPERADOR.SUELDOS
-      //
-      // Desde este punto el crédito ya fue consumido.
-      // ==============================================
-
-      const sueldos =
-        await consultarSueldos({
-
-          tipoDocumento:
-            datosConsulta.tipoDocumento,
-
-          documento:
-            datosConsulta.documento,
-        });
-
-
-      const duracionMs =
-        Date.now() -
-        inicio;
-
-
-      // ==============================================
-      // 4. CONSULTA EXITOSA
-      // ==============================================
-
-      if (
-        sueldos.ok
-      ) {
+    if (
+      reserva &&
+      datosConsulta &&
+      !consumoRegistrado
+    ) {
+
+      try {
 
         await registrarConsumo({
 
@@ -629,10 +1028,12 @@ router.post(
             reserva.idMovimiento,
 
           tipoDocumento:
-            datosConsulta.tipoDocumento,
+            datosConsulta
+              .tipoDocumento,
 
           documento:
-            datosConsulta.documento,
+            datosConsulta
+              .documento,
 
           servicio:
             "SUELDOS",
@@ -641,18 +1042,21 @@ router.post(
             1,
 
           estado:
-            "EXITOSA",
+            "ERROR",
 
           httpStatus:
-            sueldos.status || 200,
+            error.statusCode ||
+            500,
 
           mensaje:
-            "Consulta de sueldos procesada correctamente.",
+            error.message ||
+            "Error procesando la consulta de sueldos.",
 
           ipOrigen:
             req.ip,
 
           duracionMs,
+
         });
 
 
@@ -660,226 +1064,107 @@ router.post(
           true;
 
 
-        return res
-          .status(
-            sueldos.status || 200
-          )
-          .json({
-
-            success:
-              true,
-
-            data:
-              sueldos.data,
-          });
-      }
-
-
-      // ==============================================
-      // 5. SIN DATOS / ERROR
-      //
-      // También consume crédito porque la consulta
-      // ya fue ejecutada.
-      // ==============================================
-
-      const estado =
-        sueldos.status === 404
-
-          ? "SIN_DATOS"
-
-          : "ERROR";
-
-
-      const mensaje =
-        sueldos.data?.error ||
-        sueldos.data?.message ||
-        sueldos.data?.mensaje ||
-        (
-          sueldos.status === 404
-
-            ? "No se encontró información de sueldos para el documento consultado."
-
-            : "La consulta de sueldos fue procesada con error."
-        );
-
-
-      const codigo =
-        sueldos.data?.code ||
-        (
-          sueldos.status === 404
-
-            ? "SUELDOS_SIN_DATOS"
-
-            : "SUELDOS_ERROR"
-        );
-
-
-      await registrarConsumo({
-
-        idCliente:
-          cliente.idCliente,
-
-        idToken:
-          cliente.idToken,
-
-        idMovimiento:
-          reserva.idMovimiento,
-
-        tipoDocumento:
-          datosConsulta.tipoDocumento,
-
-        documento:
-          datosConsulta.documento,
-
-        servicio:
-          "SUELDOS",
-
-        creditosConsumidos:
-          1,
-
-        estado,
-
-        httpStatus:
-          sueldos.status,
-
-        mensaje,
-
-        ipOrigen:
-          req.ip,
-
-        duracionMs,
-      });
-
-
-      consumoRegistrado =
-        true;
-
-
-      return res
-        .status(
-          sueldos.status || 500
-        )
-        .json({
-
-          success:
-            false,
-
-          error:
-            mensaje,
-
-          code:
-            codigo,
-
-          data:
-            sueldos.data,
-        });
-
-
-    } catch (error) {
-
-      const duracionMs =
-        Date.now() -
-        inicio;
-
-
-      console.error(
-        "Error realizando consulta de sueldos:",
-        error
-      );
-
-
-      // ==============================================
-      // ERROR DESPUÉS DE RESERVAR
-      //
-      // No se devuelve el crédito.
-      // ==============================================
-
-      if (
-        reserva &&
-        datosConsulta &&
-        !consumoRegistrado
+      } catch (
+        errorRegistro
       ) {
 
-        try {
-
-          await registrarConsumo({
-
-            idCliente:
-              cliente.idCliente,
-
-            idToken:
-              cliente.idToken,
-
-            idMovimiento:
-              reserva.idMovimiento,
-
-            tipoDocumento:
-              datosConsulta.tipoDocumento,
-
-            documento:
-              datosConsulta.documento,
-
-            servicio:
-              "SUELDOS",
-
-            creditosConsumidos:
-              1,
-
-            estado:
-              "ERROR",
-
-            httpStatus:
-              error.statusCode || 500,
-
-            mensaje:
-              error.message ||
-              "Error procesando la consulta de sueldos.",
-
-            ipOrigen:
-              req.ip,
-
-            duracionMs,
-          });
-
-
-          consumoRegistrado =
-            true;
-
-
-        } catch (
+        console.error(
+          "ERROR registrando consumo de sueldos:",
           errorRegistro
-        ) {
-
-          console.error(
-            "ERROR registrando consumo de sueldos:",
-            errorRegistro
-          );
-        }
+        );
       }
-
-
-      return res
-        .status(
-          error.statusCode || 500
-        )
-        .json({
-
-          success:
-            false,
-
-          error:
-            error.statusCode
-
-              ? error.message
-
-              : "Error interno del servidor.",
-
-          code:
-            error.code ||
-            "INTERNAL_ERROR",
-        });
     }
+
+
+    return res
+      .status(
+        error.statusCode ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          error.statusCode
+
+            ? error.message
+
+            : "Error interno del servidor.",
+
+        code:
+          error.code ||
+          "INTERNAL_ERROR",
+
+      });
   }
+}
+
+
+
+// ==================================================
+// SUELDOS - POST
+//
+// PORTAL WEB
+//
+// Autenticación:
+// Authorization: Bearer <token>
+//
+// Datos:
+// BODY JSON
+// ==================================================
+
+router.post(
+
+  "/sueldos",
+
+  clienteIpLimiter,
+
+  clientTokenAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaSueldos
+
 );
+
+
+
+// ==================================================
+// SUELDOS - GET
+//
+// API COMERCIAL
+//
+// Autenticación:
+// Authorization: Basic <credencial>
+//
+// Ejemplo:
+//
+// GET
+// /api/cliente/sueldos
+// ?tipoDocumento=DNI
+// &documento=16680268
+// ==================================================
+
+router.get(
+
+  "/sueldos",
+
+  clienteIpLimiter,
+
+  clientBasicAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaSueldos
+
+);
+
+
 
 export default router;
