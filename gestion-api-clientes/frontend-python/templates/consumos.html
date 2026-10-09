@@ -16,7 +16,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=7"
+        href="{{ url_for('static', filename='css/style.css') }}?v=8"
     >
 
 </head>
@@ -27,7 +27,9 @@
 <div class="app-layout">
 
 
-    <!-- SIDEBAR -->
+    <!-- ==================================================
+         SIDEBAR
+    ================================================== -->
 
     <aside class="sidebar">
 
@@ -58,11 +60,13 @@
                 href="{{ url_for('dashboard') }}"
                 class="nav-link"
             >
+
                 <span class="nav-icon">
                     ▦
                 </span>
 
                 Dashboard
+
             </a>
 
 
@@ -70,11 +74,13 @@
                 href="{{ url_for('clientes') }}"
                 class="nav-link"
             >
+
                 <span class="nav-icon">
                     👥
                 </span>
 
                 Clientes
+
             </a>
 
 
@@ -82,11 +88,13 @@
                 href="{{ url_for('consumos') }}"
                 class="nav-link active"
             >
+
                 <span class="nav-icon">
                     ◫
                 </span>
 
                 Consumos
+
             </a>
 
         </nav>
@@ -113,9 +121,13 @@
     </aside>
 
 
-    <!-- CONTENIDO -->
+
+    <!-- ==================================================
+         CONTENIDO
+    ================================================== -->
 
     <main class="main-content">
+
 
         <header class="page-header">
 
@@ -135,6 +147,7 @@
         </header>
 
 
+
         {% if error %}
 
         <div class="alert-error">
@@ -144,7 +157,10 @@
         {% endif %}
 
 
-        <!-- FILTROS -->
+
+        <!-- ==================================================
+             FILTROS
+        ================================================== -->
 
         <section class="consumos-toolbar">
 
@@ -153,6 +169,9 @@
                 action="{{ url_for('consumos') }}"
                 class="consumos-filter-form"
             >
+
+
+                <!-- BÚSQUEDA -->
 
                 <div class="consumo-search">
 
@@ -165,6 +184,50 @@
 
                 </div>
 
+
+
+                <!-- SERVICIO -->
+
+                <div>
+
+                    <select name="servicio">
+
+                        <option
+                            value=""
+                            {% if not servicio %}
+                            selected
+                            {% endif %}
+                        >
+                            Todos los servicios
+                        </option>
+
+
+                        <option
+                            value="RRCC"
+                            {% if servicio == "RRCC" %}
+                            selected
+                            {% endif %}
+                        >
+                            RRCC
+                        </option>
+
+
+                        <option
+                            value="SUELDOS"
+                            {% if servicio == "SUELDOS" %}
+                            selected
+                            {% endif %}
+                        >
+                            Sueldos
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <!-- ESTADO -->
 
                 <div>
 
@@ -214,6 +277,9 @@
                 </div>
 
 
+
+                <!-- FILTRAR -->
+
                 <button
                     type="submit"
                     class="filter-button"
@@ -222,7 +288,10 @@
                 </button>
 
 
-                {% if search or estado %}
+
+                <!-- LIMPIAR -->
+
+                {% if search or estado or servicio %}
 
                 <a
                     href="{{ url_for('consumos') }}"
@@ -238,7 +307,10 @@
         </section>
 
 
-        <!-- TABLA -->
+
+        <!-- ==================================================
+             TABLA
+        ================================================== -->
 
         <section class="table-panel">
 
@@ -249,6 +321,7 @@
                     <h2>
                         Historial de consultas
                     </h2>
+
 
                     {% if paginacion %}
 
@@ -262,6 +335,7 @@
                 </div>
 
             </div>
+
 
 
             <div class="table-responsive">
@@ -278,6 +352,10 @@
 
                             <th>
                                 Documento consultado
+                            </th>
+
+                            <th>
+                                Servicio
                             </th>
 
                             <th>
@@ -311,11 +389,15 @@
 
                     <tbody>
 
+
                     {% for consumo in consumos %}
 
                         <tr>
 
-                            <!-- CLIENTE -->
+
+                            <!-- ======================================
+                                 CLIENTE
+                            ======================================= -->
 
                             <td>
 
@@ -326,8 +408,11 @@
                                     ) }}"
                                     class="consumo-client-link"
                                 >
+
                                     {{ consumo.cliente.nombre }}
+
                                 </a>
+
 
                                 <div class="client-email">
 
@@ -340,7 +425,10 @@
                             </td>
 
 
-                            <!-- CONSULTA -->
+
+                            <!-- ======================================
+                                 DOCUMENTO CONSULTADO
+                            ======================================= -->
 
                             <td>
 
@@ -359,7 +447,34 @@
                             </td>
 
 
-                            <!-- ESTADO -->
+
+                            <!-- ======================================
+                                 SERVICIO
+                            ======================================= -->
+
+                            <td>
+
+                                {% if consumo.servicio == "SUELDOS" %}
+
+                                <span class="badge badge-warning">
+                                    SUELDOS
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge badge-active">
+                                    RRCC
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 ESTADO
+                            ======================================= -->
 
                             <td>
 
@@ -369,11 +484,13 @@
                                     EXITOSA
                                 </span>
 
+
                                 {% elif consumo.estado == "SIN_DATOS" %}
 
                                 <span class="badge badge-warning">
                                     SIN DATOS
                                 </span>
+
 
                                 {% else %}
 
@@ -386,14 +503,19 @@
                             </td>
 
 
-                            <!-- CRÉDITOS -->
+
+                            <!-- ======================================
+                                 CRÉDITOS
+                            ======================================= -->
 
                             <td>
 
                                 {% if consumo.creditosConsumidos > 0 %}
 
                                 <strong class="credits-value">
+
                                     {{ consumo.creditosConsumidos }}
+
                                 </strong>
 
                                 {% else %}
@@ -407,7 +529,10 @@
                             </td>
 
 
-                            <!-- HTTP -->
+
+                            <!-- ======================================
+                                 HTTP
+                            ======================================= -->
 
                             <td>
 
@@ -420,7 +545,10 @@
                             </td>
 
 
-                            <!-- DURACIÓN -->
+
+                            <!-- ======================================
+                                 DURACIÓN
+                            ======================================= -->
 
                             <td>
 
@@ -437,7 +565,10 @@
                             </td>
 
 
-                            <!-- IP -->
+
+                            <!-- ======================================
+                                 IP
+                            ======================================= -->
 
                             <td>
 
@@ -450,7 +581,10 @@
                             </td>
 
 
-                            <!-- FECHA -->
+
+                            <!-- ======================================
+                                 FECHA
+                            ======================================= -->
 
                             <td>
 
@@ -470,15 +604,18 @@
                         <tr>
 
                             <td
-                                colspan="8"
+                                colspan="9"
                                 class="empty-table"
                             >
+
                                 No se encontraron consumos.
+
                             </td>
 
                         </tr>
 
                     {% endfor %}
+
 
                     </tbody>
 
@@ -487,11 +624,19 @@
             </div>
 
 
-            <!-- PAGINACIÓN -->
 
-            {% if paginacion and paginacion.totalPaginas > 1 %}
+            <!-- ==================================================
+                 PAGINACIÓN
+            ================================================== -->
+
+            {% if
+                paginacion
+                and
+                paginacion.totalPaginas > 1
+            %}
 
             <div class="pagination">
+
 
                 {% if paginacion.page > 1 %}
 
@@ -500,37 +645,51 @@
                         'consumos',
                         page=paginacion.page - 1,
                         search=search,
-                        estado=estado
+                        estado=estado,
+                        servicio=servicio
                     ) }}"
                 >
+
                     ← Anterior
+
                 </a>
 
                 {% endif %}
 
 
+
                 <span>
 
                     Página
+
                     {{ paginacion.page }}
 
                     de
+
                     {{ paginacion.totalPaginas }}
 
                 </span>
 
 
-                {% if paginacion.page < paginacion.totalPaginas %}
+
+                {% if
+                    paginacion.page
+                    <
+                    paginacion.totalPaginas
+                %}
 
                 <a
                     href="{{ url_for(
                         'consumos',
                         page=paginacion.page + 1,
                         search=search,
-                        estado=estado
+                        estado=estado,
+                        servicio=servicio
                     ) }}"
                 >
+
                     Siguiente →
+
                 </a>
 
                 {% endif %}

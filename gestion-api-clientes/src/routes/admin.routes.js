@@ -7,7 +7,12 @@ import {
 } from "../middleware/adminSessionAuth.js";
 
 import {
-  crearCliente, recargarCreditos, listarClientes,obtenerClienteDetalle,actualizarEstadoCliente
+  crearCliente,
+  recargarCreditos,
+  listarClientes,
+  obtenerClienteDetalle,
+  actualizarEstadoCliente,
+  asignarAdministradorCliente,
 } from "../services/clientes.service.js";
 
 import {
@@ -22,10 +27,16 @@ import {
   listarConsumos,
 } from "../services/consumos.service.js";
 
+import {  superAdminAuth,} from "../middleware/superAdminAuth.js";
+
 
 const router =
   Router();
 
+
+// ==================================================
+// CREAR CLIENTE
+// ==================================================
 
 router.post(
   "/clientes",
@@ -36,14 +47,20 @@ router.post(
 
       const resultado =
         await crearCliente(
-          req.body || {}
+          req.body || {},
+          req.admin
         );
+
 
       return res
         .status(201)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -54,13 +71,16 @@ router.post(
         error
       );
 
+
       return res
         .status(
           error.statusCode ||
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -74,6 +94,11 @@ router.post(
     }
   }
 );
+
+
+// ==================================================
+// RECARGAR CRÉDITOS
+// ==================================================
 
 router.post(
   "/clientes/:id/creditos",
@@ -84,16 +109,24 @@ router.post(
 
       const resultado =
         await recargarCreditos(
-          req.params.id,
-          req.body?.cantidad
-        );
+        req.params.id,
+        req.body?.cantidad,
+        req.body?.servicio,
+        req.admin
+      );
+
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
+
 
     } catch (error) {
 
@@ -102,13 +135,16 @@ router.post(
         error
       );
 
+
       return res
         .status(
           error.statusCode ||
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -123,9 +159,10 @@ router.post(
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // LISTAR CLIENTES
-// --------------------------------------------------
+// ==================================================
 
 router.get(
   "/clientes",
@@ -135,23 +172,32 @@ router.get(
     try {
 
       const resultado =
-        await listarClientes({
-          page:
-            req.query.page,
+        await listarClientes(
+          {
 
-          limit:
-            req.query.limit,
+            page:
+              req.query.page,
 
-          search:
-            req.query.search,
-        });
+            limit:
+              req.query.limit,
+
+            search:
+              req.query.search,
+          },
+
+          req.admin
+        );
 
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -164,21 +210,32 @@ router.get(
 
 
       return res
-        .status(500)
+        .status(
+          error.statusCode ||
+          500
+        )
         .json({
-          success: false,
+
+          success:
+            false,
+
           error:
-            "Error interno del servidor.",
+            error.statusCode
+              ? error.message
+              : "Error interno del servidor.",
+
           code:
+            error.code ||
             "INTERNAL_ERROR",
         });
     }
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // DETALLE DE CLIENTE
-// --------------------------------------------------
+// ==================================================
 
 router.get(
   "/clientes/:id",
@@ -189,22 +246,30 @@ router.get(
 
       const resultado =
         await obtenerClienteDetalle(
-        req.params.id,
-        {
-          pageConsumos:
-            req.query.pageConsumos,
+          req.params.id,
 
-          pageMovimientos:
-            req.query.pageMovimientos,
-        }
-      );
+          {
+
+            pageConsumos:
+              req.query.pageConsumos,
+
+            pageMovimientos:
+              req.query.pageMovimientos,
+          },
+
+          req.admin
+        );
 
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -222,7 +287,9 @@ router.get(
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -237,9 +304,10 @@ router.get(
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // BLOQUEAR / ACTIVAR CLIENTE
-// --------------------------------------------------
+// ==================================================
 
 router.patch(
   "/clientes/:id/estado",
@@ -251,15 +319,20 @@ router.patch(
       const resultado =
         await actualizarEstadoCliente(
           req.params.id,
-          req.body?.estado
+          req.body?.estado,
+          req.admin
         );
 
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -277,7 +350,9 @@ router.patch(
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -292,9 +367,10 @@ router.patch(
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // REGENERAR TOKEN
-// --------------------------------------------------
+// ==================================================
 
 router.post(
   "/clientes/:id/tokens/regenerar",
@@ -306,15 +382,20 @@ router.post(
       const resultado =
         await regenerarTokenCliente(
           req.params.id,
-          req.body?.fechaVencimiento
+          req.body?.fechaVencimiento,
+          req.admin
         );
 
 
       return res
         .status(201)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -332,7 +413,9 @@ router.post(
           500
         )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
             error.statusCode
@@ -347,9 +430,10 @@ router.post(
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // DASHBOARD ADMINISTRATIVO
-// --------------------------------------------------
+// ==================================================
 
 router.get(
   "/dashboard",
@@ -359,14 +443,20 @@ router.get(
     try {
 
       const resultado =
-        await obtenerDashboard();
+        await obtenerDashboard(
+          req.admin
+        );
 
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -379,21 +469,32 @@ router.get(
 
 
       return res
-        .status(500)
+        .status(
+          error.statusCode ||
+          500
+        )
         .json({
-          success: false,
+
+          success:
+            false,
+
           error:
-            "Error interno del servidor.",
+            error.statusCode
+              ? error.message
+              : "Error interno del servidor.",
+
           code:
+            error.code ||
             "INTERNAL_ERROR",
         });
     }
   }
 );
 
-// --------------------------------------------------
+
+// ==================================================
 // LISTAR CONSUMOS
-// --------------------------------------------------
+// ==================================================
 
 router.get(
   "/consumos",
@@ -403,27 +504,38 @@ router.get(
     try {
 
       const resultado =
-        await listarConsumos({
+        await listarConsumos(
+          {
 
-          page:
-            req.query.page,
+            page:
+              req.query.page,
 
-          limit:
-            req.query.limit,
+            limit:
+              req.query.limit,
 
-          search:
-            req.query.search,
+            search:
+              req.query.search,
 
-          estado:
-            req.query.estado,
-        });
+            estado:
+              req.query.estado,
+
+            servicio:
+              req.query.servicio,
+          },
+
+          req.admin
+        );
 
 
       return res
         .status(200)
         .json({
-          success: true,
-          data: resultado,
+
+          success:
+            true,
+
+          data:
+            resultado,
         });
 
 
@@ -436,14 +548,87 @@ router.get(
 
 
       return res
-        .status(500)
+        .status(
+          error.statusCode ||
+          500
+        )
         .json({
-          success: false,
+
+          success:
+            false,
 
           error:
-            "Error interno del servidor.",
+            error.statusCode
+              ? error.message
+              : "Error interno del servidor.",
 
           code:
+            error.code ||
+            "INTERNAL_ERROR",
+        });
+    }
+  }
+);
+
+// ==================================================
+// ASIGNAR / REASIGNAR ADMINISTRADOR A CLIENTE
+// SOLO SUPERADMIN
+// ==================================================
+
+router.patch(
+  "/clientes/:id/admin",
+
+  adminSessionAuth,
+  superAdminAuth,
+
+  async (req, res) => {
+
+    try {
+
+      const resultado =
+        await asignarAdministradorCliente(
+          req.params.id,
+          req.body?.idAdmin
+        );
+
+
+      return res
+        .status(200)
+        .json({
+
+          success:
+            true,
+
+          data:
+            resultado,
+        });
+
+
+    } catch (error) {
+
+      console.error(
+        "Error asignando administrador al cliente:",
+        error
+      );
+
+
+      return res
+        .status(
+          error.statusCode ||
+          500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            error.statusCode
+              ? error.message
+              : "Error interno del servidor.",
+
+          code:
+            error.code ||
             "INTERNAL_ERROR",
         });
     }

@@ -12,6 +12,7 @@ function crearError(
   statusCode,
   code
 ) {
+
   const error =
     new Error(message);
 
@@ -25,14 +26,21 @@ function crearError(
 }
 
 
+// ==================================================
+// JWT SECRET
+// ==================================================
+
 function obtenerJwtSecret() {
 
   const secret =
     String(
-      process.env.ADMIN_JWT_SECRET || ""
+      process.env.ADMIN_JWT_SECRET ||
+      ""
     ).trim();
 
+
   if (!secret) {
+
     throw crearError(
       "ADMIN_JWT_SECRET no está configurado.",
       500,
@@ -40,27 +48,44 @@ function obtenerJwtSecret() {
     );
   }
 
+
   return secret;
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // CREAR ADMINISTRADOR
-// --------------------------------------------------
+//
+// Por ahora se mantiene para compatibilidad con
+// POST /api/admin/auth/crear.
+//
+// Más adelante la creación normal se moverá a
+// SUPERADMIN.
+// ==================================================
 
 export async function crearAdministrador({
+
   usuario,
   password,
   nombre = null,
+  email = null,
+  rol = "ADMIN",
+
 }) {
 
   usuario =
-    String(usuario || "")
+    String(
+      usuario || ""
+    )
       .trim()
       .toLowerCase();
 
+
   password =
-    String(password || "");
+    String(
+      password || ""
+    );
+
 
   nombre =
     nombre
@@ -68,7 +93,28 @@ export async function crearAdministrador({
       : null;
 
 
+  email =
+    email
+      ? String(email)
+          .trim()
+          .toLowerCase()
+      : null;
+
+
+  rol =
+    String(
+      rol || "ADMIN"
+    )
+      .trim()
+      .toUpperCase();
+
+
+  // --------------------------------------------------
+  // VALIDACIONES
+  // --------------------------------------------------
+
   if (!usuario) {
+
     throw crearError(
       "El usuario es obligatorio.",
       400,
@@ -81,6 +127,7 @@ export async function crearAdministrador({
     !password ||
     password.length < 8
   ) {
+
     throw crearError(
       "La contraseña debe tener al menos 8 caracteres.",
       400,
@@ -89,12 +136,45 @@ export async function crearAdministrador({
   }
 
 
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(rol)
+  ) {
+
+    throw crearError(
+      "El rol no es válido.",
+      400,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+
+  if (
+    email &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      email
+    )
+  ) {
+
+    throw crearError(
+      "El correo electrónico no es válido.",
+      400,
+      "INVALID_EMAIL"
+    );
+  }
+
+
   const pool =
     await getSqlPool();
 
 
-  // Validar duplicado
-  const duplicado =
+  // --------------------------------------------------
+  // VALIDAR USUARIO DUPLICADO
+  // --------------------------------------------------
+
+  const duplicadoUsuario =
     await pool
       .request()
 
@@ -112,13 +192,17 @@ export async function crearAdministrador({
           GestionAPIClientes.Administradores
 
         WHERE
-          USUARIO = @usuario
+          USUARIO =
+            @usuario
       `);
 
 
   if (
-    duplicado.recordset.length > 0
+    duplicadoUsuario
+      .recordset
+      .length > 0
   ) {
+
     throw crearError(
       "Ya existe un administrador con ese usuario.",
       409,
@@ -127,13 +211,64 @@ export async function crearAdministrador({
   }
 
 
-  // Hash de contraseña
+  // --------------------------------------------------
+  // VALIDAR EMAIL DUPLICADO
+  // --------------------------------------------------
+
+  if (email) {
+
+    const duplicadoEmail =
+      await pool
+        .request()
+
+        .input(
+          "email",
+          sql.VarChar(150),
+          email
+        )
+
+        .query(`
+          SELECT TOP 1
+            ID_ADMIN
+
+          FROM
+            GestionAPIClientes.Administradores
+
+          WHERE
+            EMAIL =
+              @email
+        `);
+
+
+    if (
+      duplicadoEmail
+        .recordset
+        .length > 0
+    ) {
+
+      throw crearError(
+        "Ya existe un administrador con ese correo electrónico.",
+        409,
+        "ADMIN_EMAIL_ALREADY_EXISTS"
+      );
+    }
+  }
+
+
+  // --------------------------------------------------
+  // HASH CONTRASEÑA
+  // --------------------------------------------------
+
   const passwordHash =
     await bcrypt.hash(
       password,
       12
     );
 
+
+  // --------------------------------------------------
+  // INSERTAR
+  // --------------------------------------------------
 
   const result =
     await pool
@@ -157,6 +292,18 @@ export async function crearAdministrador({
         nombre
       )
 
+      .input(
+        "email",
+        sql.VarChar(150),
+        email
+      )
+
+      .input(
+        "rol",
+        sql.VarChar(20),
+        rol
+      )
+
       .query(`
         INSERT INTO
           GestionAPIClientes.Administradores
@@ -164,14 +311,20 @@ export async function crearAdministrador({
           USUARIO,
           PASSWORD_HASH,
           NOMBRE,
-          ESTADO
+          EMAIL,
+          ROL,
+          ESTADO,
+          SESSION_VERSION
         )
 
         OUTPUT
           INSERTED.ID_ADMIN,
           INSERTED.USUARIO,
           INSERTED.NOMBRE,
+          INSERTED.EMAIL,
+          INSERTED.ROL,
           INSERTED.ESTADO,
+          INSERTED.SESSION_VERSION,
           INSERTED.FECHA_CREACION
 
         VALUES
@@ -179,7 +332,10 @@ export async function crearAdministrador({
           @usuario,
           @passwordHash,
           @nombre,
-          'ACTIVO'
+          @email,
+          @rol,
+          'ACTIVO',
+          1
         )
       `);
 
@@ -189,6 +345,7 @@ export async function crearAdministrador({
 
 
   return {
+
     idAdmin:
       admin.ID_ADMIN,
 
@@ -198,8 +355,19 @@ export async function crearAdministrador({
     nombre:
       admin.NOMBRE,
 
+    email:
+      admin.EMAIL,
+
+    rol:
+      admin.ROL,
+
     estado:
       admin.ESTADO,
+
+    sessionVersion:
+      Number(
+        admin.SESSION_VERSION
+      ),
 
     fechaCreacion:
       admin.FECHA_CREACION,
@@ -207,28 +375,36 @@ export async function crearAdministrador({
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // LOGIN
-// --------------------------------------------------
+// ==================================================
 
 export async function autenticarAdministrador({
+
   usuario,
   password,
+
 }) {
 
   usuario =
-    String(usuario || "")
+    String(
+      usuario || ""
+    )
       .trim()
       .toLowerCase();
 
+
   password =
-    String(password || "");
+    String(
+      password || ""
+    );
 
 
   if (
     !usuario ||
     !password
   ) {
+
     throw crearError(
       "Usuario y contraseña son obligatorios.",
       400,
@@ -257,19 +433,28 @@ export async function autenticarAdministrador({
           USUARIO,
           PASSWORD_HASH,
           NOMBRE,
-          ESTADO
+          EMAIL,
+          ROL,
+          ESTADO,
+          SESSION_VERSION
 
         FROM
           GestionAPIClientes.Administradores
 
         WHERE
-          USUARIO = @usuario
+          USUARIO =
+            @usuario
       `);
 
+
+  // --------------------------------------------------
+  // USUARIO NO EXISTE
+  // --------------------------------------------------
 
   if (
     result.recordset.length === 0
   ) {
+
     throw crearError(
       "Usuario o contraseña incorrectos.",
       401,
@@ -282,6 +467,10 @@ export async function autenticarAdministrador({
     result.recordset[0];
 
 
+  // --------------------------------------------------
+  // VALIDAR CONTRASEÑA
+  // --------------------------------------------------
+
   const passwordValido =
     await bcrypt.compare(
       password,
@@ -290,6 +479,7 @@ export async function autenticarAdministrador({
 
 
   if (!passwordValido) {
+
     throw crearError(
       "Usuario o contraseña incorrectos.",
       401,
@@ -298,9 +488,15 @@ export async function autenticarAdministrador({
   }
 
 
+  // --------------------------------------------------
+  // VALIDAR ESTADO
+  // --------------------------------------------------
+
   if (
-    admin.ESTADO !== "ACTIVO"
+    admin.ESTADO !==
+    "ACTIVO"
   ) {
+
     throw crearError(
       "El administrador se encuentra bloqueado.",
       403,
@@ -308,6 +504,52 @@ export async function autenticarAdministrador({
     );
   }
 
+
+  // --------------------------------------------------
+  // VALIDAR ROL
+  // --------------------------------------------------
+
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(
+      admin.ROL
+    )
+  ) {
+
+    throw crearError(
+      "El administrador no tiene un rol válido.",
+      403,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+
+  const sessionVersion =
+    Number(
+      admin.SESSION_VERSION
+    );
+
+
+  if (
+    !Number.isInteger(
+      sessionVersion
+    ) ||
+    sessionVersion < 1
+  ) {
+
+    throw crearError(
+      "La versión de sesión del administrador no es válida.",
+      500,
+      "INVALID_SESSION_VERSION"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // ACTUALIZAR ÚLTIMO LOGIN
+  // --------------------------------------------------
 
   await pool
     .request()
@@ -330,18 +572,29 @@ export async function autenticarAdministrador({
           SYSDATETIME()
 
       WHERE
-        ID_ADMIN = @idAdmin
+        ID_ADMIN =
+          @idAdmin
     `);
 
 
+  // --------------------------------------------------
+  // CREAR JWT
+  // --------------------------------------------------
+
   const tokenSesion =
     jwt.sign(
+
       {
         usuario:
           admin.USUARIO,
 
         nombre:
           admin.NOMBRE,
+
+        rol:
+          admin.ROL,
+
+        sessionVersion,
       },
 
       obtenerJwtSecret(),
@@ -359,9 +612,11 @@ export async function autenticarAdministrador({
 
 
   return {
+
     tokenSesion,
 
     administrador: {
+
       idAdmin:
         admin.ID_ADMIN,
 
@@ -370,14 +625,22 @@ export async function autenticarAdministrador({
 
       nombre:
         admin.NOMBRE,
+
+      email:
+        admin.EMAIL,
+
+      rol:
+        admin.ROL,
+
+      sessionVersion,
     },
   };
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // VERIFICAR JWT
-// --------------------------------------------------
+// ==================================================
 
 export function verificarTokenAdministrador(
   token
@@ -391,6 +654,7 @@ export function verificarTokenAdministrador(
     );
 
   } catch {
+
     throw crearError(
       "La sesión no es válida o ha expirado.",
       401,

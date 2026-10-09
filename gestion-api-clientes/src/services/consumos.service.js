@@ -4,13 +4,111 @@ import {
 } from "../config/sqlserver.js";
 
 
+// ==================================================
+// SERVICIOS PERMITIDOS
+// ==================================================
+
+const SERVICIOS_PERMITIDOS = [
+  "RRCC",
+  "SUELDOS",
+];
+
+
+// ==================================================
+// UTILIDADES ADMIN
+// ==================================================
+
+function crearError(
+  message,
+  statusCode,
+  code
+) {
+
+  const error =
+    new Error(message);
+
+  error.statusCode =
+    statusCode;
+
+  error.code =
+    code;
+
+  return error;
+}
+
+
+function obtenerContextoAdministrador(
+  adminActual
+) {
+
+  const idAdmin =
+    Number(
+      adminActual?.idAdmin
+    );
+
+
+  const rol =
+    String(
+      adminActual?.rol || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !Number.isInteger(idAdmin) ||
+    idAdmin <= 0
+  ) {
+
+    throw crearError(
+      "El administrador no es válido.",
+      401,
+      "INVALID_ADMIN"
+    );
+  }
+
+
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(rol)
+  ) {
+
+    throw crearError(
+      "El administrador no tiene un rol válido.",
+      403,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+
+  return {
+
+    idAdmin,
+
+    rol,
+
+    esSuperAdmin:
+      rol === "SUPERADMIN",
+  };
+}
+
+
+// ==================================================
+// REGISTRAR CONSUMO
+// ==================================================
+
 export async function registrarConsumo({
+
   idCliente,
   idToken,
   idMovimiento = null,
 
   tipoDocumento,
   documento,
+
+  servicio = "RRCC",
 
   creditosConsumidos,
 
@@ -20,10 +118,88 @@ export async function registrarConsumo({
   mensaje = null,
   ipOrigen = null,
   duracionMs = null,
+
 }) {
+
+  servicio =
+    String(
+      servicio || "RRCC"
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !SERVICIOS_PERMITIDOS.includes(
+      servicio
+    )
+  ) {
+
+    throw crearError(
+      `Servicio de consumo no válido: ${servicio}`,
+      400,
+      "INVALID_SERVICE"
+    );
+  }
+
 
   const pool =
     await getSqlPool();
+
+
+  // ================================================
+  // OBTENER ID DEL SERVICIO
+  // ================================================
+
+  const servicioResult =
+    await pool
+      .request()
+
+      .input(
+        "servicio",
+        sql.VarChar(30),
+        servicio
+      )
+
+      .query(`
+        SELECT
+          ID_SERVICIO
+
+        FROM
+          GestionAPIClientes.Servicios
+
+        WHERE
+          CODIGO =
+            @servicio
+
+          AND ESTADO =
+            'ACTIVO'
+      `);
+
+
+  if (
+    servicioResult.recordset.length === 0
+  ) {
+
+    throw crearError(
+      "El servicio no se encuentra configurado.",
+      409,
+      "SERVICE_NOT_FOUND"
+    );
+  }
+
+
+  const idServicio =
+    Number(
+      servicioResult
+        .recordset[0]
+        .ID_SERVICIO
+    );
+
+
+  // ================================================
+  // REGISTRAR CONSUMO
+  // ================================================
 
   const result =
     await pool
@@ -48,6 +224,12 @@ export async function registrarConsumo({
       )
 
       .input(
+        "idServicio",
+        sql.BigInt,
+        idServicio
+      )
+
+      .input(
         "tipoDocumento",
         sql.VarChar(20),
         tipoDocumento
@@ -57,6 +239,12 @@ export async function registrarConsumo({
         "documento",
         sql.VarChar(30),
         documento
+      )
+
+      .input(
+        "servicio",
+        sql.VarChar(30),
+        servicio
       )
 
       .input(
@@ -102,15 +290,19 @@ export async function registrarConsumo({
           ID_CLIENTE,
           ID_TOKEN,
           ID_MOVIMIENTO,
+          ID_SERVICIO,
 
           TIPO_DOCUMENTO_CONSULTADO,
           DOCUMENTO_CONSULTADO,
+
+          SERVICIO,
 
           CREDITOS_CONSUMIDOS,
 
           ESTADO,
           HTTP_STATUS,
           MENSAJE,
+
           IP_ORIGEN,
           DURACION_MS
         )
@@ -123,67 +315,132 @@ export async function registrarConsumo({
           @idCliente,
           @idToken,
           @idMovimiento,
+          @idServicio,
 
           @tipoDocumento,
           @documento,
+
+          @servicio,
 
           @creditosConsumidos,
 
           @estado,
           @httpStatus,
           @mensaje,
+
           @ipOrigen,
           @duracionMs
         )
       `);
 
+
   return {
+
     idConsumo:
-      result.recordset[0]
+      result
+        .recordset[0]
         .ID_CONSUMO,
+
+    idServicio,
+
+    servicio,
+
   };
 }
 
-// --------------------------------------------------
-// LISTAR CONSUMOS PARA ADMINISTRACIÓN
-// --------------------------------------------------
 
-export async function listarConsumos({
-  page = 1,
-  limit = 20,
-  search = "",
-  estado = "",
-}) {
+// ==================================================
+// LISTAR CONSUMOS PARA ADMINISTRACIÓN
+// ==================================================
+
+export async function listarConsumos(
+  {
+
+    page = 1,
+    limit = 20,
+
+    search = "",
+    estado = "",
+    servicio = "",
+
+  },
+
+  adminActual
+) {
+
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
+
+  // --------------------------------------------------
+  // NORMALIZAR PAGINACIÓN
+  // --------------------------------------------------
 
   page =
-    Number(page);
+    Number(
+      page
+    );
+
 
   limit =
-    Number(limit);
+    Number(
+      limit
+    );
+
 
   if (
     !Number.isInteger(page) ||
     page < 1
   ) {
-    page = 1;
+
+    page =
+      1;
   }
+
 
   if (
     !Number.isInteger(limit) ||
     limit < 1 ||
     limit > 100
   ) {
-    limit = 20;
+
+    limit =
+      20;
   }
 
+
+  // --------------------------------------------------
+  // NORMALIZAR FILTROS
+  // --------------------------------------------------
+
   search =
-    String(search || "")
+    String(
+      search || ""
+    )
       .trim();
 
+
   estado =
-    String(estado || "")
+    String(
+      estado || ""
+    )
       .trim()
       .toUpperCase();
+
+
+  servicio =
+    String(
+      servicio || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  // --------------------------------------------------
+  // VALIDAR ESTADO
+  // --------------------------------------------------
 
   const estadosPermitidos = [
     "",
@@ -192,25 +449,56 @@ export async function listarConsumos({
     "ERROR",
   ];
 
+
   if (
     !estadosPermitidos.includes(
       estado
     )
   ) {
-    estado = "";
+
+    estado =
+      "";
   }
 
-  const offset =
-    (page - 1) * limit;
 
+  // --------------------------------------------------
+  // VALIDAR SERVICIO
+  // --------------------------------------------------
+
+  const serviciosPermitidos = [
+    "",
+    "RRCC",
+    "SUELDOS",
+  ];
+
+
+  if (
+    !serviciosPermitidos.includes(
+      servicio
+    )
+  ) {
+
+    servicio =
+      "";
+  }
+
+
+  const offset =
+    (page - 1) *
+    limit;
+
+
+  // --------------------------------------------------
+  // CONEXIÓN
+  // --------------------------------------------------
 
   const pool =
     await getSqlPool();
 
 
-  // --------------------------------------------------
+  // ==================================================
   // TOTAL DE REGISTROS
-  // --------------------------------------------------
+  // ==================================================
 
   const totalResult =
     await pool
@@ -228,6 +516,26 @@ export async function listarConsumos({
         estado
       )
 
+      .input(
+        "servicio",
+        sql.VarChar(30),
+        servicio
+      )
+
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
       .query(`
         SELECT
           COUNT(*) AS TOTAL
@@ -237,10 +545,17 @@ export async function listarConsumos({
 
         INNER JOIN
           GestionAPIClientes.Clientes C
+
             ON C.ID_CLIENTE =
                CO.ID_CLIENTE
 
         WHERE
+          (
+            @esSuperAdmin = 1
+            OR C.ID_ADMIN = @idAdmin
+          )
+
+          AND
           (
             @search = '%%'
 
@@ -261,6 +576,12 @@ export async function listarConsumos({
 
             OR CO.DOCUMENTO_CONSULTADO
               LIKE @search
+
+            OR ISNULL(
+              CO.SERVICIO,
+              'RRCC'
+            )
+              LIKE @search
           )
 
           AND
@@ -269,6 +590,17 @@ export async function listarConsumos({
 
             OR CO.ESTADO =
                @estado
+          )
+
+          AND
+          (
+            @servicio = ''
+
+            OR ISNULL(
+              CO.SERVICIO,
+              'RRCC'
+            ) =
+               @servicio
           )
       `);
 
@@ -281,9 +613,9 @@ export async function listarConsumos({
     );
 
 
-  // --------------------------------------------------
+  // ==================================================
   // OBTENER CONSUMOS
-  // --------------------------------------------------
+  // ==================================================
 
   const result =
     await pool
@@ -302,6 +634,26 @@ export async function listarConsumos({
       )
 
       .input(
+        "servicio",
+        sql.VarChar(30),
+        servicio
+      )
+
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
+      .input(
         "offset",
         sql.Int,
         offset
@@ -315,6 +667,7 @@ export async function listarConsumos({
 
       .query(`
         SELECT
+
           CO.ID_CONSUMO,
           CO.ID_CLIENTE,
           CO.ID_TOKEN,
@@ -328,8 +681,15 @@ export async function listarConsumos({
           C.TIPO_DOCUMENTO_CLIENTE,
           C.DOCUMENTO_CLIENTE,
 
+          C.ID_ADMIN,
+
           CO.TIPO_DOCUMENTO_CONSULTADO,
           CO.DOCUMENTO_CONSULTADO,
+
+          ISNULL(
+            CO.SERVICIO,
+            'RRCC'
+          ) AS SERVICIO,
 
           CO.CREDITOS_CONSUMIDOS,
 
@@ -346,10 +706,17 @@ export async function listarConsumos({
 
         INNER JOIN
           GestionAPIClientes.Clientes C
+
             ON C.ID_CLIENTE =
                CO.ID_CLIENTE
 
         WHERE
+          (
+            @esSuperAdmin = 1
+            OR C.ID_ADMIN = @idAdmin
+          )
+
+          AND
           (
             @search = '%%'
 
@@ -370,6 +737,12 @@ export async function listarConsumos({
 
             OR CO.DOCUMENTO_CONSULTADO
               LIKE @search
+
+            OR ISNULL(
+              CO.SERVICIO,
+              'RRCC'
+            )
+              LIKE @search
           )
 
           AND
@@ -378,6 +751,17 @@ export async function listarConsumos({
 
             OR CO.ESTADO =
                @estado
+          )
+
+          AND
+          (
+            @servicio = ''
+
+            OR ISNULL(
+              CO.SERVICIO,
+              'RRCC'
+            ) =
+               @servicio
           )
 
         ORDER BY
@@ -391,15 +775,22 @@ export async function listarConsumos({
       `);
 
 
+  // ==================================================
+  // MAPEAR RESPUESTA
+  // ==================================================
+
   const consumos =
     result.recordset.map(
       (registro) => {
+
 
         const nombreCliente =
           registro.RAZON_SOCIAL ||
           [
             registro.NOMBRES,
+
             registro.APELLIDO_PATERNO,
+
             registro.APELLIDO_MATERNO,
           ]
             .filter(Boolean)
@@ -421,7 +812,12 @@ export async function listarConsumos({
             registro.ID_MOVIMIENTO,
 
 
+          // ------------------------------------------
+          // CLIENTE
+          // ------------------------------------------
+
           cliente: {
+
             nombre:
               nombreCliente,
 
@@ -435,7 +831,12 @@ export async function listarConsumos({
           },
 
 
+          // ------------------------------------------
+          // DOCUMENTO CONSULTADO
+          // ------------------------------------------
+
           consulta: {
+
             tipoDocumento:
               registro
                 .TIPO_DOCUMENTO_CONSULTADO,
@@ -446,10 +847,24 @@ export async function listarConsumos({
           },
 
 
+          // ------------------------------------------
+          // SERVICIO
+          // ------------------------------------------
+
+          servicio:
+            registro.SERVICIO ||
+            "RRCC",
+
+
+          // ------------------------------------------
+          // CONSUMO
+          // ------------------------------------------
+
           creditosConsumidos:
             Number(
               registro
-                .CREDITOS_CONSUMIDOS
+                .CREDITOS_CONSUMIDOS ||
+              0
             ),
 
           estado:
@@ -474,18 +889,26 @@ export async function listarConsumos({
     );
 
 
+  // ==================================================
+  // RESPUESTA
+  // ==================================================
+
   return {
 
     consumos,
 
     paginacion: {
+
       page,
+
       limit,
+
       total,
 
       totalPaginas:
         Math.ceil(
-          total / limit
+          total /
+          limit
         ),
     },
   };

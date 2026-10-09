@@ -7,6 +7,7 @@ import {
 
 
 function generarHash(token) {
+
   return crypto
     .createHash("sha256")
     .update(token)
@@ -75,6 +76,10 @@ export async function clientTokenAuth(
       await getSqlPool();
 
 
+    // ================================================
+    // 1. VALIDAR TOKEN Y CLIENTE
+    // ================================================
+
     const result =
       await pool
         .request()
@@ -94,17 +99,15 @@ export async function clientTokenAuth(
             T.ULTIMO_USO,
 
             C.ESTADO AS CLIENTE_ESTADO,
+
             C.TIPO_DOCUMENTO_CLIENTE,
             C.DOCUMENTO_CLIENTE,
+
             C.NOMBRES,
             C.APELLIDO_PATERNO,
             C.APELLIDO_MATERNO,
-            C.RAZON_SOCIAL,
 
-            S.ID_TOKEN AS SALDO_ID_TOKEN,
-            S.CREDITOS_DISPONIBLES,
-            S.TOTAL_ASIGNADO,
-            S.TOTAL_CONSUMIDO
+            C.RAZON_SOCIAL
 
           FROM
             GestionAPIClientes.Tokens T
@@ -113,11 +116,6 @@ export async function clientTokenAuth(
             GestionAPIClientes.Clientes C
               ON C.ID_CLIENTE =
                  T.ID_CLIENTE
-
-          LEFT JOIN
-            GestionAPIClientes.Saldos S
-              ON S.ID_TOKEN =
-                 T.ID_TOKEN
 
           WHERE
             T.TOKEN_HASH =
@@ -145,6 +143,10 @@ export async function clientTokenAuth(
       result.recordset[0];
 
 
+    // ================================================
+    // 2. VALIDAR TOKEN ACTIVO
+    // ================================================
+
     if (
       acceso.TOKEN_ESTADO !==
       "ACTIVO"
@@ -162,6 +164,10 @@ export async function clientTokenAuth(
     }
 
 
+    // ================================================
+    // 3. VALIDAR CLIENTE ACTIVO
+    // ================================================
+
     if (
       acceso.CLIENTE_ESTADO !==
       "ACTIVO"
@@ -178,6 +184,10 @@ export async function clientTokenAuth(
         });
     }
 
+
+    // ================================================
+    // 4. VALIDAR VENCIMIENTO
+    // ================================================
 
     if (
       acceso.FECHA_VENCIMIENTO &&
@@ -198,19 +208,63 @@ export async function clientTokenAuth(
     }
 
 
+    // ================================================
+    // 5. OBTENER BOLSAS DEL CLIENTE
+    // ================================================
+
+    const saldosResult =
+      await pool
+        .request()
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          acceso.ID_CLIENTE
+        )
+
+        .query(`
+          SELECT
+            SS.ID_SERVICIO,
+
+            S.CODIGO,
+            S.NOMBRE,
+
+            SS.CREDITOS_DISPONIBLES,
+            SS.TOTAL_ASIGNADO,
+            SS.TOTAL_CONSUMIDO
+
+          FROM
+            GestionAPIClientes.SaldosServicios SS
+
+          INNER JOIN
+            GestionAPIClientes.Servicios S
+              ON S.ID_SERVICIO =
+                 SS.ID_SERVICIO
+
+          WHERE
+            SS.ID_CLIENTE =
+              @idCliente
+
+            AND S.ESTADO =
+              'ACTIVO'
+
+          ORDER BY
+            S.ID_SERVICIO
+        `);
+
+
     if (
-      acceso.SALDO_ID_TOKEN === null ||
-      acceso.SALDO_ID_TOKEN === undefined
+      saldosResult.recordset.length === 0
     ) {
 
       console.error(
-        "Token activo sin registro de saldo:",
+        "Cliente activo sin bolsas de créditos:",
         {
-          idToken:
-            acceso.ID_TOKEN,
-
           idCliente:
             acceso.ID_CLIENTE,
+
+          idToken:
+            acceso.ID_TOKEN,
         }
       );
 
@@ -220,12 +274,82 @@ export async function clientTokenAuth(
         .json({
           success: false,
           error:
-            "El token no tiene un registro de créditos asociado.",
+            "El cliente no tiene bolsas de créditos configuradas.",
           code:
-            "TOKEN_BALANCE_NOT_FOUND",
+            "CLIENT_SERVICE_BALANCES_NOT_FOUND",
         });
     }
 
+
+    // ================================================
+    // 6. MAPEAR BOLSAS
+    // ================================================
+
+    const creditosPorServicio = {};
+
+
+    let creditosDisponibles = 0;
+    let totalAsignado = 0;
+    let totalConsumido = 0;
+
+
+    for (
+      const saldo
+      of saldosResult.recordset
+    ) {
+
+      const codigo =
+        String(
+          saldo.CODIGO
+        ).toUpperCase();
+
+
+      const datosSaldo = {
+
+        idServicio:
+          Number(
+            saldo.ID_SERVICIO
+          ),
+
+        nombre:
+          saldo.NOMBRE,
+
+        disponibles:
+          Number(
+            saldo.CREDITOS_DISPONIBLES
+          ),
+
+        totalAsignado:
+          Number(
+            saldo.TOTAL_ASIGNADO
+          ),
+
+        totalConsumido:
+          Number(
+            saldo.TOTAL_CONSUMIDO
+          ),
+
+      };
+
+
+      creditosPorServicio[codigo] =
+        datosSaldo;
+
+
+      creditosDisponibles +=
+        datosSaldo.disponibles;
+
+      totalAsignado +=
+        datosSaldo.totalAsignado;
+
+      totalConsumido +=
+        datosSaldo.totalConsumido;
+    }
+
+
+    // ================================================
+    // 7. CONTEXTO DEL CLIENTE
+    // ================================================
 
     req.clienteApi = {
 
@@ -253,20 +377,18 @@ export async function clientTokenAuth(
       razonSocial:
         acceso.RAZON_SOCIAL,
 
-      creditosDisponibles:
-        Number(
-          acceso.CREDITOS_DISPONIBLES
-        ),
 
-      totalAsignado:
-        Number(
-          acceso.TOTAL_ASIGNADO
-        ),
+      // NUEVO
+      creditosPorServicio,
 
-      totalConsumido:
-        Number(
-          acceso.TOTAL_CONSUMIDO
-        ),
+
+      // Compatibilidad temporal
+      creditosDisponibles,
+
+      totalAsignado,
+
+      totalConsumido,
+
     };
 
 

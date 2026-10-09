@@ -27,7 +27,9 @@
     <div class="app-layout">
 
 
-        <!-- SIDEBAR -->
+        <!-- ==========================================
+            SIDEBAR
+        =========================================== -->
 
         <aside class="sidebar">
 
@@ -58,11 +60,13 @@
                     href="{{ url_for('dashboard') }}"
                     class="nav-link"
                 >
+
                     <span class="nav-icon">
                         ▦
                     </span>
 
                     Dashboard
+
                 </a>
 
 
@@ -70,11 +74,13 @@
                     href="{{ url_for('clientes') }}"
                     class="nav-link active"
                 >
+
                     <span class="nav-icon">
                         👥
                     </span>
 
                     Clientes
+
                 </a>
 
 
@@ -82,11 +88,13 @@
                     href="{{ url_for('consumos') }}"
                     class="nav-link"
                 >
+
                     <span class="nav-icon">
                         ◫
                     </span>
 
                     Consumos
+
                 </a>
 
             </nav>
@@ -113,11 +121,17 @@
         </aside>
 
 
-        <!-- CONTENIDO -->
+
+        <!-- ==========================================
+            CONTENIDO
+        =========================================== -->
 
         <main class="main-content">
 
             <div class="form-page">
+
+
+                <!-- VOLVER -->
 
                 <div class="detail-back">
 
@@ -127,6 +141,9 @@
 
                 </div>
 
+
+
+                <!-- ENCABEZADO -->
 
                 <header class="page-header">
 
@@ -145,6 +162,9 @@
                 </header>
 
 
+
+                <!-- ERROR -->
+
                 {% if error %}
 
                 <div class="alert-error">
@@ -154,6 +174,11 @@
                 {% endif %}
 
 
+
+                <!-- ==========================================
+                    FORMULARIO
+                =========================================== -->
+
                 <section class="form-panel">
 
                     <form
@@ -161,6 +186,7 @@
                         action="{{ url_for('cliente_nuevo') }}"
                         id="clienteForm"
                     >
+
 
                         <!-- =====================================
                             IDENTIFICACIÓN
@@ -172,14 +198,18 @@
                                 Identificación
                             </h2>
 
+
                             <div class="form-grid">
 
+
+                                <!-- TIPO DOCUMENTO -->
 
                                 <div class="form-field">
 
                                     <label for="tipoDocumento">
                                         Tipo de documento
                                     </label>
+
 
                                     <select
                                         id="tipoDocumento"
@@ -236,11 +266,15 @@
                                 </div>
 
 
+
+                                <!-- DOCUMENTO -->
+
                                 <div class="form-field">
 
                                     <label for="documento">
                                         Documento
                                     </label>
+
 
                                     <input
                                         id="documento"
@@ -251,13 +285,16 @@
                                         required
                                     >
 
+
                                     <small id="documentoAyuda"></small>
 
                                 </div>
 
+
                             </div>
 
                         </div>
+
 
 
                         <!-- =====================================
@@ -274,6 +311,7 @@
                                 Empresa
                             </h2>
 
+
                             <div class="form-grid">
 
                                 <div class="form-field form-full">
@@ -281,6 +319,7 @@
                                     <label for="razonSocial">
                                         Razón social
                                     </label>
+
 
                                     <input
                                         id="razonSocial"
@@ -294,6 +333,7 @@
                             </div>
 
                         </div>
+
 
 
                         <!-- =====================================
@@ -310,14 +350,18 @@
                                 Datos personales
                             </h2>
 
+
                             <div class="form-grid form-grid-3">
 
+
+                                <!-- NOMBRES -->
 
                                 <div class="form-field">
 
                                     <label for="nombres">
                                         Nombres
                                     </label>
+
 
                                     <input
                                         id="nombres"
@@ -329,11 +373,15 @@
                                 </div>
 
 
+
+                                <!-- APELLIDO PATERNO -->
+
                                 <div class="form-field">
 
                                     <label for="apellidoPaterno">
                                         Apellido paterno
                                     </label>
+
 
                                     <input
                                         id="apellidoPaterno"
@@ -345,11 +393,15 @@
                                 </div>
 
 
+
+                                <!-- APELLIDO MATERNO -->
+
                                 <div class="form-field">
 
                                     <label for="apellidoMaterno">
                                         Apellido materno
                                     </label>
+
 
                                     <input
                                         id="apellidoMaterno"
@@ -360,9 +412,11 @@
 
                                 </div>
 
+
                             </div>
 
                         </div>
+
 
 
                         <!-- =====================================
@@ -375,14 +429,18 @@
                                 Contacto
                             </h2>
 
+
                             <div class="form-grid">
 
+
+                                <!-- EMAIL -->
 
                                 <div class="form-field">
 
                                     <label for="email">
                                         Correo
                                     </label>
+
 
                                     <input
                                         id="email"
@@ -395,11 +453,15 @@
                                 </div>
 
 
+
+                                <!-- TELÉFONO -->
+
                                 <div class="form-field">
 
                                     <label for="telefono">
                                         Teléfono
                                     </label>
+
 
                                     <input
                                         id="telefono"
@@ -411,9 +473,11 @@
 
                                 </div>
 
+
                             </div>
 
                         </div>
+
 
 
                         <!-- =====================================
@@ -426,14 +490,18 @@
                                 Acceso API
                             </h2>
 
+
                             <div class="form-grid">
 
+
+                                <!-- CRÉDITOS INICIALES RRCC -->
 
                                 <div class="form-field">
 
                                     <label for="creditosIniciales">
-                                        Créditos iniciales
+                                        Créditos iniciales RRCC
                                     </label>
+
 
                                     <input
                                         id="creditosIniciales"
@@ -445,14 +513,25 @@
                                         required
                                     >
 
+
+                                    <small>
+                                        Estos créditos se asignarán a RRCC.
+                                        La bolsa SUELDOS se creará inicialmente con 0 créditos
+                                        y podrá recargarse posteriormente desde el detalle del cliente.
+                                    </small>
+
                                 </div>
 
+
+
+                                <!-- VENCIMIENTO TOKEN -->
 
                                 <div class="form-field">
 
                                     <label for="fechaVencimiento">
                                         Vencimiento del token
                                     </label>
+
 
                                     <input
                                         id="fechaVencimiento"
@@ -461,15 +540,18 @@
                                         value="{{ form.get('fechaVencimiento', '') }}"
                                     >
 
+
                                     <small>
                                         Opcional. Déjalo vacío para que el token no tenga vencimiento.
                                     </small>
 
                                 </div>
 
+
                             </div>
 
                         </div>
+
 
 
                         <!-- =====================================
@@ -485,6 +567,7 @@
                                 Cancelar
                             </a>
 
+
                             <button
                                 type="submit"
                                 class="primary-action"
@@ -494,15 +577,18 @@
 
                         </div>
 
+
                     </form>
 
                 </section>
+
 
             </div>
 
         </main>
 
     </div>
+
 
 
     <script>
@@ -553,6 +639,7 @@
             );
 
 
+
         // =====================================================
         // REGLAS DE DOCUMENTO
         // =====================================================
@@ -560,53 +647,90 @@
         const reglasDocumento = {
 
             DNI: {
+
                 maxLength: 8,
+
                 exactLength: 8,
+
                 soloNumeros: true,
-                placeholder: "12345678",
-                ayuda: "El DNI debe contener exactamente 8 dígitos.",
+
+                placeholder:
+                    "12345678",
+
+                ayuda:
+                    "El DNI debe contener exactamente 8 dígitos.",
+
                 mensaje:
                     "El DNI debe contener exactamente 8 dígitos."
+
             },
 
 
             RUC: {
+
                 maxLength: 11,
+
                 exactLength: 11,
+
                 soloNumeros: true,
-                placeholder: "20123456789",
-                ayuda: "El RUC debe contener exactamente 11 dígitos.",
+
+                placeholder:
+                    "20123456789",
+
+                ayuda:
+                    "El RUC debe contener exactamente 11 dígitos.",
+
                 mensaje:
                     "El RUC debe contener exactamente 11 dígitos."
+
             },
 
 
             CE: {
+
                 maxLength: 20,
+
                 exactLength: null,
+
                 soloNumeros: false,
+
                 alfanumerico: true,
-                placeholder: "Carnet de extranjería",
+
+                placeholder:
+                    "Carnet de extranjería",
+
                 ayuda:
                     "Máximo 20 caracteres alfanuméricos.",
+
                 mensaje:
                     "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres."
+
             },
 
 
             PASAPORTE: {
+
                 maxLength: 20,
+
                 exactLength: null,
+
                 soloNumeros: false,
+
                 alfanumerico: true,
-                placeholder: "Pasaporte",
+
+                placeholder:
+                    "Pasaporte",
+
                 ayuda:
                     "Máximo 20 caracteres alfanuméricos.",
+
                 mensaje:
                     "El pasaporte debe ser alfanumérico y no superar 20 caracteres."
+
             }
 
         };
+
 
 
         // =====================================================
@@ -619,35 +743,47 @@
                 tipoDocumento.value;
 
 
-            if (tipo === "RUC") {
+            if (
+                tipo === "RUC"
+            ) {
 
                 empresaSection.hidden =
                     false;
 
+
                 personaSection.hidden =
                     true;
 
+
                 razonSocial.required =
                     true;
+
 
                 nombres.required =
                     false;
 
 
             } else if (
+
                 tipo === "DNI" ||
+
                 tipo === "CE" ||
+
                 tipo === "PASAPORTE"
+
             ) {
 
                 empresaSection.hidden =
                     true;
 
+
                 personaSection.hidden =
                     false;
 
+
                 razonSocial.required =
                     false;
+
 
                 nombres.required =
                     true;
@@ -658,11 +794,14 @@
                 empresaSection.hidden =
                     true;
 
+
                 personaSection.hidden =
                     true;
 
+
                 razonSocial.required =
                     false;
+
 
                 nombres.required =
                     false;
@@ -670,6 +809,7 @@
             }
 
         }
+
 
 
         // =====================================================
@@ -680,6 +820,7 @@
 
             const tipo =
                 tipoDocumento.value;
+
 
             const regla =
                 reglasDocumento[tipo];
@@ -694,15 +835,19 @@
                     "maxlength"
                 );
 
+
                 documento.removeAttribute(
                     "placeholder"
                 );
 
+
                 documento.inputMode =
                     "text";
 
+
                 documentoAyuda.textContent =
                     "";
+
 
                 return;
 
@@ -729,9 +874,11 @@
 
             normalizarDocumento();
 
+
             validarDocumento();
 
         }
+
 
 
         // =====================================================
@@ -743,12 +890,15 @@
             const tipo =
                 tipoDocumento.value;
 
+
             const regla =
                 reglasDocumento[tipo];
 
 
             if (!regla) {
+
                 return;
+
             }
 
 
@@ -756,10 +906,13 @@
                 documento.value;
 
 
+
             // DNI y RUC:
             // solamente números
 
-            if (regla.soloNumeros) {
+            if (
+                regla.soloNumeros
+            ) {
 
                 valor =
                     valor.replace(
@@ -770,10 +923,13 @@
             }
 
 
+
             // CE y PASAPORTE:
             // solamente letras y números
 
-            if (regla.alfanumerico) {
+            if (
+                regla.alfanumerico
+            ) {
 
                 valor =
                     valor
@@ -784,6 +940,7 @@
                         .toUpperCase();
 
             }
+
 
 
             // Limitar físicamente la longitud
@@ -801,6 +958,7 @@
         }
 
 
+
         // =====================================================
         // VALIDAR DOCUMENTO
         // =====================================================
@@ -810,6 +968,7 @@
             const tipo =
                 tipoDocumento.value;
 
+
             const regla =
                 reglasDocumento[tipo];
 
@@ -818,7 +977,9 @@
 
 
             if (!regla) {
+
                 return true;
+
             }
 
 
@@ -833,51 +994,70 @@
             }
 
 
+
             // Longitud exacta:
             // DNI = 8
             // RUC = 11
 
             if (
+
                 regla.exactLength &&
+
                 valor.length !==
                     regla.exactLength
+
             ) {
 
                 documento.setCustomValidity(
                     regla.mensaje
                 );
 
+
                 return false;
 
             }
+
 
 
             // Validación numérica
 
             if (
+
                 regla.soloNumeros &&
-                !/^\d+$/.test(valor)
+
+                !/^\d+$/.test(
+                    valor
+                )
+
             ) {
 
                 documento.setCustomValidity(
                     regla.mensaje
                 );
+
 
                 return false;
 
             }
 
 
+
             // Validación alfanumérica
 
             if (
+
                 regla.alfanumerico &&
-                !/^[A-Za-z0-9]+$/.test(valor)
+
+                !/^[A-Za-z0-9]+$/.test(
+                    valor
+                )
+
             ) {
 
                 documento.setCustomValidity(
                     regla.mensaje
                 );
+
 
                 return false;
 
@@ -889,12 +1069,15 @@
         }
 
 
+
         // =====================================================
         // EVENTO DEL DOCUMENTO
         // =====================================================
 
         documento.addEventListener(
+
             "input",
+
             function () {
 
                 normalizarDocumento();
@@ -902,17 +1085,22 @@
                 validarDocumento();
 
             }
+
         );
 
 
         documento.addEventListener(
+
             "blur",
+
             function () {
 
                 validarDocumento();
 
             }
+
         );
+
 
 
         // =====================================================
@@ -920,7 +1108,9 @@
         // =====================================================
 
         tipoDocumento.addEventListener(
+
             "change",
+
             function () {
 
                 // Si cambia DNI → RUC → CE, etc.,
@@ -929,14 +1119,19 @@
                 documento.value =
                     "";
 
+
                 actualizarFormulario();
 
+
                 actualizarReglaDocumento();
+
 
                 documento.focus();
 
             }
+
         );
+
 
 
         // =====================================================
@@ -944,31 +1139,42 @@
         // =====================================================
 
         document
+
             .getElementById(
                 "clienteForm"
             )
+
             .addEventListener(
+
                 "submit",
+
                 function (event) {
 
                     normalizarDocumento();
+
 
                     const documentoValido =
                         validarDocumento();
 
 
-                    if (!documentoValido) {
+                    if (
+                        !documentoValido
+                    ) {
 
                         event.preventDefault();
 
+
                         documento.reportValidity();
+
 
                         documento.focus();
 
                     }
 
                 }
+
             );
+
 
 
         // =====================================================

@@ -4,6 +4,20 @@ import {
 } from "../config/sqlserver.js";
 
 
+// ==================================================
+// SERVICIOS PERMITIDOS
+// ==================================================
+
+const SERVICIOS_PERMITIDOS = [
+  "RRCC",
+  "SUELDOS",
+];
+
+
+// ==================================================
+// CREAR ERROR
+// ==================================================
+
 function crearError(
   message,
   statusCode,
@@ -22,6 +36,10 @@ function crearError(
   return error;
 }
 
+
+// ==================================================
+// VALIDAR IDS
+// ==================================================
 
 function validarIds(
   idCliente,
@@ -62,6 +80,7 @@ function validarIds(
 
 
   return {
+
     idCliente:
       cliente,
 
@@ -71,14 +90,57 @@ function validarIds(
 }
 
 
-// --------------------------------------------------
+// ==================================================
+// NORMALIZAR SERVICIO
+// ==================================================
+
+function normalizarServicio(
+  servicio
+) {
+
+  const servicioNormalizado =
+    String(
+      servicio || "RRCC"
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !SERVICIOS_PERMITIDOS.includes(
+      servicioNormalizado
+    )
+  ) {
+
+    throw crearError(
+      "El servicio indicado no es válido.",
+      400,
+      "INVALID_SERVICE"
+    );
+  }
+
+
+  return servicioNormalizado;
+}
+
+
+// ==================================================
 // RESERVAR / CONSUMIR 1 CRÉDITO DEL TOKEN
-// --------------------------------------------------
+// ==================================================
 
 export async function reservarCredito({
+
   idCliente,
   idToken,
+
+  // Mantiene compatibilidad con RRCC actual.
+  servicio = "RRCC",
+
 }) {
+
+  // --------------------------------------------------
+  // VALIDAR CLIENTE Y TOKEN
+  // --------------------------------------------------
 
   ({
     idCliente,
@@ -88,6 +150,20 @@ export async function reservarCredito({
     idToken
   ));
 
+
+  // --------------------------------------------------
+  // VALIDAR SERVICIO
+  // --------------------------------------------------
+
+  servicio =
+    normalizarServicio(
+      servicio
+    );
+
+
+  // --------------------------------------------------
+  // CONEXIÓN
+  // --------------------------------------------------
 
   const pool =
     await getSqlPool();
@@ -99,14 +175,18 @@ export async function reservarCredito({
 
   try {
 
+    // ==================================================
+    // INICIAR TRANSACCIÓN
+    // ==================================================
+
     await transaction.begin(
       sql.ISOLATION_LEVEL.SERIALIZABLE
     );
 
 
-    // --------------------------------------------------
-    // VALIDAR TOKEN DENTRO DE LA TRANSACCIÓN
-    // --------------------------------------------------
+    // ==================================================
+    // 1. VALIDAR TOKEN DENTRO DE LA TRANSACCIÓN
+    // ==================================================
 
     const tokenResult =
       await new sql.Request(
@@ -131,6 +211,7 @@ export async function reservarCredito({
             T.ID_CLIENTE,
             T.ESTADO AS TOKEN_ESTADO,
             T.FECHA_VENCIMIENTO,
+
             C.ESTADO AS CLIENTE_ESTADO
 
           FROM
@@ -170,6 +251,10 @@ export async function reservarCredito({
       tokenResult.recordset[0];
 
 
+    // --------------------------------------------------
+    // TOKEN ACTIVO
+    // --------------------------------------------------
+
     if (
       token.TOKEN_ESTADO !==
       "ACTIVO"
@@ -183,6 +268,10 @@ export async function reservarCredito({
     }
 
 
+    // --------------------------------------------------
+    // CLIENTE ACTIVO
+    // --------------------------------------------------
+
     if (
       token.CLIENTE_ESTADO !==
       "ACTIVO"
@@ -195,6 +284,10 @@ export async function reservarCredito({
       );
     }
 
+
+    // --------------------------------------------------
+    // TOKEN VENCIDO
+    // --------------------------------------------------
 
     if (
       token.FECHA_VENCIMIENTO &&
@@ -211,222 +304,311 @@ export async function reservarCredito({
     }
 
 
-    // --------------------------------------------------
-    // BLOQUEAR SALDO DEL TOKEN
-    // --------------------------------------------------
+   // ==================================================
+// 2. OBTENER SERVICIO
+// ==================================================
 
-    const saldoResult =
-      await new sql.Request(
-        transaction
-      )
+const servicioResult =
+  await new sql.Request(
+    transaction
+  )
 
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
+    .input(
+      "servicio",
+      sql.VarChar(30),
+      servicio
+    )
 
-        .input(
-          "idToken",
-          sql.BigInt,
-          idToken
-        )
+    .query(`
+      SELECT
+        ID_SERVICIO,
+        CODIGO,
+        NOMBRE,
+        ESTADO
 
-        .query(`
-          SELECT
-            ID_CLIENTE,
-            ID_TOKEN,
-            CREDITOS_DISPONIBLES,
-            TOTAL_ASIGNADO,
-            TOTAL_CONSUMIDO
+      FROM
+        GestionAPIClientes.Servicios
 
-          FROM
-            GestionAPIClientes.Saldos
-              WITH (
-                UPDLOCK,
-                HOLDLOCK
-              )
-
-          WHERE
-            ID_TOKEN =
-              @idToken
-
-            AND ID_CLIENTE =
-              @idCliente
-        `);
+      WHERE
+        CODIGO = @servicio
+    `);
 
 
-    if (
-      saldoResult.recordset.length === 0
-    ) {
+if (
+  servicioResult.recordset.length === 0
+) {
 
-      throw crearError(
-        "No existe saldo para este token.",
-        409,
-        "TOKEN_BALANCE_NOT_FOUND"
-      );
-    }
-
-
-    const saldoAntes =
-      Number(
-        saldoResult
-          .recordset[0]
-          .CREDITOS_DISPONIBLES
-      );
+  throw crearError(
+    "El servicio indicado no existe.",
+    400,
+    "SERVICE_NOT_FOUND"
+  );
+}
 
 
-    if (
-      saldoAntes <= 0
-    ) {
-
-      throw crearError(
-        "No tiene créditos disponibles para realizar consultas.",
-        402,
-        "INSUFFICIENT_CREDITS"
-      );
-    }
+const servicioDb =
+  servicioResult.recordset[0];
 
 
-    const saldoDespues =
-      saldoAntes - 1;
+if (
+  servicioDb.ESTADO !== "ACTIVO"
+) {
+
+  throw crearError(
+    "El servicio indicado no se encuentra activo.",
+    403,
+    "SERVICE_NOT_ACTIVE"
+  );
+}
 
 
-    // --------------------------------------------------
-    // DESCONTAR CRÉDITO
-    // --------------------------------------------------
-
-    const updateResult =
-      await new sql.Request(
-        transaction
-      )
-
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
-
-        .input(
-          "idToken",
-          sql.BigInt,
-          idToken
-        )
-
-        .query(`
-          UPDATE
-            GestionAPIClientes.Saldos
-
-          SET
-            CREDITOS_DISPONIBLES =
-              CREDITOS_DISPONIBLES - 1,
-
-            TOTAL_CONSUMIDO =
-              TOTAL_CONSUMIDO + 1,
-
-            FECHA_ACTUALIZACION =
-              SYSDATETIME()
-
-          WHERE
-            ID_TOKEN =
-              @idToken
-
-            AND ID_CLIENTE =
-              @idCliente
-        `);
+const idServicio =
+  Number(
+    servicioDb.ID_SERVICIO
+  );
 
 
-    if (
-      updateResult.rowsAffected[0] !== 1
-    ) {
+// ==================================================
+// 3. BLOQUEAR BOLSA DEL SERVICIO
+// ==================================================
 
-      throw crearError(
-        "No fue posible descontar el crédito del token.",
-        409,
-        "CREDIT_UPDATE_FAILED"
-      );
-    }
+const saldoResult =
+  await new sql.Request(
+    transaction
+  )
 
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
 
-    // --------------------------------------------------
-    // MOVIMIENTO
-    // --------------------------------------------------
+    .input(
+      "idServicio",
+      sql.BigInt,
+      idServicio
+    )
 
-    const movimientoResult =
-      await new sql.Request(
-        transaction
-      )
+    .query(`
+      SELECT
+        ID_CLIENTE,
+        ID_SERVICIO,
 
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
+        CREDITOS_DISPONIBLES,
+        TOTAL_ASIGNADO,
+        TOTAL_CONSUMIDO
 
-        .input(
-          "idToken",
-          sql.BigInt,
-          idToken
-        )
-
-        .input(
-          "saldoAntes",
-          sql.Int,
-          saldoAntes
-        )
-
-        .input(
-          "saldoDespues",
-          sql.Int,
-          saldoDespues
-        )
-
-        .query(`
-          INSERT INTO
-            GestionAPIClientes.Movimientos
-          (
-            ID_CLIENTE,
-            ID_TOKEN,
-
-            TIPO,
-            CANTIDAD,
-
-            SALDO_ANTES,
-            SALDO_DESPUES,
-
-            ORIGEN,
-            OBSERVACION
+      FROM
+        GestionAPIClientes.SaldosServicios
+          WITH (
+            UPDLOCK,
+            HOLDLOCK
           )
 
-          OUTPUT
-            INSERTED.ID_MOVIMIENTO
+      WHERE
+        ID_CLIENTE =
+          @idCliente
 
-          VALUES
-          (
-            @idCliente,
-            @idToken,
-
-            'CONSUMO',
-            1,
-
-            @saldoAntes,
-            @saldoDespues,
-
-            'CONSULTA',
-            'Reserva de crédito para consulta'
-          )
-        `);
+        AND ID_SERVICIO =
+          @idServicio
+    `);
 
 
-    const idMovimiento =
-      movimientoResult
-        .recordset[0]
-        .ID_MOVIMIENTO;
+if (
+  saldoResult.recordset.length === 0
+) {
+
+  throw crearError(
+    `El cliente no tiene una bolsa de créditos configurada para ${servicio}.`,
+    409,
+    "SERVICE_BALANCE_NOT_FOUND"
+  );
+}
 
 
-    // --------------------------------------------------
-    // ÚLTIMO USO
-    // --------------------------------------------------
+const saldoAntes =
+  Number(
+    saldoResult
+      .recordset[0]
+      .CREDITOS_DISPONIBLES
+  );
+
+
+// --------------------------------------------------
+// SIN CRÉDITOS EN ESTE SERVICIO
+// --------------------------------------------------
+
+if (
+  saldoAntes <= 0
+) {
+
+  throw crearError(
+    `No tiene créditos disponibles para el servicio ${servicio}.`,
+    402,
+    "INSUFFICIENT_SERVICE_CREDITS"
+  );
+}
+
+
+const saldoDespues =
+  saldoAntes - 1;
+
+
+// ==================================================
+// 4. DESCONTAR DE LA BOLSA DEL SERVICIO
+// ==================================================
+
+const updateResult =
+  await new sql.Request(
+    transaction
+  )
+
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
+
+    .input(
+      "idServicio",
+      sql.BigInt,
+      idServicio
+    )
+
+    .query(`
+      UPDATE
+        GestionAPIClientes.SaldosServicios
+
+      SET
+        CREDITOS_DISPONIBLES =
+          CREDITOS_DISPONIBLES - 1,
+
+        TOTAL_CONSUMIDO =
+          TOTAL_CONSUMIDO + 1,
+
+        FECHA_ACTUALIZACION =
+          SYSDATETIME()
+
+      WHERE
+        ID_CLIENTE =
+          @idCliente
+
+        AND ID_SERVICIO =
+          @idServicio
+
+        AND CREDITOS_DISPONIBLES > 0
+    `);
+
+
+if (
+  updateResult.rowsAffected[0] !== 1
+) {
+
+  throw crearError(
+    `No fue posible descontar el crédito del servicio ${servicio}.`,
+    409,
+    "SERVICE_CREDIT_UPDATE_FAILED"
+  );
+}
+
+
+// ==================================================
+// 5. REGISTRAR MOVIMIENTO
+// ==================================================
+
+const observacion =
+  `Reserva de crédito para consulta ${servicio}`;
+
+
+const movimientoResult =
+  await new sql.Request(
+    transaction
+  )
+
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
+
+    .input(
+      "idToken",
+      sql.BigInt,
+      idToken
+    )
+
+    .input(
+      "idServicio",
+      sql.BigInt,
+      idServicio
+    )
+
+    .input(
+      "saldoAntes",
+      sql.Int,
+      saldoAntes
+    )
+
+    .input(
+      "saldoDespues",
+      sql.Int,
+      saldoDespues
+    )
+
+    .input(
+      "observacion",
+      sql.NVarChar(300),
+      observacion
+    )
+
+    .query(`
+      INSERT INTO
+        GestionAPIClientes.Movimientos
+      (
+        ID_CLIENTE,
+        ID_TOKEN,
+        ID_SERVICIO,
+
+        TIPO,
+        CANTIDAD,
+
+        SALDO_ANTES,
+        SALDO_DESPUES,
+
+        ORIGEN,
+        OBSERVACION
+      )
+
+      OUTPUT
+        INSERTED.ID_MOVIMIENTO
+
+      VALUES
+      (
+        @idCliente,
+        @idToken,
+        @idServicio,
+
+        'CONSUMO',
+        1,
+
+        @saldoAntes,
+        @saldoDespues,
+
+        'CONSULTA',
+        @observacion
+      )
+    `);
+
+
+const idMovimiento =
+  movimientoResult
+    .recordset[0]
+    .ID_MOVIMIENTO;
+
+
+    // ==================================================
+    // 5. ACTUALIZAR ÚLTIMO USO DEL TOKEN
+    // ==================================================
 
     await new sql.Request(
       transaction
@@ -452,15 +634,28 @@ export async function reservarCredito({
       `);
 
 
+    // ==================================================
+    // 6. CONFIRMAR TRANSACCIÓN
+    // ==================================================
+
     await transaction.commit();
 
+
+    // ==================================================
+    // RESPUESTA
+    // ==================================================
 
     return {
 
       idCliente,
+
       idToken,
 
+      idServicio,
+
       idMovimiento,
+
+      servicio,
 
       saldoAntes,
 
@@ -469,6 +664,7 @@ export async function reservarCredito({
 
       creditosConsumidos:
         1,
+
     };
 
 
@@ -480,7 +676,7 @@ export async function reservarCredito({
 
     } catch {
 
-      // Ya pudo haberse revertido.
+      // La transacción pudo haberse revertido.
     }
 
 
@@ -489,32 +685,50 @@ export async function reservarCredito({
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // REVERTIR CRÉDITO
-// --------------------------------------------------
-// La consulta normal NO utiliza esta función.
-// Se conserva únicamente por compatibilidad.
+// ==================================================
+//
+// La reversión se realiza sobre la misma bolsa
+// de servicio utilizada por el movimiento original.
+//
+// Ejemplo:
+//
+// RRCC:
+// 10 -> consulta -> 9
+//  9 -> reversión -> 10
+//
+// SUELDOS no se modifica.
+//
+// El token se conserva únicamente como dato
+// de auditoría del movimiento.
+// ==================================================
 
 export async function revertirCredito({
 
   idCliente,
+
   idToken = null,
+
   idMovimientoOriginal = null,
 
 }) {
 
+
+  // ==================================================
+  // 1. NORMALIZAR CLIENTE
+  // ==================================================
+
   idCliente =
-    Number(idCliente);
-
-
-  idToken =
-    idToken === null
-      ? null
-      : Number(idToken);
+    Number(
+      idCliente
+    );
 
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
 
@@ -526,87 +740,538 @@ export async function revertirCredito({
   }
 
 
+  // ==================================================
+  // 2. NORMALIZAR TOKEN
+  //
+  // El token ya NO identifica la bolsa.
+  // Solo se conserva para auditoría.
+  // ==================================================
+
+  if (
+    idToken === null ||
+    idToken === undefined ||
+    idToken === ""
+  ) {
+
+    idToken = null;
+
+  } else {
+
+    idToken =
+      Number(
+        idToken
+      );
+
+
+    if (
+      !Number.isInteger(
+        idToken
+      ) ||
+      idToken <= 0
+    ) {
+
+      idToken = null;
+    }
+  }
+
+
+  // ==================================================
+  // 3. VALIDAR MOVIMIENTO ORIGINAL
+  //
+  // Es obligatorio porque desde él obtenemos
+  // el servicio que debe recibir la reversión.
+  // ==================================================
+
+  idMovimientoOriginal =
+    Number(
+      idMovimientoOriginal
+    );
+
+
+  if (
+    !Number.isInteger(
+      idMovimientoOriginal
+    ) ||
+    idMovimientoOriginal <= 0
+  ) {
+
+    throw crearError(
+      "El movimiento original es obligatorio para revertir el crédito.",
+      400,
+      "REVERSAL_ORIGINAL_MOVEMENT_REQUIRED"
+    );
+  }
+
+
+  // ==================================================
+  // 4. CONEXIÓN
+  // ==================================================
+
   const pool =
     await getSqlPool();
 
 
   const transaction =
-    new sql.Transaction(pool);
+    new sql.Transaction(
+      pool
+    );
 
 
   try {
+
+    // ==================================================
+    // 5. INICIAR TRANSACCIÓN
+    // ==================================================
 
     await transaction.begin(
       sql.ISOLATION_LEVEL.SERIALIZABLE
     );
 
 
-    if (
-      (
-        !Number.isInteger(idToken) ||
-        idToken <= 0
-      ) &&
-      idMovimientoOriginal
-    ) {
+    // ==================================================
+    // 6. OBTENER MOVIMIENTO ORIGINAL
+    //
+    // De aquí obtenemos:
+    //
+    // - token
+    // - servicio
+    // - tipo
+    // - cantidad
+    //
+    // El servicio determina qué bolsa devolver.
+    // ==================================================
 
-      const movimientoOriginalResult =
-        await new sql.Request(
-          transaction
+    const movimientoOriginalResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
         )
 
-          .input(
-            "idCliente",
-            sql.BigInt,
-            idCliente
-          )
+        .input(
+          "idMovimientoOriginal",
+          sql.BigInt,
+          idMovimientoOriginal
+        )
 
-          .input(
-            "idMovimientoOriginal",
-            sql.BigInt,
-            Number(
-              idMovimientoOriginal
-            )
-          )
+        .query(`
+          SELECT TOP 1
 
-          .query(`
-            SELECT TOP 1
-              ID_TOKEN
+            M.ID_MOVIMIENTO,
 
-            FROM
-              GestionAPIClientes.Movimientos
+            M.ID_CLIENTE,
 
-            WHERE
-              ID_MOVIMIENTO =
-                @idMovimientoOriginal
+            M.ID_TOKEN,
 
-              AND ID_CLIENTE =
-                @idCliente
-          `);
+            M.ID_SERVICIO,
+
+            M.TIPO,
+
+            M.CANTIDAD,
+
+            M.SALDO_ANTES,
+
+            M.SALDO_DESPUES,
+
+            S.CODIGO AS SERVICIO
+
+          FROM
+            GestionAPIClientes.Movimientos M
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          LEFT JOIN
+            GestionAPIClientes.Servicios S
+              ON S.ID_SERVICIO =
+                 M.ID_SERVICIO
+
+          WHERE
+            M.ID_MOVIMIENTO =
+              @idMovimientoOriginal
+
+            AND M.ID_CLIENTE =
+              @idCliente
+        `);
 
 
-      idToken =
-        Number(
-          movimientoOriginalResult
-            .recordset[0]
-            ?.ID_TOKEN
-        );
-    }
-
+    // ==================================================
+    // 7. MOVIMIENTO NO EXISTE
+    // ==================================================
 
     if (
-      !Number.isInteger(idToken) ||
-      idToken <= 0
+      movimientoOriginalResult
+        .recordset
+        .length === 0
     ) {
 
       throw crearError(
-        "No se pudo determinar el token que debe recibir la reversión.",
-        400,
-        "REVERSAL_TOKEN_REQUIRED"
+        "No se encontró el movimiento original.",
+        404,
+        "ORIGINAL_MOVEMENT_NOT_FOUND"
       );
     }
 
 
+    const movimientoOriginal =
+      movimientoOriginalResult
+        .recordset[0];
+
+
+    // ==================================================
+    // 8. VALIDAR QUE SEA UN CONSUMO
+    // ==================================================
+
+    if (
+      String(
+        movimientoOriginal.TIPO || ""
+      )
+        .trim()
+        .toUpperCase()
+      !== "CONSUMO"
+    ) {
+
+      throw crearError(
+        "El movimiento indicado no corresponde a un consumo.",
+        409,
+        "MOVEMENT_NOT_REVERSIBLE"
+      );
+    }
+
+
+    // ==================================================
+    // 9. VALIDAR CANTIDAD
+    //
+    // Actualmente cada consulta consume exactamente
+    // un crédito.
+    // ==================================================
+
+    const cantidadOriginal =
+      Number(
+        movimientoOriginal.CANTIDAD
+      );
+
+
+    if (
+      cantidadOriginal !== 1
+    ) {
+
+      throw crearError(
+        "El movimiento original no corresponde a un consumo de un crédito.",
+        409,
+        "INVALID_REVERSAL_AMOUNT"
+      );
+    }
+
+
+    // ==================================================
+    // 10. OBTENER SERVICIO DEL MOVIMIENTO
+    // ==================================================
+
+    const idServicio =
+      Number(
+        movimientoOriginal.ID_SERVICIO
+      );
+
+
+    if (
+      !Number.isInteger(
+        idServicio
+      ) ||
+      idServicio <= 0
+    ) {
+
+      throw crearError(
+        "No se pudo determinar el servicio del movimiento original.",
+        409,
+        "REVERSAL_SERVICE_NOT_FOUND"
+      );
+    }
+
+
+    const servicio =
+      String(
+        movimientoOriginal.SERVICIO || ""
+      )
+        .trim()
+        .toUpperCase();
+
+
+    if (!servicio) {
+
+      throw crearError(
+        "No se encontró el servicio asociado al movimiento original.",
+        409,
+        "REVERSAL_SERVICE_NOT_FOUND"
+      );
+    }
+
+
+    // ==================================================
+    // 11. TOKEN PARA AUDITORÍA
+    //
+    // Preferimos siempre el token almacenado
+    // en el movimiento original.
+    // ==================================================
+
+    const tokenMovimiento =
+      Number(
+        movimientoOriginal.ID_TOKEN
+      );
+
+
+    if (
+      Number.isInteger(
+        tokenMovimiento
+      ) &&
+      tokenMovimiento > 0
+    ) {
+
+      idToken =
+        tokenMovimiento;
+    }
+
+
+    // ==================================================
+    // 12. OBSERVACIÓN DE REVERSIÓN
+    // ==================================================
+
+    const observacion =
+      `Reversión del movimiento ${idMovimientoOriginal} por consulta no cobrada`;
+
+
+    // ==================================================
+    // 13. EVITAR DOBLE REVERSIÓN
+    //
+    // No permitimos devolver dos veces
+    // el mismo crédito.
+    // ==================================================
+
+    const reversaExistenteResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "observacion",
+          sql.NVarChar(300),
+          observacion
+        )
+
+        .query(`
+          SELECT TOP 1
+
+            ID_MOVIMIENTO
+
+          FROM
+            GestionAPIClientes.Movimientos
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+
+            AND TIPO =
+              'AJUSTE'
+
+            AND OBSERVACION =
+              @observacion
+        `);
+
+
+    if (
+      reversaExistenteResult
+        .recordset
+        .length > 0
+    ) {
+
+      throw crearError(
+        "El crédito de este movimiento ya fue revertido.",
+        409,
+        "CREDIT_ALREADY_REVERSED"
+      );
+    }
+
+
+    // ==================================================
+    // 14. BLOQUEAR BOLSA DEL SERVICIO
+    // ==================================================
+
     const saldoResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idServicio",
+          sql.BigInt,
+          idServicio
+        )
+
+        .query(`
+          SELECT
+
+            ID_CLIENTE,
+
+            ID_SERVICIO,
+
+            CREDITOS_DISPONIBLES,
+
+            TOTAL_ASIGNADO,
+
+            TOTAL_CONSUMIDO
+
+          FROM
+            GestionAPIClientes.SaldosServicios
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+
+            AND ID_SERVICIO =
+              @idServicio
+        `);
+
+
+    if (
+      saldoResult
+        .recordset
+        .length === 0
+    ) {
+
+      throw crearError(
+        `El cliente no tiene una bolsa configurada para el servicio ${servicio}.`,
+        404,
+        "SERVICE_BALANCE_NOT_FOUND"
+      );
+    }
+
+
+    const saldo =
+      saldoResult
+        .recordset[0];
+
+
+    const saldoAntes =
+      Number(
+        saldo.CREDITOS_DISPONIBLES
+      );
+
+
+    const totalConsumido =
+      Number(
+        saldo.TOTAL_CONSUMIDO
+      );
+
+
+    // ==================================================
+    // 15. VALIDAR TOTAL CONSUMIDO
+    // ==================================================
+
+    if (
+      totalConsumido <= 0
+    ) {
+
+      throw crearError(
+        `No existe un crédito consumido para revertir en el servicio ${servicio}.`,
+        409,
+        "NO_CONSUMED_CREDIT_TO_REVERSE"
+      );
+    }
+
+
+    const saldoDespues =
+      saldoAntes + 1;
+
+
+    // ==================================================
+    // 16. DEVOLVER CRÉDITO A LA BOLSA CORRECTA
+    // ==================================================
+
+    const updateResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idServicio",
+          sql.BigInt,
+          idServicio
+        )
+
+        .query(`
+          UPDATE
+            GestionAPIClientes.SaldosServicios
+
+          SET
+            CREDITOS_DISPONIBLES =
+              CREDITOS_DISPONIBLES + 1,
+
+            TOTAL_CONSUMIDO =
+              TOTAL_CONSUMIDO - 1,
+
+            FECHA_ACTUALIZACION =
+              SYSDATETIME()
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+
+            AND ID_SERVICIO =
+              @idServicio
+
+            AND TOTAL_CONSUMIDO > 0
+        `);
+
+
+    if (
+      updateResult
+        .rowsAffected[0] !== 1
+    ) {
+
+      throw crearError(
+        `No fue posible revertir el crédito del servicio ${servicio}.`,
+        409,
+        "SERVICE_CREDIT_REVERSAL_FAILED"
+      );
+    }
+
+
+    // ==================================================
+    // 17. REGISTRAR MOVIMIENTO DE AJUSTE
+    // ==================================================
+
+    const movimientoAjusteResult =
       await new sql.Request(
         transaction
       )
@@ -623,177 +1288,109 @@ export async function revertirCredito({
           idToken
         )
 
+        .input(
+          "idServicio",
+          sql.BigInt,
+          idServicio
+        )
+
+        .input(
+          "saldoAntes",
+          sql.Int,
+          saldoAntes
+        )
+
+        .input(
+          "saldoDespues",
+          sql.Int,
+          saldoDespues
+        )
+
+        .input(
+          "observacion",
+          sql.NVarChar(300),
+          observacion
+        )
+
         .query(`
-          SELECT
-            CREDITOS_DISPONIBLES,
-            TOTAL_CONSUMIDO
+          INSERT INTO
+            GestionAPIClientes.Movimientos
+          (
+            ID_CLIENTE,
 
-          FROM
-            GestionAPIClientes.Saldos
-              WITH (
-                UPDLOCK,
-                HOLDLOCK
-              )
+            ID_TOKEN,
 
-          WHERE
-            ID_TOKEN =
-              @idToken
+            ID_SERVICIO,
 
-            AND ID_CLIENTE =
-              @idCliente
+            TIPO,
+
+            CANTIDAD,
+
+            SALDO_ANTES,
+
+            SALDO_DESPUES,
+
+            ORIGEN,
+
+            OBSERVACION
+          )
+
+          OUTPUT
+            INSERTED.ID_MOVIMIENTO
+
+          VALUES
+          (
+            @idCliente,
+
+            @idToken,
+
+            @idServicio,
+
+            'AJUSTE',
+
+            1,
+
+            @saldoAntes,
+
+            @saldoDespues,
+
+            'SISTEMA',
+
+            @observacion
+          )
         `);
 
 
-    if (
-      saldoResult.recordset.length === 0
-    ) {
-
-      throw crearError(
-        "No existe saldo para este token.",
-        404,
-        "TOKEN_BALANCE_NOT_FOUND"
-      );
-    }
+    const idMovimientoAjuste =
+      movimientoAjusteResult
+        .recordset[0]
+        .ID_MOVIMIENTO;
 
 
-    const saldoAntes =
-      Number(
-        saldoResult
-          .recordset[0]
-          .CREDITOS_DISPONIBLES
-      );
-
-
-    const saldoDespues =
-      saldoAntes + 1;
-
-
-    await new sql.Request(
-      transaction
-    )
-
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
-
-      .input(
-        "idToken",
-        sql.BigInt,
-        idToken
-      )
-
-      .query(`
-        UPDATE
-          GestionAPIClientes.Saldos
-
-        SET
-          CREDITOS_DISPONIBLES =
-            CREDITOS_DISPONIBLES + 1,
-
-          TOTAL_CONSUMIDO =
-            CASE
-              WHEN TOTAL_CONSUMIDO > 0
-                THEN TOTAL_CONSUMIDO - 1
-              ELSE 0
-            END,
-
-          FECHA_ACTUALIZACION =
-            SYSDATETIME()
-
-        WHERE
-          ID_TOKEN =
-            @idToken
-
-          AND ID_CLIENTE =
-            @idCliente
-      `);
-
-
-    const observacion =
-      idMovimientoOriginal
-
-        ? `Reversión del movimiento ${idMovimientoOriginal} por consulta no cobrada`
-
-        : "Reversión de crédito por consulta no cobrada";
-
-
-    await new sql.Request(
-      transaction
-    )
-
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
-
-      .input(
-        "idToken",
-        sql.BigInt,
-        idToken
-      )
-
-      .input(
-        "saldoAntes",
-        sql.Int,
-        saldoAntes
-      )
-
-      .input(
-        "saldoDespues",
-        sql.Int,
-        saldoDespues
-      )
-
-      .input(
-        "observacion",
-        sql.NVarChar(300),
-        observacion
-      )
-
-      .query(`
-        INSERT INTO
-          GestionAPIClientes.Movimientos
-        (
-          ID_CLIENTE,
-          ID_TOKEN,
-
-          TIPO,
-          CANTIDAD,
-
-          SALDO_ANTES,
-          SALDO_DESPUES,
-
-          ORIGEN,
-          OBSERVACION
-        )
-
-        VALUES
-        (
-          @idCliente,
-          @idToken,
-
-          'AJUSTE',
-          1,
-
-          @saldoAntes,
-          @saldoDespues,
-
-          'SISTEMA',
-          @observacion
-        )
-      `);
-
+    // ==================================================
+    // 18. CONFIRMAR TRANSACCIÓN
+    // ==================================================
 
     await transaction.commit();
 
 
+    // ==================================================
+    // 19. RESPUESTA
+    // ==================================================
+
     return {
 
       idCliente,
+
       idToken,
+
+      idServicio,
+
+      servicio,
+
+      idMovimientoOriginal,
+
+      idMovimientoAjuste,
 
       saldoAntes,
 
@@ -802,6 +1399,7 @@ export async function revertirCredito({
 
       creditosRevertidos:
         1,
+
     };
 
 
@@ -813,7 +1411,7 @@ export async function revertirCredito({
 
     } catch {
 
-      // Ya pudo haberse revertido.
+      // La transacción pudo haberse revertido.
     }
 
 

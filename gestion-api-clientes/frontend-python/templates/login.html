@@ -2,6 +2,7 @@
 <html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -17,7 +18,9 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+
 </head>
+
 
 <body class="login-body">
 
@@ -69,6 +72,15 @@
                 </div>
 
 
+                {% if mensaje %}
+
+                <div class="alert-success">
+                    {{ mensaje }}
+                </div>
+
+                {% endif %}
+
+
                 {% if error %}
 
                 <div class="alert-error">
@@ -79,6 +91,7 @@
 
 
                 <form
+                    id="adminLoginForm"
                     method="POST"
                     action="{{ url_for('login') }}"
                 >
@@ -120,7 +133,20 @@
                     </div>
 
 
+                    <div class="login-link-row">
+
+                        <a
+                            href="{{ url_for('forgot_password') }}"
+                            class="login-link"
+                        >
+                            ¿Olvidaste tu contraseña?
+                        </a>
+
+                    </div>
+
+
                     <button
+                        id="adminLoginButton"
                         type="submit"
                         class="login-button"
                     >
@@ -139,6 +165,55 @@
         </section>
 
     </main>
+
+
+    <script>
+
+        const adminLoginForm =
+            document.getElementById(
+                "adminLoginForm"
+            );
+
+        const adminLoginButton =
+            document.getElementById(
+                "adminLoginButton"
+            );
+
+        let loginEnProceso =
+            false;
+
+
+        if (
+            adminLoginForm &&
+            adminLoginButton
+        ) {
+
+            adminLoginForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (loginEnProceso) {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    loginEnProceso =
+                        true;
+
+
+                    adminLoginButton.disabled =
+                        true;
+
+                    adminLoginButton.textContent =
+                        "Validando...";
+                }
+            );
+        }
+
+    </script>
 
 </body>
 

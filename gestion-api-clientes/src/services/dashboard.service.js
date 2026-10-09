@@ -1,9 +1,103 @@
 import {
   getSqlPool,
+  sql,
 } from "../config/sqlserver.js";
 
 
-export async function obtenerDashboard() {
+// ==================================================
+// UTILIDADES
+// ==================================================
+
+function crearError(
+  message,
+  statusCode,
+  code
+) {
+
+  const error =
+    new Error(message);
+
+  error.statusCode =
+    statusCode;
+
+  error.code =
+    code;
+
+  return error;
+}
+
+
+function obtenerContextoAdministrador(
+  adminActual
+) {
+
+  const idAdmin =
+    Number(
+      adminActual?.idAdmin
+    );
+
+
+  const rol =
+    String(
+      adminActual?.rol || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !Number.isInteger(idAdmin) ||
+    idAdmin <= 0
+  ) {
+
+    throw crearError(
+      "El administrador no es válido.",
+      401,
+      "INVALID_ADMIN"
+    );
+  }
+
+
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(rol)
+  ) {
+
+    throw crearError(
+      "El administrador no tiene un rol válido.",
+      403,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+
+  return {
+
+    idAdmin,
+
+    rol,
+
+    esSuperAdmin:
+      rol === "SUPERADMIN",
+  };
+}
+
+
+// ==================================================
+// DASHBOARD
+// ==================================================
+
+export async function obtenerDashboard(
+  adminActual
+) {
+
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
 
   const pool =
     await getSqlPool();
@@ -12,95 +106,313 @@ export async function obtenerDashboard() {
   const result =
     await pool
       .request()
+
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
       .query(`
         SELECT
 
+          -- =========================================
           -- CLIENTES
+          -- =========================================
+
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Clientes
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Clientes C
+
+            WHERE
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS TOTAL_CLIENTES,
 
-          (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Clientes
-            WHERE ESTADO = 'ACTIVO'
-          ) AS CLIENTES_ACTIVOS,
 
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Clientes
-            WHERE ESTADO = 'BLOQUEADO'
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Clientes C
+
+            WHERE
+              C.ESTADO =
+                'ACTIVO'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
+          ) AS CLIENTES_ACTIVOS,
+
+
+          (
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Clientes C
+
+            WHERE
+              C.ESTADO =
+                'BLOQUEADO'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CLIENTES_BLOQUEADOS,
 
 
+          -- =========================================
           -- TOKENS
+          -- =========================================
+
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Tokens
-            WHERE ESTADO = 'ACTIVO'
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Tokens T
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   T.ID_CLIENTE
+
+            WHERE
+              T.ESTADO =
+                'ACTIVO'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS TOKENS_ACTIVOS,
 
 
+          -- =========================================
           -- CRÉDITOS
+          --
+          -- NUEVO MODELO:
+          -- Se suman todas las bolsas del cliente:
+          -- RRCC + SUELDOS + futuros servicios.
+          -- =========================================
+
           (
             SELECT
               ISNULL(
-                SUM(TOTAL_ASIGNADO),
+                SUM(
+                  SS.TOTAL_ASIGNADO
+                ),
                 0
               )
-            FROM GestionAPIClientes.Saldos
+
+            FROM
+              GestionAPIClientes.SaldosServicios SS
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   SS.ID_CLIENTE
+
+            WHERE
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CREDITOS_ASIGNADOS,
 
-          (
-            SELECT
-              ISNULL(
-                SUM(CREDITOS_DISPONIBLES),
-                0
-              )
-            FROM GestionAPIClientes.Saldos
-          ) AS CREDITOS_DISPONIBLES,
 
           (
             SELECT
               ISNULL(
-                SUM(TOTAL_CONSUMIDO),
+                SUM(
+                  SS.CREDITOS_DISPONIBLES
+                ),
                 0
               )
-            FROM GestionAPIClientes.Saldos
+
+            FROM
+              GestionAPIClientes.SaldosServicios SS
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   SS.ID_CLIENTE
+
+            WHERE
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
+          ) AS CREDITOS_DISPONIBLES,
+
+
+          (
+            SELECT
+              ISNULL(
+                SUM(
+                  SS.TOTAL_CONSUMIDO
+                ),
+                0
+              )
+
+            FROM
+              GestionAPIClientes.SaldosServicios SS
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   SS.ID_CLIENTE
+
+            WHERE
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CREDITOS_CONSUMIDOS,
 
 
+          -- =========================================
           -- CONSULTAS
+          -- =========================================
+
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Consumos
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Consumos CO
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   CO.ID_CLIENTE
+
+            WHERE
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS TOTAL_CONSULTAS,
 
+
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Consumos
-            WHERE ESTADO = 'EXITOSA'
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Consumos CO
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   CO.ID_CLIENTE
+
+            WHERE
+              CO.ESTADO =
+                'EXITOSA'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CONSULTAS_EXITOSAS,
 
+
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Consumos
-            WHERE ESTADO = 'SIN_DATOS'
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Consumos CO
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   CO.ID_CLIENTE
+
+            WHERE
+              CO.ESTADO =
+                'SIN_DATOS'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CONSULTAS_SIN_DATOS,
 
-          (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Consumos
-            WHERE ESTADO = 'ERROR'
-          ) AS CONSULTAS_ERROR,
 
           (
-            SELECT COUNT(*)
-            FROM GestionAPIClientes.Consumos
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Consumos CO
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   CO.ID_CLIENTE
+
             WHERE
-              CAST(FECHA AS DATE) =
-              CAST(SYSDATETIME() AS DATE)
+              CO.ESTADO =
+                'ERROR'
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
+          ) AS CONSULTAS_ERROR,
+
+
+          (
+            SELECT
+              COUNT(*)
+
+            FROM
+              GestionAPIClientes.Consumos CO
+
+            INNER JOIN
+              GestionAPIClientes.Clientes C
+                ON C.ID_CLIENTE =
+                   CO.ID_CLIENTE
+
+            WHERE
+              CAST(
+                CO.FECHA AS DATE
+              ) =
+              CAST(
+                SYSDATETIME() AS DATE
+              )
+
+              AND
+              (
+                @esSuperAdmin = 1
+                OR C.ID_ADMIN = @idAdmin
+              )
           ) AS CONSULTAS_HOY
       `);
 
@@ -112,6 +424,7 @@ export async function obtenerDashboard() {
   return {
 
     clientes: {
+
       total:
         Number(
           datos.TOTAL_CLIENTES
@@ -130,6 +443,7 @@ export async function obtenerDashboard() {
 
 
     tokens: {
+
       activos:
         Number(
           datos.TOKENS_ACTIVOS
@@ -138,6 +452,7 @@ export async function obtenerDashboard() {
 
 
     creditos: {
+
       asignados:
         Number(
           datos.CREDITOS_ASIGNADOS
@@ -156,6 +471,7 @@ export async function obtenerDashboard() {
 
 
     consultas: {
+
       total:
         Number(
           datos.TOTAL_CONSULTAS

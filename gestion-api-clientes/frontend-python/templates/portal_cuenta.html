@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="es">
 
 <head>
@@ -17,20 +16,123 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=15"
+        href="{{ url_for('static', filename='css/style.css') }}?v=17"
     >
+
+
+    <style>
+
+        /* ==================================================
+           SALDOS POR SERVICIO
+        ================================================== */
+
+        .portal-query-launch-content {
+            min-width: 0;
+            flex: 1;
+        }
+
+
+        .portal-service-stats {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 16px;
+        }
+
+
+        .portal-service-stat {
+            min-width: 105px;
+
+            padding: 9px 12px;
+
+            border: 1px solid #e3e9f0;
+            border-radius: 9px;
+
+            background: #f8fafc;
+        }
+
+
+        .portal-service-stat span {
+            display: block;
+
+            margin-bottom: 3px;
+
+            color: #7c8797;
+
+            font-size: 10px;
+            font-weight: 600;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.3px;
+        }
+
+
+        .portal-service-stat strong {
+            display: block;
+
+            color: #172033;
+
+            font-size: 17px;
+            font-weight: 750;
+        }
+
+
+        /* ==================================================
+           BOTÓN SIN CRÉDITOS
+        ================================================== */
+
+        .portal-query-button.portal-query-button-disabled,
+        .portal-query-button.portal-query-button-disabled:hover,
+        .portal-query-button.portal-query-button-disabled:disabled {
+
+            background: #e5e9ef;
+
+            color: #8993a3;
+
+            opacity: 1;
+
+            cursor: not-allowed;
+
+            box-shadow: none;
+        }
+
+
+        @media (max-width: 800px) {
+
+            .portal-service-stats {
+
+                width: 100%;
+
+                display: grid;
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+
+            .portal-service-stat {
+                min-width: 0;
+            }
+        }
+
+    </style>
 
 </head>
 
 
 <body class="portal-body">
 
+
 <div class="portal-shell">
 
 
-    <!-- =====================================
+    <!-- ==================================================
          HEADER
-    ====================================== -->
+    ================================================== -->
 
     <header class="portal-header">
 
@@ -40,6 +142,7 @@
                 API
             </div>
 
+
             <div>
 
                 <strong>
@@ -47,7 +150,7 @@
                 </strong>
 
                 <span>
-                    RRCC
+                    RRCC / Sueldos
                 </span>
 
             </div>
@@ -73,9 +176,9 @@
 
 
 
-    <!-- =====================================
-         CONTENIDO
-    ====================================== -->
+    <!-- ==================================================
+         CONTENIDO PRINCIPAL
+    ================================================== -->
 
     <main class="portal-content">
 
@@ -93,9 +196,74 @@
         {% if cuenta %}
 
 
-        <!-- =====================================
-             CUENTA
-        ====================================== -->
+        <!-- ==================================================
+             PREPARAR SALDOS POR SERVICIO
+        ================================================== -->
+
+        {% set creditos_servicios =
+            cuenta.get(
+                'creditosPorServicio',
+                {}
+            )
+        %}
+
+
+        {% set rrcc =
+            creditos_servicios.get(
+                'RRCC',
+                {}
+            )
+        %}
+
+
+        {% set sueldos =
+            creditos_servicios.get(
+                'SUELDOS',
+                {}
+            )
+        %}
+
+
+        {% set rrcc_disponibles =
+            (rrcc.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set rrcc_asignados =
+            (rrcc.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set rrcc_consumidos =
+            (rrcc.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_disponibles =
+            (sueldos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_asignados =
+            (sueldos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_consumidos =
+            (sueldos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+
+        <!-- ==================================================
+             DATOS DEL CLIENTE
+        ================================================== -->
 
         <section class="portal-welcome">
 
@@ -103,9 +271,11 @@
                 Mi cuenta
             </span>
 
+
             <h1>
                 {{ cuenta.nombre }}
             </h1>
+
 
             <p>
                 {{ cuenta.tipoDocumento }}
@@ -116,9 +286,9 @@
 
 
 
-        <!-- =====================================
-             CRÉDITOS
-        ====================================== -->
+        <!-- ==================================================
+             TOTALES GENERALES
+        ================================================== -->
 
         <section class="portal-credit-grid">
 
@@ -161,56 +331,259 @@
 
             </article>
 
+
         </section>
 
 
 
-        <!-- =====================================
-             BOTÓN PARA ABRIR CONSULTA
-        ====================================== -->
+        <!-- ==================================================
+             CONSULTA RRCC
+        ================================================== -->
 
         <section class="portal-query-launch">
 
-            <div>
+
+            <div class="portal-query-launch-content">
+
 
                 <span class="portal-label">
                     Consulta RRCC
                 </span>
 
+
                 <h2>
                     Consulta de calificación
                 </h2>
+
 
                 <p>
                     Consulta información utilizando DNI, RUC,
                     Carnet de Extranjería o Pasaporte.
                 </p>
 
+
+
+                <!-- SALDO RRCC -->
+
+                <div class="portal-service-stats">
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Disponibles
+                        </span>
+
+                        <strong>
+                            {{ rrcc_disponibles }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Asignados
+                        </span>
+
+                        <strong>
+                            {{ rrcc_asignados }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Consumidos
+                        </span>
+
+                        <strong>
+                            {{ rrcc_consumidos }}
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
             </div>
 
 
+
             <div class="portal-query-launch-actions">
+
 
                 <span class="portal-query-cost">
                     1 crédito por consulta
                 </span>
 
+
                 <button
                     type="button"
-                    class="portal-query-button"
                     id="abrirConsultaModal"
+
+                    class="
+                        portal-query-button
+                        {% if rrcc_disponibles <= 0 %}
+                        portal-query-button-disabled
+                        {% endif %}
+                    "
+
+                    {% if rrcc_disponibles <= 0 %}
+                    disabled
+                    {% endif %}
                 >
-                    Nueva consulta
+
+                    {% if rrcc_disponibles > 0 %}
+
+                        Nueva consulta
+
+                    {% else %}
+
+                        Sin créditos
+
+                    {% endif %}
+
                 </button>
 
+
             </div>
+
+
+        </section>
+
+
+
+        <!-- ==================================================
+             CONSULTA SUELDOS
+        ================================================== -->
+
+        <section class="portal-query-launch">
+
+
+            <div class="portal-query-launch-content">
+
+
+                <span class="portal-label">
+                    Consulta Sueldos
+                </span>
+
+
+                <h2>
+                    Consulta de sueldos
+                </h2>
+
+
+                <p>
+                    Consulta información laboral y salarial utilizando
+                    DNI, RUC, Carnet de Extranjería o Pasaporte.
+                </p>
+
+
+
+                <!-- SALDO SUELDOS -->
+
+                <div class="portal-service-stats">
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Disponibles
+                        </span>
+
+                        <strong>
+                            {{ sueldos_disponibles }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Asignados
+                        </span>
+
+                        <strong>
+                            {{ sueldos_asignados }}
+                        </strong>
+
+                    </div>
+
+
+                    <div class="portal-service-stat">
+
+                        <span>
+                            Consumidos
+                        </span>
+
+                        <strong>
+                            {{ sueldos_consumidos }}
+                        </strong>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+
+            <div class="portal-query-launch-actions">
+
+
+                <span class="portal-query-cost">
+                    1 crédito por consulta
+                </span>
+
+
+                <button
+                    type="button"
+                    id="abrirSueldosModal"
+
+                    class="
+                        portal-query-button
+                        {% if sueldos_disponibles <= 0 %}
+                        portal-query-button-disabled
+                        {% endif %}
+                    "
+
+                    {% if sueldos_disponibles <= 0 %}
+                    disabled
+                    {% endif %}
+                >
+
+                    {% if sueldos_disponibles > 0 %}
+
+                        Nueva consulta
+
+                    {% else %}
+
+                        Sin créditos
+
+                    {% endif %}
+
+                </button>
+
+
+            </div>
+
 
         </section>
 
 
         {% endif %}
 
+
     </main>
+
 
 </div>
 
@@ -222,12 +595,15 @@
 
 {% if cuenta %}
 
+
 <div
     class="portal-modal-overlay"
     id="consultaModal"
     aria-hidden="true"
     data-auto-open="{{ 'true' if consulta_json else 'false' }}"
 >
+
+
     <div
         class="portal-modal"
         role="dialog"
@@ -236,11 +612,12 @@
     >
 
 
-        <!-- ==========================================
-             HEADER MODAL
-        =========================================== -->
+        <!-- ==================================================
+             HEADER RRCC
+        ================================================== -->
 
         <div class="portal-modal-header">
+
 
             <div>
 
@@ -248,11 +625,13 @@
                     Consulta de calificación de personas
                 </h2>
 
+
                 <p>
                     Ingresa el documento que deseas consultar.
                 </p>
 
             </div>
+
 
 
             <button
@@ -272,18 +651,17 @@
 
             </button>
 
+
         </div>
 
 
 
-        <!-- ==========================================
-             BODY MODAL
-        =========================================== -->
+        <!-- ==================================================
+             BODY RRCC
+        ================================================== -->
 
         <div class="portal-modal-body">
 
-
-            <!-- COSTO -->
 
             <div class="portal-modal-cost">
 
@@ -295,9 +673,9 @@
 
 
 
-            <!-- ======================================
-                 FORMULARIO
-            ======================================= -->
+            <!-- ==================================================
+                 FORMULARIO RRCC
+            ================================================== -->
 
             <form
                 id="consultaForm"
@@ -307,9 +685,8 @@
             >
 
 
-                <!-- TIPO DOCUMENTO -->
-
                 <div class="portal-query-field">
+
 
                     <label for="tipoDocumento">
                         Tipo de documento
@@ -322,6 +699,7 @@
                         required
                     >
 
+
                         <option value="">
                             Seleccionar
                         </option>
@@ -329,6 +707,7 @@
 
                         <option
                             value="DNI"
+
                             {% if consulta_form and consulta_form.get('tipoDocumento') == 'DNI' %}
                             selected
                             {% endif %}
@@ -339,6 +718,7 @@
 
                         <option
                             value="RUC"
+
                             {% if consulta_form and consulta_form.get('tipoDocumento') == 'RUC' %}
                             selected
                             {% endif %}
@@ -349,6 +729,7 @@
 
                         <option
                             value="CE"
+
                             {% if consulta_form and consulta_form.get('tipoDocumento') == 'CE' %}
                             selected
                             {% endif %}
@@ -359,6 +740,7 @@
 
                         <option
                             value="PASAPORTE"
+
                             {% if consulta_form and consulta_form.get('tipoDocumento') == 'PASAPORTE' %}
                             selected
                             {% endif %}
@@ -366,15 +748,16 @@
                             Pasaporte
                         </option>
 
+
                     </select>
+
 
                 </div>
 
 
 
-                <!-- DOCUMENTO -->
-
                 <div class="portal-query-field portal-document-field">
+
 
                     <label for="documento">
                         Documento
@@ -385,46 +768,83 @@
                         id="documento"
                         name="documento"
                         type="text"
+
                         value="{% if consulta_form %}{{ consulta_form.get('documento', '') }}{% endif %}"
+
                         placeholder="Ingrese documento"
+
                         autocomplete="off"
+
                         required
                     >
 
 
                     <small id="documentoAyuda"></small>
 
+
                 </div>
 
 
-
-                <!-- BOTÓN -->
 
                 <div class="portal-modal-submit">
 
+
                     <button
+                        id="consultaSubmitButton"
                         type="submit"
-                        class="portal-query-button"
+
+                        class="
+                            portal-query-button
+                            {% if rrcc_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if rrcc_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
                     >
-                        Consultar
+
+                        {% if rrcc_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
                     </button>
 
+
                 </div>
+
 
             </form>
 
 
 
-            <!-- ======================================
-                 RESULTADO
-            ======================================= -->
+            <!-- ==================================================
+                 RESULTADO RRCC
+            ================================================== -->
 
             {% if consulta_json %}
 
-            <div class="portal-modal-result">
 
-                <!-- SELECTOR DE VISTA -->
+            <div
+                class="portal-modal-result"
+                id="consultaResultado"
+            >
+
+
+
+                <!-- ==================================================
+                     SELECTOR DE VISTA
+                ================================================== -->
+
                 <div class="portal-result-tabs">
+
 
                     <button
                         type="button"
@@ -434,6 +854,7 @@
                         Vista resumen
                     </button>
 
+
                     <button
                         type="button"
                         class="portal-result-tab"
@@ -442,17 +863,20 @@
                         Vista JSON
                     </button>
 
+
                 </div>
 
 
-                <!-- ==================================
-                     VISTA RESUMEN
-                =================================== -->
+
+                <!-- ==================================================
+                     VISTA RESUMEN RRCC
+                ================================================== -->
 
                 <div
                     class="portal-result-view active"
                     id="resumenView"
                 >
+
 
                     <div
                         class="portal-result-error"
@@ -461,10 +885,17 @@
                     ></div>
 
 
+
                     <div id="resumenContenido">
 
-                        <!-- METADATOS -->
+
+
+                        <!-- ==================================================
+                             METADATOS
+                        ================================================== -->
+
                         <div class="portal-report-meta">
+
 
                             <div class="portal-report-meta-item">
 
@@ -479,7 +910,13 @@
                             </div>
 
 
-                            <div class="portal-report-meta-item portal-report-name">
+
+                            <div
+                                class="
+                                    portal-report-meta-item
+                                    portal-report-name
+                                "
+                            >
 
                                 <span>
                                     Nombre
@@ -490,6 +927,7 @@
                                 </strong>
 
                             </div>
+
 
 
                             <div class="portal-report-meta-item">
@@ -504,53 +942,69 @@
 
                             </div>
 
+
                         </div>
 
 
-                        <!-- CALIFICACIÓN CREDITICIA -->
+
+                        <!-- ==================================================
+                             CALIFICACIÓN
+                        ================================================== -->
+
                         <section class="portal-report-section">
+
 
                             <div class="portal-report-section-title">
                                 Calificación crediticia
                             </div>
 
 
+
                             <div class="portal-rating-bar">
+
 
                                 <span
                                     id="ratingBarNOR"
                                     class="rating-nor"
                                 ></span>
 
+
                                 <span
                                     id="ratingBarCPP"
                                     class="rating-cpp"
                                 ></span>
+
 
                                 <span
                                     id="ratingBarDEF"
                                     class="rating-def"
                                 ></span>
 
+
                                 <span
                                     id="ratingBarDUD"
                                     class="rating-dud"
                                 ></span>
+
 
                                 <span
                                     id="ratingBarPER"
                                     class="rating-per"
                                 ></span>
 
+
                                 <span
                                     id="ratingBarReportan"
                                     class="rating-reportan"
                                 ></span>
 
+
                             </div>
 
 
+
                             <div class="portal-rating-grid">
+
 
                                 <div class="portal-rating-item">
 
@@ -566,6 +1020,7 @@
                                     </strong>
 
                                 </div>
+
 
 
                                 <div class="portal-rating-item">
@@ -584,6 +1039,7 @@
                                 </div>
 
 
+
                                 <div class="portal-rating-item">
 
                                     <span>
@@ -598,6 +1054,7 @@
                                     </strong>
 
                                 </div>
+
 
 
                                 <div class="portal-rating-item">
@@ -616,6 +1073,7 @@
                                 </div>
 
 
+
                                 <div class="portal-rating-item">
 
                                     <span>
@@ -630,6 +1088,7 @@
                                     </strong>
 
                                 </div>
+
 
 
                                 <div class="portal-rating-item">
@@ -647,13 +1106,20 @@
 
                                 </div>
 
+
                             </div>
+
 
                         </section>
 
 
-                        <!-- DETALLE DE DEUDA -->
+
+                        <!-- ==================================================
+                             DEUDAS
+                        ================================================== -->
+
                         <section class="portal-report-section">
+
 
                             <div class="portal-report-section-title">
                                 Detalle de deuda
@@ -662,61 +1128,72 @@
 
                             <div class="portal-report-table-wrap">
 
+
                                 <table class="portal-report-table">
+
 
                                     <thead>
 
-                                        <tr>
+                                    <tr>
 
-                                            <th>
-                                                Entidad
-                                            </th>
+                                        <th>
+                                            Entidad
+                                        </th>
 
-                                            <th>
-                                                Tipo de deuda
-                                            </th>
+                                        <th>
+                                            Tipo de deuda
+                                        </th>
 
-                                            <th>
-                                                Calificación
-                                            </th>
+                                        <th>
+                                            Calificación
+                                        </th>
 
-                                            <th>
-                                                Días
-                                            </th>
+                                        <th>
+                                            Días
+                                        </th>
 
-                                            <th class="align-right">
-                                                Capital
-                                            </th>
+                                        <th class="align-right">
+                                            Capital
+                                        </th>
 
-                                        </tr>
+                                    </tr>
 
                                     </thead>
 
 
+
                                     <tbody id="deudasBody">
 
-                                        <tr>
+                                    <tr>
 
-                                            <td
-                                                colspan="5"
-                                                class="portal-report-empty"
-                                            >
-                                                Sin información.
-                                            </td>
+                                        <td
+                                            colspan="5"
+                                            class="portal-report-empty"
+                                        >
+                                            Sin información.
+                                        </td>
 
-                                        </tr>
+                                    </tr>
 
                                     </tbody>
 
+
                                 </table>
 
+
                             </div>
+
 
                         </section>
 
 
-                        <!-- LÍNEAS DE CRÉDITO -->
+
+                        <!-- ==================================================
+                             LÍNEAS DE CRÉDITO
+                        ================================================== -->
+
                         <section class="portal-report-section">
+
 
                             <div class="portal-report-section-title">
                                 Líneas de crédito
@@ -725,60 +1202,66 @@
 
                             <div class="portal-report-table-wrap">
 
+
                                 <table class="portal-report-table">
+
 
                                     <thead>
 
-                                        <tr>
+                                    <tr>
 
-                                            <th>
-                                                Entidad reportante
-                                            </th>
+                                        <th>
+                                            Entidad reportante
+                                        </th>
 
-                                            <th>
-                                                Tipo de línea
-                                            </th>
+                                        <th>
+                                            Tipo de línea
+                                        </th>
 
-                                            <th>
-                                                % utilizado
-                                            </th>
+                                        <th>
+                                            % utilizado
+                                        </th>
 
-                                            <th>
-                                                % no utilizado
-                                            </th>
+                                        <th>
+                                            % no utilizado
+                                        </th>
 
-                                            <th class="align-right">
-                                                Línea de crédito
-                                            </th>
+                                        <th class="align-right">
+                                            Línea de crédito
+                                        </th>
 
-                                        </tr>
+                                    </tr>
 
                                     </thead>
 
 
+
                                     <tbody id="lineasBody">
 
-                                        <tr>
+                                    <tr>
 
-                                            <td
-                                                colspan="5"
-                                                class="portal-report-empty"
-                                            >
-                                                Sin información.
-                                            </td>
+                                        <td
+                                            colspan="5"
+                                            class="portal-report-empty"
+                                        >
+                                            Sin información.
+                                        </td>
 
-                                        </tr>
+                                    </tr>
 
                                     </tbody>
 
+
                                 </table>
 
+
                             </div>
+
 
                         </section>
 
 
-                        <!-- PERIODO -->
+
                         <div
                             class="portal-report-period"
                             id="reportePeriodo"
@@ -786,21 +1269,26 @@
                             Reporte actualizado con el periodo -
                         </div>
 
+
                     </div>
+
 
                 </div>
 
 
-                <!-- ==================================
-                     VISTA JSON
-                =================================== -->
+
+                <!-- ==================================================
+                     VISTA JSON RRCC
+                ================================================== -->
 
                 <div
                     class="portal-result-view"
                     id="jsonView"
                 >
 
+
                     <div class="portal-json-header">
+
 
                         <div>
 
@@ -819,16 +1307,18 @@
                         </div>
 
 
+
                         <button
                             type="button"
                             class="copy-json-button"
                             id="copyJsonButton"
-                            onclick="copiarJson()"
                         >
                             Copiar JSON
                         </button>
 
+
                     </div>
+
 
 
                     <div class="portal-json-container">
@@ -840,17 +1330,337 @@
 
                     </div>
 
+
                 </div>
+
 
             </div>
 
+
             {% endif %}
+
 
         </div>
 
+
     </div>
 
+
 </div>
+
+
+{% endif %}
+
+
+
+<!-- ==================================================
+     MODAL CONSULTA SUELDOS
+================================================== -->
+
+{% if cuenta %}
+
+
+<div
+    class="portal-modal-overlay"
+    id="sueldosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if sueldos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sueldosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER SUELDOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="sueldosModalTitulo">
+                    Consulta de sueldos
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarSueldosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY SUELDOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO SUELDOS
+            ================================================== -->
+
+            <form
+                id="sueldosForm"
+                method="POST"
+                action="{{ url_for('portal_sueldos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="sueldosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="sueldosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="sueldosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="sueldosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if sueldos_form %}{{ sueldos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="sueldosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="sueldosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if sueldos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if sueldos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if sueldos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO SUELDOS
+            ================================================== -->
+
+            {% if sueldos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="sueldosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de sueldos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copySueldosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="sueldosJsonResponse"
+                        class="portal-json-response"
+                    >{{ sueldos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
 
 {% endif %}
 
@@ -858,11 +1668,13 @@
 
 <script>
 
+
     // =====================================================
     // REGLAS DE DOCUMENTOS
     // =====================================================
 
     const reglasDocumento = {
+
 
         DNI: {
 
@@ -952,12 +1764,36 @@
 
 
     // =====================================================
-    // ELEMENTOS
+    // ELEMENTOS RRCC
     // =====================================================
+
+    const consultaModal =
+        document.getElementById(
+            "consultaModal"
+        );
+
+
+    const abrirConsultaModal =
+        document.getElementById(
+            "abrirConsultaModal"
+        );
+
+
+    const cerrarConsultaModal =
+        document.getElementById(
+            "cerrarConsultaModal"
+        );
+
 
     const consultaForm =
         document.getElementById(
             "consultaForm"
+        );
+
+
+    const consultaSubmitButton =
+        document.getElementById(
+            "consultaSubmitButton"
         );
 
 
@@ -979,25 +1815,1018 @@
         );
 
 
-    const consultaModal =
-        document.getElementById(
-            "consultaModal"
-        );
-
-
-    const abrirConsultaModal =
-        document.getElementById(
-            "abrirConsultaModal"
-        );
-
-
-    const cerrarConsultaModal =
-        document.getElementById(
-            "cerrarConsultaModal"
-        );
 
     // =====================================================
-// VISTAS DEL RESULTADO
+    // ELEMENTOS SUELDOS
+    // =====================================================
+
+    const sueldosModal =
+        document.getElementById(
+            "sueldosModal"
+        );
+
+
+    const abrirSueldosModal =
+        document.getElementById(
+            "abrirSueldosModal"
+        );
+
+
+    const cerrarSueldosModal =
+        document.getElementById(
+            "cerrarSueldosModal"
+        );
+
+
+    const sueldosForm =
+        document.getElementById(
+            "sueldosForm"
+        );
+
+
+    const sueldosSubmitButton =
+        document.getElementById(
+            "sueldosSubmitButton"
+        );
+
+
+    const sueldosTipoDocumento =
+        document.getElementById(
+            "sueldosTipoDocumento"
+        );
+
+
+    const sueldosDocumento =
+        document.getElementById(
+            "sueldosDocumento"
+        );
+
+
+    const sueldosDocumentoAyuda =
+        document.getElementById(
+            "sueldosDocumentoAyuda"
+        );
+
+
+
+    // =====================================================
+    // RESULTADOS
+    // =====================================================
+
+    const consultaResultado =
+        document.getElementById(
+            "consultaResultado"
+        );
+
+
+    const sueldosResultado =
+        document.getElementById(
+            "sueldosResultado"
+        );
+
+
+
+    // =====================================================
+    // MODALES
+    // =====================================================
+
+    function abrirModal(
+        modal,
+        campoInicial = null
+    ) {
+
+        if (!modal) {
+            return;
+        }
+
+
+        modal.classList.add(
+            "is-open"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.classList.add(
+            "portal-modal-open"
+        );
+
+
+        if (campoInicial) {
+
+            setTimeout(
+                function () {
+
+                    campoInicial.focus();
+
+                },
+                100
+            );
+        }
+    }
+
+
+
+    function cerrarModal(
+        modal
+    ) {
+
+        if (!modal) {
+            return;
+        }
+
+
+        modal.classList.remove(
+            "is-open"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+
+        const existeOtroModalAbierto =
+            document.querySelector(
+                ".portal-modal-overlay.is-open"
+            );
+
+
+        if (!existeOtroModalAbierto) {
+
+            document.body.classList.remove(
+                "portal-modal-open"
+            );
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA RRCC
+    // =====================================================
+
+    function limpiarNuevaConsultaRRCC() {
+
+
+        if (consultaForm) {
+
+            consultaForm.reset();
+
+            consultaForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (tipoDocumento) {
+
+            tipoDocumento.value =
+                "";
+        }
+
+
+        if (documento) {
+
+            documento.value =
+                "";
+
+            documento.setCustomValidity(
+                ""
+            );
+
+            documento.placeholder =
+                "Ingrese documento";
+
+            documento.removeAttribute(
+                "maxlength"
+            );
+
+            documento.inputMode =
+                "text";
+        }
+
+
+        if (documentoAyuda) {
+
+            documentoAyuda.textContent =
+                "";
+        }
+
+
+        if (consultaSubmitButton) {
+
+            consultaSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (consultaResultado) {
+
+            consultaResultado.style.display =
+                "none";
+        }
+
+
+        cambiarVistaResultado(
+            "resumen"
+        );
+
+
+        if (consultaModal) {
+
+            const modalBody =
+                consultaModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA SUELDOS
+    // =====================================================
+
+    function limpiarNuevaConsultaSueldos() {
+
+
+        if (sueldosForm) {
+
+            sueldosForm.reset();
+
+            sueldosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (sueldosTipoDocumento) {
+
+            sueldosTipoDocumento.value =
+                "";
+        }
+
+
+        if (sueldosDocumento) {
+
+            sueldosDocumento.value =
+                "";
+
+            sueldosDocumento.setCustomValidity(
+                ""
+            );
+
+            sueldosDocumento.placeholder =
+                "Ingrese documento";
+
+            sueldosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            sueldosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (sueldosDocumentoAyuda) {
+
+            sueldosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            sueldosSubmitButton &&
+            !sueldosSubmitButton.disabled
+        ) {
+
+            sueldosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (sueldosResultado) {
+
+            sueldosResultado.style.display =
+                "none";
+        }
+
+
+        if (sueldosModal) {
+
+            const modalBody =
+                sueldosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // ABRIR RRCC
+    // =====================================================
+
+    if (
+        abrirConsultaModal &&
+        !abrirConsultaModal.disabled
+    ) {
+
+        abrirConsultaModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaRRCC();
+
+                abrirModal(
+                    consultaModal,
+                    tipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarConsultaModal) {
+
+        cerrarConsultaModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    consultaModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ABRIR SUELDOS
+    // =====================================================
+
+    if (
+        abrirSueldosModal &&
+        !abrirSueldosModal.disabled
+    ) {
+
+        abrirSueldosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaSueldos();
+
+                abrirModal(
+                    sueldosModal,
+                    sueldosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarSueldosModal) {
+
+        cerrarSueldosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    sueldosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // CERRAR AL PULSAR FONDO
+    // =====================================================
+
+    if (consultaModal) {
+
+        consultaModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    consultaModal
+                ) {
+
+                    cerrarModal(
+                        consultaModal
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (sueldosModal) {
+
+        sueldosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    sueldosModal
+                ) {
+
+                    cerrarModal(
+                        sueldosModal
+                    );
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ESC
+    // =====================================================
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key !==
+                "Escape"
+            ) {
+
+                return;
+            }
+
+
+            if (
+                sueldosModal &&
+                sueldosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    sueldosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                consultaModal &&
+                consultaModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    consultaModal
+                );
+            }
+        }
+    );
+
+
+
+    // =====================================================
+    // NORMALIZAR DOCUMENTO
+    // =====================================================
+
+    function normalizarDocumentoCampo(
+        selectorTipo,
+        inputDocumento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        if (!regla) {
+            return;
+        }
+
+
+        let valor =
+            inputDocumento.value;
+
+
+        if (regla.soloNumeros) {
+
+            valor =
+                valor.replace(
+                    /\D/g,
+                    ""
+                );
+        }
+
+
+        if (regla.alfanumerico) {
+
+            valor =
+                valor
+                    .replace(
+                        /[^A-Za-z0-9]/g,
+                        ""
+                    )
+                    .toUpperCase();
+        }
+
+
+        valor =
+            valor.substring(
+                0,
+                regla.maxLength
+            );
+
+
+        inputDocumento.value =
+            valor;
+    }
+
+
+
+    // =====================================================
+    // CONFIGURAR DOCUMENTO
+    // =====================================================
+
+    function configurarDocumentoCampo(
+        selectorTipo,
+        inputDocumento,
+        ayudaElemento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        inputDocumento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+
+            inputDocumento.removeAttribute(
+                "maxlength"
+            );
+
+
+            inputDocumento.placeholder =
+                "Ingrese documento";
+
+
+            inputDocumento.inputMode =
+                "text";
+
+
+            if (ayudaElemento) {
+
+                ayudaElemento.textContent =
+                    "";
+            }
+
+
+            return;
+        }
+
+
+        inputDocumento.maxLength =
+            regla.maxLength;
+
+
+        inputDocumento.inputMode =
+            regla.soloNumeros
+                ? "numeric"
+                : "text";
+
+
+        inputDocumento.placeholder =
+            regla.placeholder;
+
+
+        if (ayudaElemento) {
+
+            ayudaElemento.textContent =
+                regla.ayuda;
+        }
+
+
+        normalizarDocumentoCampo(
+            selectorTipo,
+            inputDocumento
+        );
+    }
+
+
+
+    // =====================================================
+    // VALIDAR DOCUMENTO
+    // =====================================================
+
+    function validarDocumentoCampo(
+        selectorTipo,
+        inputDocumento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return true;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        inputDocumento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+            return true;
+        }
+
+
+        const valor =
+            inputDocumento.value.trim();
+
+
+        if (!valor) {
+            return true;
+        }
+
+
+        if (
+            regla.exactLength &&
+            valor.length !==
+            regla.exactLength
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        if (
+            regla.soloNumeros &&
+            !/^\d+$/.test(
+                valor
+            )
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        if (
+            regla.alfanumerico &&
+            !/^[A-Za-z0-9]+$/.test(
+                valor
+            )
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        return true;
+    }
+
+
+
+    // =====================================================
+    // EVENTOS RRCC
+    // =====================================================
+
+    if (
+        tipoDocumento &&
+        documento
+    ) {
+
+        configurarDocumentoCampo(
+            tipoDocumento,
+            documento,
+            documentoAyuda
+        );
+
+
+        tipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                documento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    tipoDocumento,
+                    documento,
+                    documentoAyuda
+                );
+
+
+                documento.focus();
+            }
+        );
+
+
+        documento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+
+
+                validarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+            }
+        );
+
+
+        documento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS SUELDOS
+    // =====================================================
+
+    if (
+        sueldosTipoDocumento &&
+        sueldosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            sueldosTipoDocumento,
+            sueldosDocumento,
+            sueldosDocumentoAyuda
+        );
+
+
+        sueldosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                sueldosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento,
+                    sueldosDocumentoAyuda
+                );
+
+
+                sueldosDocumento.focus();
+            }
+        );
+
+
+        sueldosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+            }
+        );
+
+
+        sueldosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO RRCC
+    // =====================================================
+
+    if (consultaForm) {
+
+        consultaForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    consultaForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        tipoDocumento,
+                        documento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    documento.reportValidity();
+
+                    documento.focus();
+
+                    return;
+                }
+
+
+                consultaForm.dataset.enviando =
+                    "true";
+
+
+                if (consultaSubmitButton) {
+
+                    consultaSubmitButton.disabled =
+                        true;
+
+                    consultaSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO SUELDOS
+    // =====================================================
+
+    if (sueldosForm) {
+
+        sueldosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    sueldosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        sueldosTipoDocumento,
+                        sueldosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    sueldosDocumento.reportValidity();
+
+                    sueldosDocumento.focus();
+
+                    return;
+                }
+
+
+                sueldosForm.dataset.enviando =
+                    "true";
+
+
+                if (sueldosSubmitButton) {
+
+                    sueldosSubmitButton.disabled =
+                        true;
+
+                    sueldosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // PESTAÑAS RRCC
     // =====================================================
 
     const resumenTab =
@@ -1024,9 +2853,6 @@
         );
 
 
-    // -----------------------------------------------------
-    // CAMBIAR VISTA
-    // -----------------------------------------------------
 
     function cambiarVistaResultado(
         vista
@@ -1044,7 +2870,8 @@
 
 
         const mostrarResumen =
-            vista === "resumen";
+            vista ===
+            "resumen";
 
 
         resumenTab.classList.toggle(
@@ -1072,6 +2899,7 @@
     }
 
 
+
     if (resumenTab) {
 
         resumenTab.addEventListener(
@@ -1081,10 +2909,10 @@
                 cambiarVistaResultado(
                     "resumen"
                 );
-
             }
         );
     }
+
 
 
     if (jsonTab) {
@@ -1096,14 +2924,14 @@
                 cambiarVistaResultado(
                     "json"
                 );
-
             }
         );
     }
 
 
+
     // =====================================================
-    // FORMATEADORES DE LA VISTA RESUMEN
+    // UTILIDADES
     // =====================================================
 
     function valorNumerico(
@@ -1111,9 +2939,7 @@
     ) {
 
         const numero =
-            Number(
-                valor
-            );
+            Number(valor);
 
 
         return Number.isFinite(
@@ -1124,29 +2950,33 @@
     }
 
 
+
     function formatoMoneda(
         valor
     ) {
 
         return valorNumerico(
             valor
-        ).toLocaleString(
-            "es-PE",
-            {
-                style:
-                    "currency",
+        )
+            .toLocaleString(
+                "es-PE",
+                {
 
-                currency:
-                    "PEN",
+                    style:
+                        "currency",
 
-                minimumFractionDigits:
-                    2,
+                    currency:
+                        "PEN",
 
-                maximumFractionDigits:
-                    2
-            }
-        );
+                    minimumFractionDigits:
+                        2,
+
+                    maximumFractionDigits:
+                        2
+                }
+            );
     }
+
 
 
     function formatoPorcentaje(
@@ -1156,130 +2986,12 @@
         return (
             valorNumerico(
                 valor
-            ).toFixed(
-                2
-            )
+            ).toFixed(2)
             +
             "%"
         );
     }
 
-
-    function formatoPeriodo(
-        periodo
-    ) {
-
-        const texto =
-            String(
-                periodo || ""
-            ).trim();
-
-
-        if (
-            !/^\d{6}$/.test(
-                texto
-            )
-        ) {
-
-            return (
-                texto ||
-                "-"
-            );
-        }
-
-
-        const anio =
-            texto.slice(
-                0,
-                4
-            );
-
-
-        const mes =
-            Number(
-                texto.slice(
-                    4,
-                    6
-                )
-            );
-
-
-        const meses = [
-            "Enero",
-            "Febrero",
-            "Marzo",
-            "Abril",
-            "Mayo",
-            "Junio",
-            "Julio",
-            "Agosto",
-            "Septiembre",
-            "Octubre",
-            "Noviembre",
-            "Diciembre"
-        ];
-
-
-        if (
-            mes < 1 ||
-            mes > 12
-        ) {
-
-            return texto;
-        }
-
-
-        return (
-            `${meses[mes - 1]} ${anio}`
-        );
-    }
-
-
-    function formatoFechaConsulta(
-        valor
-    ) {
-
-        const fecha =
-            valor
-                ? new Date(
-                    valor
-                )
-                : new Date();
-
-
-        if (
-            Number.isNaN(
-                fecha.getTime()
-            )
-        ) {
-
-            return "-";
-        }
-
-
-        return fecha.toLocaleString(
-            "es-PE",
-            {
-                timeZone:
-                    "America/Lima",
-
-                day:
-                    "2-digit",
-
-                month:
-                    "2-digit",
-
-                year:
-                    "numeric",
-
-                hour:
-                    "2-digit",
-
-                minute:
-                    "2-digit"
-            }
-        );
-    }
 
 
     function textoSeguro(
@@ -1301,6 +3013,125 @@
             valor
         );
     }
+
+
+
+    function formatoPeriodo(
+        periodo
+    ) {
+
+        const texto =
+            String(
+                periodo || ""
+            )
+                .trim();
+
+
+        if (
+            !/^\d{6}$/.test(
+                texto
+            )
+        ) {
+
+            return texto || "-";
+        }
+
+
+        const anio =
+            texto.substring(
+                0,
+                4
+            );
+
+
+        const mes =
+            Number(
+                texto.substring(
+                    4,
+                    6
+                )
+            );
+
+
+        const meses = [
+
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre"
+
+        ];
+
+
+        if (
+            mes < 1 ||
+            mes > 12
+        ) {
+
+            return texto;
+        }
+
+
+        return (
+            `${meses[mes - 1]} ${anio}`
+        );
+    }
+
+
+
+    function formatoFechaConsulta(
+        valor
+    ) {
+
+        const fecha =
+            valor
+                ? new Date(valor)
+                : new Date();
+
+
+        if (
+            Number.isNaN(
+                fecha.getTime()
+            )
+        ) {
+
+            return "-";
+        }
+
+
+        return fecha.toLocaleString(
+            "es-PE",
+            {
+
+                timeZone:
+                    "America/Lima",
+
+                day:
+                    "2-digit",
+
+                month:
+                    "2-digit",
+
+                year:
+                    "numeric",
+
+                hour:
+                    "2-digit",
+
+                minute:
+                    "2-digit"
+            }
+        );
+    }
+
 
 
     function crearCelda(
@@ -1329,8 +3160,9 @@
     }
 
 
+
     // =====================================================
-    // RENDER DEUDAS
+    // DEUDAS
     // =====================================================
 
     function renderizarDeudas(
@@ -1407,9 +3239,8 @@
 
 
         lista.forEach(
-            function (
-                deuda
-            ) {
+            function (deuda) {
+
 
                 const fila =
                     document.createElement(
@@ -1490,18 +3321,19 @@
                     );
 
 
-                const clasesValidas =
-                    [
-                        "NOR",
-                        "CPP",
-                        "DEF",
-                        "DUD",
-                        "PER"
-                    ];
-
-
                 punto.className =
                     "portal-calificacion-dot";
+
+
+                const clasesValidas = [
+
+                    "NOR",
+                    "CPP",
+                    "DEF",
+                    "DUD",
+                    "PER"
+
+                ];
 
 
                 if (
@@ -1558,6 +3390,7 @@
                 tbody.appendChild(
                     fila
                 );
+
             }
         );
 
@@ -1565,9 +3398,11 @@
         const total =
             totalInformado !== null &&
             totalInformado !== undefined
+
                 ? valorNumerico(
                     totalInformado
                 )
+
                 : totalCalculado;
 
 
@@ -1635,11 +3470,13 @@
         tbody.appendChild(
             filaTotal
         );
+
     }
 
 
+
     // =====================================================
-    // RENDER LÍNEAS DE CRÉDITO
+    // LÍNEAS DE CRÉDITO
     // =====================================================
 
     function renderizarLineas(
@@ -1716,9 +3553,8 @@
 
 
         lista.forEach(
-            function (
-                linea
-            ) {
+            function (linea) {
+
 
                 const fila =
                     document.createElement(
@@ -1792,6 +3628,7 @@
                 tbody.appendChild(
                     fila
                 );
+
             }
         );
 
@@ -1799,9 +3636,11 @@
         const total =
             totalInformado !== null &&
             totalInformado !== undefined
+
                 ? valorNumerico(
                     totalInformado
                 )
+
                 : totalCalculado;
 
 
@@ -1869,14 +3708,17 @@
         tbody.appendChild(
             filaTotal
         );
+
     }
 
 
+
     // =====================================================
-    // RENDER COMPLETO DE LA VISTA RESUMEN
+    // RENDER RESUMEN RRCC
     // =====================================================
 
     function renderizarResumenConsulta() {
+
 
         const jsonResponse =
             document.getElementById(
@@ -1913,6 +3755,7 @@
 
         } catch (error) {
 
+
             if (errorView) {
 
                 errorView.hidden =
@@ -1935,22 +3778,26 @@
         }
 
 
+
         const esObjeto =
             respuesta &&
             typeof respuesta ===
-                "object";
+            "object";
 
 
         const datos =
             esObjeto &&
             respuesta.data &&
             typeof respuesta.data ===
-                "object" &&
+            "object" &&
             !Array.isArray(
                 respuesta.data
             )
+
                 ? respuesta.data
+
                 : respuesta;
+
 
 
         const fallo =
@@ -1958,10 +3805,11 @@
             respuesta.success === false ||
             !datos ||
             typeof datos !==
-                "object";
+            "object";
 
 
         if (fallo) {
+
 
             const mensaje =
                 respuesta?.error
@@ -1995,6 +3843,7 @@
         }
 
 
+
         if (errorView) {
 
             errorView.hidden =
@@ -2008,6 +3857,9 @@
                 false;
         }
 
+
+
+        /* METADATOS */
 
         const documentoResumen =
             document.getElementById(
@@ -2041,7 +3893,8 @@
             nombreResumen.textContent =
                 textoSeguro(
                     datos.nombre
-                ).toUpperCase();
+                )
+                    .toUpperCase();
         }
 
 
@@ -2058,11 +3911,16 @@
         }
 
 
+
+        /* RATING */
+
         const rating =
             datos.rating &&
             typeof datos.rating ===
-                "object"
+            "object"
+
                 ? datos.rating
+
                 : {};
 
 
@@ -2113,6 +3971,7 @@
 
 
         const valoresRating = {
+
             ratingNOR:
                 `${ratingNOR}%`,
 
@@ -2137,47 +3996,55 @@
 
         Object.entries(
             valoresRating
-        ).forEach(
-            function (
-                [id, valor]
-            ) {
+        )
+            .forEach(
+                function (
+                    [id, valor]
+                ) {
 
-                const elemento =
-                    document.getElementById(
-                        id
-                    );
+                    const elemento =
+                        document.getElementById(
+                            id
+                        );
 
 
-                if (elemento) {
+                    if (elemento) {
 
-                    elemento.textContent =
-                        valor;
+                        elemento.textContent =
+                            valor;
+                    }
                 }
-            }
-        );
+            );
+
 
 
         const barras = [
+
             [
                 "ratingBarNOR",
                 ratingNOR
             ],
+
             [
                 "ratingBarCPP",
                 ratingCPP
             ],
+
             [
                 "ratingBarDEF",
                 ratingDEF
             ],
+
             [
                 "ratingBarDUD",
                 ratingDUD
             ],
+
             [
                 "ratingBarPER",
                 ratingPER
             ],
+
             [
                 "ratingBarReportan",
                 ratingReportan
@@ -2209,8 +4076,11 @@
         );
 
 
+
         renderizarDeudas(
+
             datos.deudas,
+
             datos.totalCapital
             ??
             datos.totalSaldo
@@ -2220,11 +4090,14 @@
 
 
         renderizarLineas(
+
             datos.lineas,
+
             datos.totalLineaCredito
             ??
             null
         );
+
 
 
         const reportePeriodo =
@@ -2244,541 +4117,7 @@
                     )
                 );
         }
-    }
 
-
-    // =====================================================
-    // ABRIR MODAL
-    // =====================================================
-
-    function abrirModalConsulta() {
-
-        if (!consultaModal) {
-            return;
-        }
-
-
-        consultaModal.classList.add(
-            "is-open"
-        );
-
-
-        consultaModal.setAttribute(
-            "aria-hidden",
-            "false"
-        );
-
-
-        document.body.classList.add(
-            "portal-modal-open"
-        );
-
-
-        setTimeout(
-            () => {
-
-                if (tipoDocumento) {
-
-                    tipoDocumento.focus();
-
-                }
-
-            },
-            100
-        );
-    }
-
-
-
-    // =====================================================
-    // CERRAR MODAL
-    // =====================================================
-
-    function cerrarModalConsulta() {
-
-        if (!consultaModal) {
-            return;
-        }
-
-
-        consultaModal.classList.remove(
-            "is-open"
-        );
-
-
-        consultaModal.setAttribute(
-            "aria-hidden",
-            "true"
-        );
-
-
-        document.body.classList.remove(
-            "portal-modal-open"
-        );
-    }
-
-
-
-    // =====================================================
-    // EVENTO ABRIR
-    // =====================================================
-
-    if (abrirConsultaModal) {
-
-        abrirConsultaModal.addEventListener(
-            "click",
-            abrirModalConsulta
-        );
-    }
-
-
-
-    // =====================================================
-    // EVENTO CERRAR
-    // =====================================================
-
-    if (cerrarConsultaModal) {
-
-        cerrarConsultaModal.addEventListener(
-            "click",
-            cerrarModalConsulta
-        );
-    }
-
-
-
-    // =====================================================
-    // CERRAR AL HACER CLICK EN EL FONDO
-    // =====================================================
-
-    if (consultaModal) {
-
-        consultaModal.addEventListener(
-            "click",
-            function (event) {
-
-                if (
-                    event.target ===
-                    consultaModal
-                ) {
-
-                    cerrarModalConsulta();
-
-                }
-
-            }
-        );
-    }
-
-
-
-    // =====================================================
-    // CERRAR CON ESC
-    // =====================================================
-
-    document.addEventListener(
-        "keydown",
-        function (event) {
-
-            if (
-                event.key === "Escape" &&
-                consultaModal &&
-                consultaModal.classList.contains(
-                    "is-open"
-                )
-            ) {
-
-                cerrarModalConsulta();
-
-            }
-
-        }
-    );
-
-
-
-    // =====================================================
-    // NORMALIZAR DOCUMENTO
-    // =====================================================
-
-    function normalizarDocumento() {
-
-        if (
-            !tipoDocumento ||
-            !documento
-        ) {
-
-            return;
-        }
-
-
-        const regla =
-            reglasDocumento[
-                tipoDocumento.value
-            ];
-
-
-        if (!regla) {
-            return;
-        }
-
-
-        let valor =
-            documento.value;
-
-
-        // DNI / RUC
-        // solo números
-
-        if (regla.soloNumeros) {
-
-            valor =
-                valor.replace(
-                    /\D/g,
-                    ""
-                );
-        }
-
-
-        // CE / PASAPORTE
-        // solo letras y números
-
-        if (regla.alfanumerico) {
-
-            valor =
-                valor
-                    .replace(
-                        /[^A-Za-z0-9]/g,
-                        ""
-                    )
-                    .toUpperCase();
-        }
-
-
-        valor =
-            valor.substring(
-                0,
-                regla.maxLength
-            );
-
-
-        documento.value =
-            valor;
-    }
-
-
-
-    // =====================================================
-    // CONFIGURAR DOCUMENTO
-    // =====================================================
-
-    function configurarDocumento() {
-
-        if (
-            !tipoDocumento ||
-            !documento
-        ) {
-
-            return;
-        }
-
-
-        const regla =
-            reglasDocumento[
-                tipoDocumento.value
-            ];
-
-
-        documento.setCustomValidity(
-            ""
-        );
-
-
-        if (!regla) {
-
-            documento.removeAttribute(
-                "maxlength"
-            );
-
-
-            documento.placeholder =
-                "Ingrese documento";
-
-
-            documento.inputMode =
-                "text";
-
-
-            if (documentoAyuda) {
-
-                documentoAyuda.textContent =
-                    "";
-            }
-
-
-            return;
-        }
-
-
-        documento.maxLength =
-            regla.maxLength;
-
-
-        documento.inputMode =
-            regla.soloNumeros
-                ? "numeric"
-                : "text";
-
-
-        documento.placeholder =
-            regla.placeholder;
-
-
-        if (documentoAyuda) {
-
-            documentoAyuda.textContent =
-                regla.ayuda;
-        }
-
-
-        normalizarDocumento();
-    }
-
-
-
-    // =====================================================
-    // VALIDAR DOCUMENTO
-    // =====================================================
-
-    function validarDocumento() {
-
-        if (
-            !tipoDocumento ||
-            !documento
-        ) {
-
-            return true;
-        }
-
-
-        const regla =
-            reglasDocumento[
-                tipoDocumento.value
-            ];
-
-
-        documento.setCustomValidity(
-            ""
-        );
-
-
-        if (!regla) {
-
-            return true;
-        }
-
-
-        const valor =
-            documento.value.trim();
-
-
-        if (!valor) {
-
-            return true;
-        }
-
-
-        // LONGITUD EXACTA
-
-        if (
-            regla.exactLength &&
-            valor.length !==
-                regla.exactLength
-        ) {
-
-            documento.setCustomValidity(
-                regla.mensaje
-            );
-
-
-            return false;
-        }
-
-
-        // SOLO NÚMEROS
-
-        if (
-            regla.soloNumeros &&
-            !/^\d+$/.test(
-                valor
-            )
-        ) {
-
-            documento.setCustomValidity(
-                regla.mensaje
-            );
-
-
-            return false;
-        }
-
-
-        // ALFANUMÉRICO
-
-        if (
-            regla.alfanumerico &&
-            !/^[A-Za-z0-9]+$/.test(
-                valor
-            )
-        ) {
-
-            documento.setCustomValidity(
-                regla.mensaje
-            );
-
-
-            return false;
-        }
-
-
-        return true;
-    }
-
-
-
-    // =====================================================
-    // EVENTOS DEL FORMULARIO
-    // =====================================================
-
-    if (
-        consultaForm &&
-        tipoDocumento &&
-        documento
-    ) {
-
-
-        // AL ESCRIBIR
-
-        documento.addEventListener(
-            "input",
-            function () {
-
-                normalizarDocumento();
-
-                validarDocumento();
-            }
-        );
-
-
-
-        // AL SALIR
-
-        documento.addEventListener(
-            "blur",
-            function () {
-
-                validarDocumento();
-            }
-        );
-
-
-
-        // CAMBIAR TIPO
-
-        tipoDocumento.addEventListener(
-            "change",
-            function () {
-
-                documento.value =
-                    "";
-
-                configurarDocumento();
-
-                documento.focus();
-            }
-        );
-
-
-
-        // SUBMIT
-
-        consultaForm.addEventListener(
-            "submit",
-            function (event) {
-
-                // =============================================
-                // EVITAR DOBLE ENVÍO
-                // =============================================
-
-                if (
-                    consultaForm.dataset.enviando ===
-                    "true"
-                ) {
-
-                    event.preventDefault();
-
-                    return;
-                }
-
-
-                // =============================================
-                // NORMALIZAR DOCUMENTO
-                // =============================================
-
-                normalizarDocumento();
-
-
-                // =============================================
-                // VALIDAR DOCUMENTO
-                // =============================================
-
-                const valido =
-                    validarDocumento();
-
-
-                if (!valido) {
-
-                    event.preventDefault();
-
-                    documento.reportValidity();
-
-                    documento.focus();
-
-                    return;
-                }
-
-
-                // =============================================
-                // MARCAR FORMULARIO COMO ENVIANDO
-                // =============================================
-
-                consultaForm.dataset.enviando =
-                    "true";
-
-
-                // =============================================
-                // BLOQUEAR BOTÓN
-                // =============================================
-
-                const boton =
-                    consultaForm.querySelector(
-                        ".portal-query-button"
-                    );
-
-
-                if (boton) {
-
-                    boton.disabled =
-                        true;
-
-                    boton.textContent =
-                        "Consultando...";
-                }
-            }
-        );
-
-
-        configurarDocumento();
     }
 
 
@@ -2787,28 +4126,21 @@
     // COPIAR JSON
     // =====================================================
 
-    async function copiarJson() {
+    async function copiarContenido(
+        idElemento,
+        boton,
+        textoExito
+    ) {
 
         const elemento =
             document.getElementById(
-                "jsonResponse"
-            );
-
-
-        const boton =
-            document.getElementById(
-                "copyJsonButton"
+                idElemento
             );
 
 
         if (!elemento) {
-
             return;
         }
-
-
-        const contenido =
-            elemento.textContent;
 
 
         try {
@@ -2816,18 +4148,18 @@
             await navigator
                 .clipboard
                 .writeText(
-                    contenido
+                    elemento.textContent
                 );
 
 
             if (boton) {
 
                 boton.textContent =
-                    "JSON copiado ✓";
+                    textoExito;
 
 
                 setTimeout(
-                    () => {
+                    function () {
 
                         boton.textContent =
                             "Copiar JSON";
@@ -2837,8 +4169,13 @@
                 );
             }
 
-
         } catch (error) {
+
+            console.error(
+                "No se pudo copiar el JSON:",
+                error
+            );
+
 
             if (boton) {
 
@@ -2847,7 +4184,7 @@
 
 
                 setTimeout(
-                    () => {
+                    function () {
 
                         boton.textContent =
                             "Copiar JSON";
@@ -2861,36 +4198,105 @@
 
 
 
+    const copyJsonButton =
+        document.getElementById(
+            "copyJsonButton"
+        );
+
+
+    if (copyJsonButton) {
+
+        copyJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "jsonResponse",
+                    copyJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    const copySueldosJsonButton =
+        document.getElementById(
+            "copySueldosJsonButton"
+        );
+
+
+    if (copySueldosJsonButton) {
+
+        copySueldosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "sueldosJsonResponse",
+                    copySueldosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
     // =====================================================
-    // SI YA EXISTE RESPUESTA DE UNA CONSULTA,
-    // ABRIR AUTOMÁTICAMENTE EL MODAL
+    // INICIALIZACIÓN
     // =====================================================
 
     document.addEventListener(
         "DOMContentLoaded",
         function () {
 
+
+            configurarDocumentoCampo(
+                tipoDocumento,
+                documento,
+                documentoAyuda
+            );
+
+
             renderizarResumenConsulta();
 
 
-            if (!consultaModal) {
-                return;
-            }
-
-
-            const abrirAutomaticamente =
+            if (
+                consultaModal &&
                 consultaModal.dataset.autoOpen ===
-                "true";
+                "true"
+            ) {
 
-
-            if (abrirAutomaticamente) {
-
-                abrirModalConsulta();
-
+                abrirModal(
+                    consultaModal
+                );
             }
+
+
+
+            configurarDocumentoCampo(
+                sueldosTipoDocumento,
+                sueldosDocumento,
+                sueldosDocumentoAyuda
+            );
+
+
+            if (
+                sueldosModal &&
+                sueldosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    sueldosModal
+                );
+            }
+
         }
     );
-    
+
 
 </script>
 

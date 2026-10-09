@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Nuevo administrador | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="admin-users-page">
+
+        <div class="admin-form-container">
+
+            <div class="admin-form-header">
+
+                <span class="admin-users-eyebrow">
+                    Seguridad
+                </span>
+
+                <h1>
+                    Nuevo administrador
+                </h1>
+
+                <p>
+                    Crea una nueva cuenta con acceso
+                    al panel administrativo.
+                </p>
+
+            </div>
+
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            <form
+                id="newAdminForm"
+                method="POST"
+                action="{{ url_for('administrador_nuevo') }}"
+                class="admin-form-card"
+            >
+
+                <div class="admin-form-grid">
+
+
+                    <div class="admin-form-field">
+
+                        <label for="usuario">
+                            Usuario
+                        </label>
+
+                        <input
+                            id="usuario"
+                            name="usuario"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Ej. jparedes"
+                            value="{{ form.get('usuario', '') }}"
+                            required
+                            autofocus
+                        >
+
+                    </div>
+
+
+                    <div class="admin-form-field">
+
+                        <label for="nombre">
+                            Nombre
+                        </label>
+
+                        <input
+                            id="nombre"
+                            name="nombre"
+                            type="text"
+                            placeholder="Nombre del administrador"
+                            value="{{ form.get('nombre', '') }}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="admin-form-field admin-form-full">
+
+                        <label for="email">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autocomplete="email"
+                            placeholder="usuario@empresa.com"
+                            value="{{ form.get('email', '') }}"
+                            required
+                        >
+
+                        <span class="admin-form-help">
+                            Este correo será utilizado para
+                            recuperar la contraseña.
+                        </span>
+
+                    </div>
+
+
+                    <div class="admin-form-field">
+
+                        <label for="password">
+                            Contraseña temporal
+                        </label>
+
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Mínimo 8 caracteres"
+                            minlength="8"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="admin-form-field">
+
+                        <label for="confirmarPassword">
+                            Confirmar contraseña
+                        </label>
+
+                        <input
+                            id="confirmarPassword"
+                            name="confirmarPassword"
+                            type="password"
+                            autocomplete="new-password"
+                            placeholder="Repite la contraseña"
+                            minlength="8"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="admin-form-field admin-form-full">
+
+                        <label for="rol">
+                            Rol
+                        </label>
+
+                        <select
+                            id="rol"
+                            name="rol"
+                            required
+                        >
+
+                            <option
+                                value="ADMIN"
+                                {% if form.get('rol', 'ADMIN') == 'ADMIN' %}
+                                selected
+                                {% endif %}
+                            >
+                                ADMIN
+                            </option>
+
+                            <option
+                                value="SUPERADMIN"
+                                {% if form.get('rol') == 'SUPERADMIN' %}
+                                selected
+                                {% endif %}
+                            >
+                                SUPERADMIN
+                            </option>
+
+                        </select>
+
+
+                        <div class="admin-role-info">
+
+                            <p>
+                                <strong>ADMIN:</strong>
+                                puede gestionar clientes,
+                                créditos, tokens y consumos.
+                            </p>
+
+                            <p>
+                                <strong>SUPERADMIN:</strong>
+                                además puede gestionar
+                                administradores y permisos.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="admin-form-actions">
+
+                    <a
+                        href="{{ url_for('administradores') }}"
+                        class="admin-secondary-button"
+                    >
+                        Cancelar
+                    </a>
+
+
+                    <button
+                        id="newAdminButton"
+                        type="submit"
+                        class="admin-primary-button admin-submit-button"
+                    >
+                        Crear administrador
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </main>
+
+
+    <script>
+
+        const newAdminForm =
+            document.getElementById(
+                "newAdminForm"
+            );
+
+        const newAdminButton =
+            document.getElementById(
+                "newAdminButton"
+            );
+
+        let envioEnProceso =
+            false;
+
+
+        if (
+            newAdminForm &&
+            newAdminButton
+        ) {
+
+            newAdminForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (envioEnProceso) {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    envioEnProceso =
+                        true;
+
+
+                    newAdminButton.disabled =
+                        true;
+
+                    newAdminButton.textContent =
+                        "Creando...";
+                }
+            );
+        }
+
+    </script>
+
+</body>
+
+</html>

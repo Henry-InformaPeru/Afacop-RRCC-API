@@ -1,10 +1,6 @@
-import {
-  Router,
-} from "express";
+import {  Router,} from "express";
 
-import {
-  clientTokenAuth,
-} from "../middleware/clientToken.js";
+import {  clientTokenAuth,} from "../middleware/clientToken.js";
 
 import {
   clienteIpLimiter,
@@ -18,13 +14,11 @@ import {
   validarDocumento,
 } from "../services/consulta.service.js";
 
-import {
-  reservarCredito,
-} from "../services/creditos.service.js";
+import {  reservarCredito,} from "../services/creditos.service.js";
 
-import {
-  registrarConsumo,
-} from "../services/consumos.service.js";
+import {  registrarConsumo,} from "../services/consumos.service.js";
+
+import {  consultarSueldos,} from "../services/sueldos.service.js";
 
 
 const router =
@@ -32,7 +26,7 @@ const router =
 
 
 // --------------------------------------------------
-// CONSULTAR CUENTA / SALDO
+// CONSULTAR CUENTA / SALDOS
 // --------------------------------------------------
 
 router.get(
@@ -85,28 +79,39 @@ router.get(
           nombre,
 
           tipoDocumento:
-            cliente
-              .tipoDocumentoCliente,
+            cliente.tipoDocumentoCliente,
 
           documento:
-            cliente
-              .documentoCliente,
+            cliente.documentoCliente,
+
+
+          // ============================================
+          // TOTAL GENERAL
+          // ============================================
 
           creditos: {
 
             disponibles:
-              cliente
-                .creditosDisponibles,
+              cliente.creditosDisponibles,
 
             totalAsignado:
-              cliente
-                .totalAsignado,
+              cliente.totalAsignado,
 
             totalConsumido:
-              cliente
-                .totalConsumido,
+              cliente.totalConsumido,
+
           },
+
+
+          // ============================================
+          // SALDOS POR SERVICIO
+          // ============================================
+
+          creditosPorServicio:
+            cliente.creditosPorServicio,
+
         },
+
       });
   }
 );
@@ -177,18 +182,22 @@ router.post(
 
 
       // ==============================================
-      // 2. RESERVAR 1 CRÉDITO DEL TOKEN
+      // 2. RESERVAR 1 CRÉDITO DE LA BOLSA RRCC
       // ==============================================
 
       reserva =
-        await reservarCredito({
+      await reservarCredito({
 
-          idCliente:
-            cliente.idCliente,
+        idCliente:
+          cliente.idCliente,
 
-          idToken:
-            cliente.idToken,
-        });
+        idToken:
+          cliente.idToken,
+
+        servicio:
+          "RRCC",
+
+      });
 
 
       // ==============================================
@@ -239,6 +248,9 @@ router.post(
           documento:
             datosConsulta
               .documento,
+
+          servicio:
+            "RRCC",
 
           creditosConsumidos:
             1,
@@ -337,6 +349,9 @@ router.post(
           datosConsulta
             .documento,
 
+        servicio:
+          "RRCC",
+
         creditosConsumidos:
           1,
 
@@ -425,6 +440,9 @@ router.post(
             documento:
               datosConsulta
                 .documento,
+            
+            servicio:
+              "RRCC",
 
             creditosConsumidos:
               1,
@@ -488,5 +506,380 @@ router.post(
   }
 );
 
+// ==================================================
+// CONSULTAR SUELDOS
+// ==================================================
+
+router.post(
+  "/sueldos",
+
+  // ------------------------------------------------
+  // SEGURIDAD
+  //
+  // Todo ocurre antes de reservar crédito.
+  // ------------------------------------------------
+
+  clienteIpLimiter,
+
+  clientTokenAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+
+  async (
+    req,
+    res
+  ) => {
+
+    const inicio =
+      Date.now();
+
+
+    const cliente =
+      req.clienteApi;
+
+
+    let datosConsulta =
+      null;
+
+
+    let reserva =
+      null;
+
+
+    let consumoRegistrado =
+      false;
+
+
+    try {
+
+      // ==============================================
+      // 1. VALIDAR DOCUMENTO
+      //
+      // Reutilizamos exactamente las reglas de RRCC.
+      //
+      // Documento inválido:
+      // NO consume crédito.
+      // ==============================================
+
+      datosConsulta =
+        validarDocumento(
+          req.body?.tipoDocumento,
+          req.body?.documento
+        );
+
+
+      // 2. RESERVAR 1 CRÉDITO DE LA BOLSA SUELDOS
+
+      reserva =
+        await reservarCredito({
+
+          idCliente:
+            cliente.idCliente,
+
+          idToken:
+            cliente.idToken,
+
+          servicio:
+            "SUELDOS",
+        });
+
+
+      // ==============================================
+      // 3. CONSULTAR OPERADOR.SUELDOS
+      //
+      // Desde este punto el crédito ya fue consumido.
+      // ==============================================
+
+      const sueldos =
+        await consultarSueldos({
+
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+
+          documento:
+            datosConsulta.documento,
+        });
+
+
+      const duracionMs =
+        Date.now() -
+        inicio;
+
+
+      // ==============================================
+      // 4. CONSULTA EXITOSA
+      // ==============================================
+
+      if (
+        sueldos.ok
+      ) {
+
+        await registrarConsumo({
+
+          idCliente:
+            cliente.idCliente,
+
+          idToken:
+            cliente.idToken,
+
+          idMovimiento:
+            reserva.idMovimiento,
+
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+
+          documento:
+            datosConsulta.documento,
+
+          servicio:
+            "SUELDOS",
+
+          creditosConsumidos:
+            1,
+
+          estado:
+            "EXITOSA",
+
+          httpStatus:
+            sueldos.status || 200,
+
+          mensaje:
+            "Consulta de sueldos procesada correctamente.",
+
+          ipOrigen:
+            req.ip,
+
+          duracionMs,
+        });
+
+
+        consumoRegistrado =
+          true;
+
+
+        return res
+          .status(
+            sueldos.status || 200
+          )
+          .json({
+
+            success:
+              true,
+
+            data:
+              sueldos.data,
+          });
+      }
+
+
+      // ==============================================
+      // 5. SIN DATOS / ERROR
+      //
+      // También consume crédito porque la consulta
+      // ya fue ejecutada.
+      // ==============================================
+
+      const estado =
+        sueldos.status === 404
+
+          ? "SIN_DATOS"
+
+          : "ERROR";
+
+
+      const mensaje =
+        sueldos.data?.error ||
+        sueldos.data?.message ||
+        sueldos.data?.mensaje ||
+        (
+          sueldos.status === 404
+
+            ? "No se encontró información de sueldos para el documento consultado."
+
+            : "La consulta de sueldos fue procesada con error."
+        );
+
+
+      const codigo =
+        sueldos.data?.code ||
+        (
+          sueldos.status === 404
+
+            ? "SUELDOS_SIN_DATOS"
+
+            : "SUELDOS_ERROR"
+        );
+
+
+      await registrarConsumo({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        idMovimiento:
+          reserva.idMovimiento,
+
+        tipoDocumento:
+          datosConsulta.tipoDocumento,
+
+        documento:
+          datosConsulta.documento,
+
+        servicio:
+          "SUELDOS",
+
+        creditosConsumidos:
+          1,
+
+        estado,
+
+        httpStatus:
+          sueldos.status,
+
+        mensaje,
+
+        ipOrigen:
+          req.ip,
+
+        duracionMs,
+      });
+
+
+      consumoRegistrado =
+        true;
+
+
+      return res
+        .status(
+          sueldos.status || 500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            mensaje,
+
+          code:
+            codigo,
+
+          data:
+            sueldos.data,
+        });
+
+
+    } catch (error) {
+
+      const duracionMs =
+        Date.now() -
+        inicio;
+
+
+      console.error(
+        "Error realizando consulta de sueldos:",
+        error
+      );
+
+
+      // ==============================================
+      // ERROR DESPUÉS DE RESERVAR
+      //
+      // No se devuelve el crédito.
+      // ==============================================
+
+      if (
+        reserva &&
+        datosConsulta &&
+        !consumoRegistrado
+      ) {
+
+        try {
+
+          await registrarConsumo({
+
+            idCliente:
+              cliente.idCliente,
+
+            idToken:
+              cliente.idToken,
+
+            idMovimiento:
+              reserva.idMovimiento,
+
+            tipoDocumento:
+              datosConsulta.tipoDocumento,
+
+            documento:
+              datosConsulta.documento,
+
+            servicio:
+              "SUELDOS",
+
+            creditosConsumidos:
+              1,
+
+            estado:
+              "ERROR",
+
+            httpStatus:
+              error.statusCode || 500,
+
+            mensaje:
+              error.message ||
+              "Error procesando la consulta de sueldos.",
+
+            ipOrigen:
+              req.ip,
+
+            duracionMs,
+          });
+
+
+          consumoRegistrado =
+            true;
+
+
+        } catch (
+          errorRegistro
+        ) {
+
+          console.error(
+            "ERROR registrando consumo de sueldos:",
+            errorRegistro
+          );
+        }
+      }
+
+
+      return res
+        .status(
+          error.statusCode || 500
+        )
+        .json({
+
+          success:
+            false,
+
+          error:
+            error.statusCode
+
+              ? error.message
+
+              : "Error interno del servidor.",
+
+          code:
+            error.code ||
+            "INTERNAL_ERROR",
+        });
+    }
+  }
+);
 
 export default router;

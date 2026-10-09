@@ -3,10 +3,9 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 
 import clienteRoutes from "./routes/cliente.routes.js";
-
 import adminRoutes from "./routes/admin.routes.js";
-
 import authRoutes from "./routes/auth.routes.js";
+import administradoresRoutes from "./routes/administradores.routes.js";
 
 import {
   getSqlPool,
@@ -162,7 +161,19 @@ app.use(
 
 
 // --------------------------------------------------
+// GESTIÓN DE ADMINISTRADORES
+// SOLO SUPERADMIN
+// --------------------------------------------------
+
+app.use(
+  "/api/admin/administradores",
+  administradoresRoutes
+);
+
+
+// --------------------------------------------------
 // ADMIN
+// CLIENTES / DASHBOARD / CONSUMOS
 // --------------------------------------------------
 
 app.use(
@@ -186,6 +197,8 @@ app.use(
 
 // --------------------------------------------------
 // 404 API
+//
+// SIEMPRE DEBE IR AL FINAL.
 // --------------------------------------------------
 
 app.use(

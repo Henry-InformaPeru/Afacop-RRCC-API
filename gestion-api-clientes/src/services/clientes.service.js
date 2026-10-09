@@ -6,24 +6,21 @@ import {
 } from "../config/sqlserver.js";
 
 
-// --------------------------------------------------
+// ==================================================
 // UTILIDADES
-// --------------------------------------------------
+// ==================================================
 
 function generarToken() {
-
   const secreto =
     crypto
       .randomBytes(32)
       .toString("hex");
-
 
   return `rrcc_live_${secreto}`;
 }
 
 
 function generarHash(token) {
-
   return crypto
     .createHash("sha256")
     .update(token)
@@ -37,7 +34,6 @@ function crearError(
   statusCode,
   code
 ) {
-
   const error =
     new Error(message);
 
@@ -51,35 +47,86 @@ function crearError(
 }
 
 
+// ==================================================
+// CONTEXTO DEL ADMINISTRADOR
+// ==================================================
+
+function obtenerContextoAdministrador(
+  adminActual
+) {
+  const idAdmin =
+    Number(
+      adminActual?.idAdmin
+    );
+
+  const rol =
+    String(
+      adminActual?.rol || ""
+    )
+      .trim()
+      .toUpperCase();
+
+  if (
+    !Number.isInteger(idAdmin) ||
+    idAdmin <= 0
+  ) {
+    throw crearError(
+      "El administrador no es válido.",
+      401,
+      "INVALID_ADMIN"
+    );
+  }
+
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(rol)
+  ) {
+    throw crearError(
+      "El administrador no tiene un rol válido.",
+      403,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+  return {
+    idAdmin,
+    rol,
+
+    esSuperAdmin:
+      rol === "SUPERADMIN",
+  };
+}
+
+
+// ==================================================
+// NORMALIZAR FECHA DE VENCIMIENTO
+// ==================================================
+
 function normalizarFechaVencimiento(
   fechaVencimiento
 ) {
-
   if (!fechaVencimiento) {
-
     return null;
   }
-
 
   const fecha =
     new Date(
       fechaVencimiento
     );
 
-
   if (
     Number.isNaN(
       fecha.getTime()
     )
   ) {
-
     throw crearError(
       "La fecha de vencimiento no es válida.",
       400,
       "INVALID_EXPIRATION_DATE"
     );
   }
-
 
   return fecha;
 }
@@ -89,24 +136,45 @@ function normalizarFechaVencimiento(
 // CREAR CLIENTE
 // ==================================================
 
-export async function crearCliente({
+export async function crearCliente(
+  {
+    tipoDocumento,
+    documento,
 
-  tipoDocumento,
-  documento,
+    nombres = null,
+    apellidoPaterno = null,
+    apellidoMaterno = null,
 
-  nombres = null,
-  apellidoPaterno = null,
-  apellidoMaterno = null,
+    razonSocial = null,
 
-  razonSocial = null,
+    email = null,
+    telefono = null,
 
-  email = null,
-  telefono = null,
+    creditosIniciales = 0,
+    fechaVencimiento = null,
+  },
 
-  creditosIniciales = 0,
-  fechaVencimiento = null,
+  adminActual
+) {
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
 
-}) {
+  // ADMIN:
+  // El cliente queda automáticamente asignado
+  // al administrador que lo crea.
+  //
+  // SUPERADMIN:
+  // Por ahora el cliente queda sin asignar.
+  // Más adelante agregaremos el selector
+  // de administrador en el panel.
+
+  const idAdminResponsable =
+    contextoAdmin.esSuperAdmin
+      ? null
+      : contextoAdmin.idAdmin;
+
 
   tipoDocumento =
     String(
@@ -125,61 +193,49 @@ export async function crearCliente({
 
   nombres =
     nombres
-
       ? String(
           nombres
         ).trim()
-
       : null;
 
 
   apellidoPaterno =
     apellidoPaterno
-
       ? String(
           apellidoPaterno
         ).trim()
-
       : null;
 
 
   apellidoMaterno =
     apellidoMaterno
-
       ? String(
           apellidoMaterno
         ).trim()
-
       : null;
 
 
   razonSocial =
     razonSocial
-
       ? String(
           razonSocial
         ).trim()
-
       : null;
 
 
   email =
     email
-
       ? String(
           email
         ).trim()
-
       : null;
 
 
   telefono =
     telefono
-
       ? String(
           telefono
         ).trim()
-
       : null;
 
 
@@ -196,7 +252,6 @@ export async function crearCliente({
       tipoDocumento
     )
   ) {
-
     throw crearError(
       "Tipo de documento no válido.",
       400,
@@ -206,7 +261,6 @@ export async function crearCliente({
 
 
   if (!documento) {
-
     throw crearError(
       "El documento es obligatorio.",
       400,
@@ -221,7 +275,6 @@ export async function crearCliente({
       documento
     )
   ) {
-
     throw crearError(
       "El DNI debe contener exactamente 8 dígitos.",
       400,
@@ -236,7 +289,6 @@ export async function crearCliente({
       documento
     )
   ) {
-
     throw crearError(
       "El RUC debe contener exactamente 11 dígitos.",
       400,
@@ -255,7 +307,6 @@ export async function crearCliente({
       )
     )
   ) {
-
     throw crearError(
       "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres.",
       400,
@@ -274,7 +325,6 @@ export async function crearCliente({
       )
     )
   ) {
-
     throw crearError(
       "El pasaporte debe ser alfanumérico y no superar 20 caracteres.",
       400,
@@ -287,7 +337,6 @@ export async function crearCliente({
     tipoDocumento === "RUC" &&
     !razonSocial
   ) {
-
     throw crearError(
       "La razón social es obligatoria para clientes con RUC.",
       400,
@@ -300,7 +349,6 @@ export async function crearCliente({
     tipoDocumento !== "RUC" &&
     !nombres
   ) {
-
     throw crearError(
       "Los nombres son obligatorios.",
       400,
@@ -321,7 +369,6 @@ export async function crearCliente({
     ) ||
     creditos < 0
   ) {
-
     throw crearError(
       "Los créditos iniciales deben ser un número entero mayor o igual a 0.",
       400,
@@ -378,7 +425,6 @@ export async function crearCliente({
       await new sql.Request(
         transaction
       )
-
         .input(
           "tipoDocumento",
           sql.VarChar(20),
@@ -410,7 +456,6 @@ export async function crearCliente({
     if (
       duplicado.recordset.length > 0
     ) {
-
       throw crearError(
         "Ya existe un cliente registrado con ese documento.",
         409,
@@ -476,6 +521,12 @@ export async function crearCliente({
           telefono
         )
 
+        .input(
+          "idAdmin",
+          sql.BigInt,
+          idAdminResponsable
+        )
+
         .query(`
           INSERT INTO
             GestionAPIClientes.Clientes
@@ -491,6 +542,8 @@ export async function crearCliente({
 
             EMAIL,
             TELEFONO,
+
+            ID_ADMIN,
 
             ESTADO
           )
@@ -512,6 +565,8 @@ export async function crearCliente({
             @email,
             @telefono,
 
+            @idAdmin,
+
             'ACTIVO'
           )
         `);
@@ -526,7 +581,7 @@ export async function crearCliente({
 
 
     // --------------------------------------------------
-    // CREAR TOKEN PRIMERO
+    // CREAR TOKEN
     // --------------------------------------------------
 
     const tokenResult =
@@ -598,119 +653,246 @@ export async function crearCliente({
 
 
     // --------------------------------------------------
-    // CREAR SALDO DEL TOKEN
-    // --------------------------------------------------
+// CREAR BOLSAS DE CRÉDITOS
+// --------------------------------------------------
 
-    await new sql.Request(
-      transaction
+// Por compatibilidad temporal:
+//
+// creditosIniciales se asigna a RRCC.
+//
+// SUELDOS comienza en 0.
+//
+// Más adelante el formulario podrá enviar
+// créditos iniciales independientes por servicio.
+
+const serviciosResult =
+  await new sql.Request(
+    transaction
+  )
+
+    .query(`
+      SELECT
+        ID_SERVICIO,
+        CODIGO
+
+      FROM
+        GestionAPIClientes.Servicios
+
+      WHERE
+        CODIGO IN (
+          'RRCC',
+          'SUELDOS'
+        )
+
+        AND ESTADO =
+          'ACTIVO'
+    `);
+
+
+const servicioRRCC =
+  serviciosResult.recordset.find(
+    (servicio) =>
+      servicio.CODIGO === "RRCC"
+  );
+
+
+const servicioSueldos =
+  serviciosResult.recordset.find(
+    (servicio) =>
+      servicio.CODIGO === "SUELDOS"
+  );
+
+
+if (
+  !servicioRRCC ||
+  !servicioSueldos
+) {
+
+  throw crearError(
+    "Los servicios RRCC y SUELDOS deben estar configurados y activos.",
+    500,
+    "SERVICES_NOT_CONFIGURED"
+  );
+}
+
+
+const idServicioRRCC =
+  Number(
+    servicioRRCC.ID_SERVICIO
+  );
+
+
+const idServicioSueldos =
+  Number(
+    servicioSueldos.ID_SERVICIO
+  );
+
+
+// --------------------------------------------------
+// BOLSA RRCC
+// --------------------------------------------------
+
+await new sql.Request(
+  transaction
+)
+
+  .input(
+    "idCliente",
+    sql.BigInt,
+    idCliente
+  )
+
+  .input(
+    "idServicio",
+    sql.BigInt,
+    idServicioRRCC
+  )
+
+  .input(
+    "creditos",
+    sql.Int,
+    creditos
+  )
+
+  .query(`
+    INSERT INTO
+      GestionAPIClientes.SaldosServicios
+    (
+      ID_CLIENTE,
+      ID_SERVICIO,
+
+      CREDITOS_DISPONIBLES,
+      TOTAL_ASIGNADO,
+      TOTAL_CONSUMIDO
     )
 
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
+    VALUES
+    (
+      @idCliente,
+      @idServicio,
 
-      .input(
-        "idToken",
-        sql.BigInt,
-        idToken
-      )
+      @creditos,
+      @creditos,
+      0
+    )
+  `);
 
-      .input(
-        "creditos",
-        sql.Int,
-        creditos
-      )
 
-      .query(`
-        INSERT INTO
-          GestionAPIClientes.Saldos
-        (
-          ID_CLIENTE,
-          ID_TOKEN,
+// --------------------------------------------------
+// BOLSA SUELDOS
+// --------------------------------------------------
 
-          CREDITOS_DISPONIBLES,
-          TOTAL_ASIGNADO,
-          TOTAL_CONSUMIDO
-        )
+await new sql.Request(
+  transaction
+)
 
-        VALUES
-        (
-          @idCliente,
-          @idToken,
+  .input(
+    "idCliente",
+    sql.BigInt,
+    idCliente
+  )
 
-          @creditos,
-          @creditos,
-          0
-        )
-      `);
+  .input(
+    "idServicio",
+    sql.BigInt,
+    idServicioSueldos
+  )
+
+  .query(`
+    INSERT INTO
+      GestionAPIClientes.SaldosServicios
+    (
+      ID_CLIENTE,
+      ID_SERVICIO,
+
+      CREDITOS_DISPONIBLES,
+      TOTAL_ASIGNADO,
+      TOTAL_CONSUMIDO
+    )
+
+    VALUES
+    (
+      @idCliente,
+      @idServicio,
+
+      0,
+      0,
+      0
+    )
+  `);
 
 
     // --------------------------------------------------
-    // MOVIMIENTO INICIAL
-    // --------------------------------------------------
+// MOVIMIENTO INICIAL RRCC
+// --------------------------------------------------
 
-    if (
-      creditos > 0
-    ) {
+if (
+  creditos > 0
+) {
 
-      await new sql.Request(
-        transaction
+  await new sql.Request(
+    transaction
+  )
+
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
+
+    .input(
+      "idToken",
+      sql.BigInt,
+      idToken
+    )
+
+    .input(
+      "idServicio",
+      sql.BigInt,
+      idServicioRRCC
+    )
+
+    .input(
+      "creditos",
+      sql.Int,
+      creditos
+    )
+
+    .query(`
+      INSERT INTO
+        GestionAPIClientes.Movimientos
+      (
+        ID_CLIENTE,
+        ID_TOKEN,
+        ID_SERVICIO,
+
+        TIPO,
+        CANTIDAD,
+
+        SALDO_ANTES,
+        SALDO_DESPUES,
+
+        ORIGEN,
+        OBSERVACION
       )
 
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
+      VALUES
+      (
+        @idCliente,
+        @idToken,
+        @idServicio,
 
-        .input(
-          "idToken",
-          sql.BigInt,
-          idToken
-        )
+        'CARGA',
+        @creditos,
 
-        .input(
-          "creditos",
-          sql.Int,
-          creditos
-        )
+        0,
+        @creditos,
 
-        .query(`
-          INSERT INTO
-            GestionAPIClientes.Movimientos
-          (
-            ID_CLIENTE,
-            ID_TOKEN,
-
-            TIPO,
-            CANTIDAD,
-
-            SALDO_ANTES,
-            SALDO_DESPUES,
-
-            ORIGEN,
-            OBSERVACION
-          )
-
-          VALUES
-          (
-            @idCliente,
-            @idToken,
-
-            'CARGA',
-            @creditos,
-
-            0,
-            @creditos,
-
-            'ADMIN',
-            'Asignación inicial de créditos'
-          )
-        `);
-    }
-
+        'ADMIN',
+        'Asignación inicial de créditos para RRCC'
+      )
+    `);
+}
 
     await transaction.commit();
 
@@ -718,18 +900,59 @@ export async function crearCliente({
     return {
 
       idCliente,
+
       idToken,
 
       tipoDocumento,
+
       documento,
 
       token,
 
+      creditosPorServicio: {
+
+        RRCC: {
+
+          disponibles:
+            creditos,
+
+          totalAsignado:
+            creditos,
+
+          totalConsumido:
+            0,
+
+        },
+
+        SUELDOS: {
+
+          disponibles:
+            0,
+
+          totalAsignado:
+            0,
+
+          totalConsumido:
+            0,
+
+        },
+
+      },
+
+
+      // Compatibilidad temporal con
+      // la respuesta anterior.
+
       creditosDisponibles:
         creditos,
 
+
       fechaVencimiento:
         fechaVencimientoSql,
+
+      idAdmin:
+        idAdminResponsable,
+
     };
 
 
@@ -741,7 +964,8 @@ export async function crearCliente({
 
     } catch {
 
-      // Ya pudo haberse revertido.
+      // La transacción ya pudo haberse revertido.
+
     }
 
 
@@ -751,24 +975,55 @@ export async function crearCliente({
 
 
 // ==================================================
-// RECARGAR CRÉDITOS DEL TOKEN ACTIVO
+// RECARGAR CRÉDITOS POR SERVICIO
 // ==================================================
 
 export async function recargarCreditos(
+
   idCliente,
-  cantidad
+
+  cantidad,
+
+  servicio = "RRCC",
+
+  adminActual
+
 ) {
 
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
+
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
 
 
   cantidad =
-    Number(cantidad);
+    Number(
+      cantidad
+    );
 
+
+  servicio =
+    String(
+      servicio || "RRCC"
+    )
+      .trim()
+      .toUpperCase();
+
+
+  // ================================================
+  // VALIDACIONES
+  // ================================================
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
 
@@ -781,7 +1036,9 @@ export async function recargarCreditos(
 
 
   if (
-    !Number.isInteger(cantidad) ||
+    !Number.isInteger(
+      cantidad
+    ) ||
     cantidad <= 0
   ) {
 
@@ -793,12 +1050,31 @@ export async function recargarCreditos(
   }
 
 
+  if (
+    ![
+      "RRCC",
+      "SUELDOS",
+    ].includes(
+      servicio
+    )
+  ) {
+
+    throw crearError(
+      "El servicio indicado no es válido.",
+      400,
+      "INVALID_SERVICE"
+    );
+  }
+
+
   const pool =
     await getSqlPool();
 
 
   const transaction =
-    new sql.Transaction(pool);
+    new sql.Transaction(
+      pool
+    );
 
 
   try {
@@ -808,9 +1084,9 @@ export async function recargarCreditos(
     );
 
 
-    // --------------------------------------------------
-    // VALIDAR CLIENTE
-    // --------------------------------------------------
+    // ================================================
+    // 1. VALIDAR CLIENTE
+    // ================================================
 
     const clienteResult =
       await new sql.Request(
@@ -823,10 +1099,25 @@ export async function recargarCreditos(
           idCliente
         )
 
+        .input(
+          "idAdmin",
+          sql.BigInt,
+          contextoAdmin.idAdmin
+        )
+
+        .input(
+          "esSuperAdmin",
+          sql.Bit,
+          contextoAdmin.esSuperAdmin
+            ? 1
+            : 0
+        )
+
         .query(`
           SELECT
             ID_CLIENTE,
-            ESTADO
+            ESTADO,
+            ID_ADMIN
 
           FROM
             GestionAPIClientes.Clientes
@@ -838,6 +1129,12 @@ export async function recargarCreditos(
           WHERE
             ID_CLIENTE =
               @idCliente
+
+            AND
+            (
+              @esSuperAdmin = 1
+              OR ID_ADMIN = @idAdmin
+            )
         `);
 
 
@@ -853,9 +1150,11 @@ export async function recargarCreditos(
     }
 
 
-    // --------------------------------------------------
-    // BUSCAR TOKEN ACTIVO
-    // --------------------------------------------------
+    // ================================================
+    // 2. OBTENER TOKEN ACTIVO
+    // Solo para trazabilidad del movimiento.
+    // El saldo NO pertenece al token.
+    // ================================================
 
     const tokenResult =
       await new sql.Request(
@@ -870,15 +1169,10 @@ export async function recargarCreditos(
 
         .query(`
           SELECT
-            ID_TOKEN,
-            FECHA_VENCIMIENTO
+            ID_TOKEN
 
           FROM
             GestionAPIClientes.Tokens
-              WITH (
-                UPDLOCK,
-                HOLDLOCK
-              )
 
           WHERE
             ID_CLIENTE =
@@ -909,7 +1203,7 @@ export async function recargarCreditos(
     ) {
 
       throw crearError(
-        "El cliente tiene más de un token activo. No se puede determinar qué token recargar.",
+        "El cliente tiene más de un token activo.",
         409,
         "MULTIPLE_ACTIVE_TOKENS"
       );
@@ -924,9 +1218,62 @@ export async function recargarCreditos(
       );
 
 
-    // --------------------------------------------------
-    // SALDO DEL TOKEN
-    // --------------------------------------------------
+    // ================================================
+    // 3. OBTENER SERVICIO
+    // ================================================
+
+    const servicioResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "servicio",
+          sql.VarChar(30),
+          servicio
+        )
+
+        .query(`
+          SELECT
+            ID_SERVICIO,
+            CODIGO,
+            NOMBRE
+
+          FROM
+            GestionAPIClientes.Servicios
+
+          WHERE
+            CODIGO =
+              @servicio
+
+            AND ESTADO =
+              'ACTIVO'
+        `);
+
+
+    if (
+      servicioResult.recordset.length === 0
+    ) {
+
+      throw crearError(
+        "El servicio indicado no está disponible.",
+        409,
+        "SERVICE_NOT_AVAILABLE"
+      );
+    }
+
+
+    const idServicio =
+      Number(
+        servicioResult
+          .recordset[0]
+          .ID_SERVICIO
+      );
+
+
+    // ================================================
+    // 4. BLOQUEAR BOLSA
+    // ================================================
 
     const saldoResult =
       await new sql.Request(
@@ -940,9 +1287,9 @@ export async function recargarCreditos(
         )
 
         .input(
-          "idToken",
+          "idServicio",
           sql.BigInt,
-          idToken
+          idServicio
         )
 
         .query(`
@@ -952,7 +1299,7 @@ export async function recargarCreditos(
             TOTAL_CONSUMIDO
 
           FROM
-            GestionAPIClientes.Saldos
+            GestionAPIClientes.SaldosServicios
               WITH (
                 UPDLOCK,
                 HOLDLOCK
@@ -962,8 +1309,8 @@ export async function recargarCreditos(
             ID_CLIENTE =
               @idCliente
 
-            AND ID_TOKEN =
-              @idToken
+            AND ID_SERVICIO =
+              @idServicio
         `);
 
 
@@ -972,9 +1319,9 @@ export async function recargarCreditos(
     ) {
 
       throw crearError(
-        "El token activo no tiene un registro de saldo.",
+        `El cliente no tiene configurada la bolsa ${servicio}.`,
         409,
-        "TOKEN_BALANCE_NOT_FOUND"
+        "SERVICE_BALANCE_NOT_FOUND"
       );
     }
 
@@ -992,9 +1339,9 @@ export async function recargarCreditos(
       cantidad;
 
 
-    // --------------------------------------------------
-    // ACTUALIZAR SALDO
-    // --------------------------------------------------
+    // ================================================
+    // 5. RECARGAR BOLSA
+    // ================================================
 
     const updateResult =
       await new sql.Request(
@@ -1008,9 +1355,9 @@ export async function recargarCreditos(
         )
 
         .input(
-          "idToken",
+          "idServicio",
           sql.BigInt,
-          idToken
+          idServicio
         )
 
         .input(
@@ -1019,19 +1366,14 @@ export async function recargarCreditos(
           cantidad
         )
 
-        .input(
-          "saldoDespues",
-          sql.Int,
-          saldoDespues
-        )
-
         .query(`
           UPDATE
-            GestionAPIClientes.Saldos
+            GestionAPIClientes.SaldosServicios
 
           SET
             CREDITOS_DISPONIBLES =
-              @saldoDespues,
+              CREDITOS_DISPONIBLES +
+              @cantidad,
 
             TOTAL_ASIGNADO =
               TOTAL_ASIGNADO +
@@ -1044,8 +1386,8 @@ export async function recargarCreditos(
             ID_CLIENTE =
               @idCliente
 
-            AND ID_TOKEN =
-              @idToken
+            AND ID_SERVICIO =
+              @idServicio
         `);
 
 
@@ -1054,16 +1396,20 @@ export async function recargarCreditos(
     ) {
 
       throw crearError(
-        "No fue posible actualizar los créditos del token.",
+        "No fue posible actualizar la bolsa de créditos.",
         409,
-        "CREDIT_UPDATE_FAILED"
+        "SERVICE_CREDIT_UPDATE_FAILED"
       );
     }
 
 
-    // --------------------------------------------------
-    // MOVIMIENTO
-    // --------------------------------------------------
+    // ================================================
+    // 6. REGISTRAR MOVIMIENTO
+    // ================================================
+
+    const observacion =
+      `Recarga de créditos para ${servicio}`;
+
 
     await new sql.Request(
       transaction
@@ -1079,6 +1425,12 @@ export async function recargarCreditos(
         "idToken",
         sql.BigInt,
         idToken
+      )
+
+      .input(
+        "idServicio",
+        sql.BigInt,
+        idServicio
       )
 
       .input(
@@ -1099,12 +1451,19 @@ export async function recargarCreditos(
         saldoDespues
       )
 
+      .input(
+        "observacion",
+        sql.NVarChar(300),
+        observacion
+      )
+
       .query(`
         INSERT INTO
           GestionAPIClientes.Movimientos
         (
           ID_CLIENTE,
           ID_TOKEN,
+          ID_SERVICIO,
 
           TIPO,
           CANTIDAD,
@@ -1120,6 +1479,7 @@ export async function recargarCreditos(
         (
           @idCliente,
           @idToken,
+          @idServicio,
 
           'CARGA',
           @cantidad,
@@ -1128,7 +1488,7 @@ export async function recargarCreditos(
           @saldoDespues,
 
           'ADMIN',
-          'Recarga de créditos'
+          @observacion
         )
       `);
 
@@ -1139,7 +1499,12 @@ export async function recargarCreditos(
     return {
 
       idCliente,
+
       idToken,
+
+      idServicio,
+
+      servicio,
 
       creditosAgregados:
         cantidad,
@@ -1148,6 +1513,7 @@ export async function recargarCreditos(
 
       saldoActual:
         saldoDespues,
+
     };
 
 
@@ -1159,7 +1525,8 @@ export async function recargarCreditos(
 
     } catch {
 
-      // Ya pudo haberse revertido.
+      // La transacción pudo haberse revertido.
+
     }
 
 
@@ -1172,20 +1539,36 @@ export async function recargarCreditos(
 // LISTAR CLIENTES
 // ==================================================
 
-export async function listarClientes({
+export async function listarClientes(
+  {
 
-  page = 1,
-  limit = 20,
-  search = "",
+    page = 1,
 
-}) {
+    limit = 20,
+
+    search = "",
+
+  },
+
+  adminActual
+) {
+
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
 
   page =
-    Number(page);
+    Number(
+      page
+    );
 
 
   limit =
-    Number(limit);
+    Number(
+      limit
+    );
 
 
   if (
@@ -1193,7 +1576,8 @@ export async function listarClientes({
     page < 1
   ) {
 
-    page = 1;
+    page =
+      1;
   }
 
 
@@ -1203,7 +1587,8 @@ export async function listarClientes({
     limit > 100
   ) {
 
-    limit = 20;
+    limit =
+      20;
   }
 
 
@@ -1237,6 +1622,20 @@ export async function listarClientes({
         `%${search}%`
       )
 
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
       .query(`
         SELECT
           COUNT(*) AS TOTAL
@@ -1245,25 +1644,33 @@ export async function listarClientes({
           GestionAPIClientes.Clientes C
 
         WHERE
-          @search = '%%'
+          (
+            @esSuperAdmin = 1
+            OR C.ID_ADMIN = @idAdmin
+          )
 
-          OR C.DOCUMENTO_CLIENTE
-            LIKE @search
+          AND
+          (
+            @search = '%%'
 
-          OR C.RAZON_SOCIAL
-            LIKE @search
+            OR C.DOCUMENTO_CLIENTE
+              LIKE @search
 
-          OR C.NOMBRES
-            LIKE @search
+            OR C.RAZON_SOCIAL
+              LIKE @search
 
-          OR C.APELLIDO_PATERNO
-            LIKE @search
+            OR C.NOMBRES
+              LIKE @search
 
-          OR C.APELLIDO_MATERNO
-            LIKE @search
+            OR C.APELLIDO_PATERNO
+              LIKE @search
 
-          OR C.EMAIL
-            LIKE @search
+            OR C.APELLIDO_MATERNO
+              LIKE @search
+
+            OR C.EMAIL
+              LIKE @search
+          )
       `);
 
 
@@ -1290,6 +1697,20 @@ export async function listarClientes({
       )
 
       .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
+      .input(
         "offset",
         sql.Int,
         offset
@@ -1303,6 +1724,7 @@ export async function listarClientes({
 
       .query(`
         SELECT
+
           C.ID_CLIENTE,
 
           C.TIPO_DOCUMENTO_CLIENTE,
@@ -1319,15 +1741,64 @@ export async function listarClientes({
 
           C.ESTADO,
 
+          C.ID_ADMIN,
+
+          A.USUARIO
+            AS ADMIN_USUARIO,
+
+          A.NOMBRE
+            AS ADMIN_NOMBRE,
+
+          A.ROL
+            AS ADMIN_ROL,
+
           C.FECHA_CREACION,
           C.FECHA_ACTUALIZACION,
 
-          SB.ID_TOKEN
-            AS SALDO_ID_TOKEN,
+         ISNULL(
+            SB.CREDITOS_DISPONIBLES,
+            0
+          ) AS CREDITOS_DISPONIBLES,
 
-          SB.CREDITOS_DISPONIBLES,
-          SB.TOTAL_ASIGNADO,
-          SB.TOTAL_CONSUMIDO,
+          ISNULL(
+            SB.TOTAL_ASIGNADO,
+            0
+          ) AS TOTAL_ASIGNADO,
+
+          ISNULL(
+            SB.TOTAL_CONSUMIDO,
+            0
+          ) AS TOTAL_CONSUMIDO,
+
+          ISNULL(
+            SB.RRCC_DISPONIBLES,
+            0
+          ) AS RRCC_DISPONIBLES,
+
+          ISNULL(
+            SB.RRCC_ASIGNADO,
+            0
+          ) AS RRCC_ASIGNADO,
+
+          ISNULL(
+            SB.RRCC_CONSUMIDO,
+            0
+          ) AS RRCC_CONSUMIDO,
+
+          ISNULL(
+            SB.SUELDOS_DISPONIBLES,
+            0
+          ) AS SUELDOS_DISPONIBLES,
+
+          ISNULL(
+            SB.SUELDOS_ASIGNADO,
+            0
+          ) AS SUELDOS_ASIGNADO,
+
+          ISNULL(
+            SB.SUELDOS_CONSUMIDO,
+            0
+          ) AS SUELDOS_CONSUMIDO,
 
           (
             SELECT
@@ -1342,65 +1813,128 @@ export async function listarClientes({
 
               AND T.ESTADO =
                 'ACTIVO'
+
           ) AS TOKENS_ACTIVOS
 
         FROM
           GestionAPIClientes.Clientes C
 
-        OUTER APPLY
+        LEFT JOIN
+          GestionAPIClientes.Administradores A
+
+            ON A.ID_ADMIN =
+               C.ID_ADMIN
+
+
+       OUTER APPLY
         (
-          SELECT TOP 1
+          SELECT
 
-            S.ID_TOKEN,
+            SUM(
+              SS.CREDITOS_DISPONIBLES
+            ) AS CREDITOS_DISPONIBLES,
 
-            S.CREDITOS_DISPONIBLES,
-            S.TOTAL_ASIGNADO,
-            S.TOTAL_CONSUMIDO
+            SUM(
+              SS.TOTAL_ASIGNADO
+            ) AS TOTAL_ASIGNADO,
+
+            SUM(
+              SS.TOTAL_CONSUMIDO
+            ) AS TOTAL_CONSUMIDO,
+
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'RRCC'
+                  THEN SS.CREDITOS_DISPONIBLES
+                ELSE 0
+              END
+            ) AS RRCC_DISPONIBLES,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'RRCC'
+                  THEN SS.TOTAL_ASIGNADO
+                ELSE 0
+              END
+            ) AS RRCC_ASIGNADO,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'RRCC'
+                  THEN SS.TOTAL_CONSUMIDO
+                ELSE 0
+              END
+            ) AS RRCC_CONSUMIDO,
+
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'SUELDOS'
+                  THEN SS.CREDITOS_DISPONIBLES
+                ELSE 0
+              END
+            ) AS SUELDOS_DISPONIBLES,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'SUELDOS'
+                  THEN SS.TOTAL_ASIGNADO
+                ELSE 0
+              END
+            ) AS SUELDOS_ASIGNADO,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'SUELDOS'
+                  THEN SS.TOTAL_CONSUMIDO
+                ELSE 0
+              END
+            ) AS SUELDOS_CONSUMIDO
 
           FROM
-            GestionAPIClientes.Saldos S
+            GestionAPIClientes.SaldosServicios SS
 
           INNER JOIN
-            GestionAPIClientes.Tokens TSaldo
-              ON TSaldo.ID_TOKEN =
-                 S.ID_TOKEN
+            GestionAPIClientes.Servicios S
+              ON S.ID_SERVICIO =
+                SS.ID_SERVICIO
 
           WHERE
-            S.ID_CLIENTE =
+            SS.ID_CLIENTE =
               C.ID_CLIENTE
 
-          ORDER BY
-
-            CASE
-              WHEN TSaldo.ESTADO =
-                'ACTIVO'
-              THEN 0
-              ELSE 1
-            END,
-
-            S.ID_TOKEN DESC
         ) SB
 
+
         WHERE
-          @search = '%%'
+          (
+            @esSuperAdmin = 1
+            OR C.ID_ADMIN = @idAdmin
+          )
 
-          OR C.DOCUMENTO_CLIENTE
-            LIKE @search
+          AND
+          (
+            @search = '%%'
 
-          OR C.RAZON_SOCIAL
-            LIKE @search
+            OR C.DOCUMENTO_CLIENTE
+              LIKE @search
 
-          OR C.NOMBRES
-            LIKE @search
+            OR C.RAZON_SOCIAL
+              LIKE @search
 
-          OR C.APELLIDO_PATERNO
-            LIKE @search
+            OR C.NOMBRES
+              LIKE @search
 
-          OR C.APELLIDO_MATERNO
-            LIKE @search
+            OR C.APELLIDO_PATERNO
+              LIKE @search
 
-          OR C.EMAIL
-            LIKE @search
+            OR C.APELLIDO_MATERNO
+              LIKE @search
+
+            OR C.EMAIL
+              LIKE @search
+          )
 
         ORDER BY
           C.ID_CLIENTE DESC
@@ -1417,11 +1951,14 @@ export async function listarClientes({
     result.recordset.map(
       (cliente) => {
 
+
         const nombre =
           cliente.RAZON_SOCIAL ||
           [
             cliente.NOMBRES,
+
             cliente.APELLIDO_PATERNO,
+
             cliente.APELLIDO_MATERNO,
           ]
             .filter(Boolean)
@@ -1452,39 +1989,106 @@ export async function listarClientes({
           estado:
             cliente.ESTADO,
 
-          creditos: {
 
-            idToken:
-              cliente
-                .SALDO_ID_TOKEN,
+          administrador:
+            cliente.ID_ADMIN
+              ? {
+
+                  idAdmin:
+                    cliente.ID_ADMIN,
+
+                  usuario:
+                    cliente.ADMIN_USUARIO,
+
+                  nombre:
+                    cliente.ADMIN_NOMBRE,
+
+                  rol:
+                    cliente.ADMIN_ROL,
+
+                }
+              : null,
+
+
+          creditos: {
 
             disponibles:
               Number(
-                cliente
-                  .CREDITOS_DISPONIBLES ||
+                cliente.CREDITOS_DISPONIBLES ||
                 0
               ),
 
             totalAsignado:
               Number(
-                cliente
-                  .TOTAL_ASIGNADO ||
+                cliente.TOTAL_ASIGNADO ||
                 0
               ),
 
             totalConsumido:
               Number(
-                cliente
-                  .TOTAL_CONSUMIDO ||
+                cliente.TOTAL_CONSUMIDO ||
                 0
               ),
+
           },
+
+
+          creditosPorServicio: {
+
+            RRCC: {
+
+              disponibles:
+                Number(
+                  cliente.RRCC_DISPONIBLES ||
+                  0
+                ),
+
+              totalAsignado:
+                Number(
+                  cliente.RRCC_ASIGNADO ||
+                  0
+                ),
+
+              totalConsumido:
+                Number(
+                  cliente.RRCC_CONSUMIDO ||
+                  0
+                ),
+
+            },
+
+
+            SUELDOS: {
+
+              disponibles:
+                Number(
+                  cliente.SUELDOS_DISPONIBLES ||
+                  0
+                ),
+
+              totalAsignado:
+                Number(
+                  cliente.SUELDOS_ASIGNADO ||
+                  0
+                ),
+
+              totalConsumido:
+                Number(
+                  cliente.SUELDOS_CONSUMIDO ||
+                  0
+                ),
+
+            },
+
+          },
+
 
           tokensActivos:
             Number(
               cliente
                 .TOKENS_ACTIVOS
             ),
+
 
           fechaCreacion:
             cliente
@@ -1501,7 +2105,9 @@ export async function listarClientes({
     paginacion: {
 
       page,
+
       limit,
+
       total,
 
       totalPaginas:
@@ -1509,6 +2115,7 @@ export async function listarClientes({
           total /
           limit
         ),
+
     },
   };
 }
@@ -1519,18 +2126,29 @@ export async function listarClientes({
 // ==================================================
 
 export async function obtenerClienteDetalle(
-
   idCliente,
 
   {
-    pageConsumos = 1,
-    pageMovimientos = 1,
-  } = {}
 
+    pageConsumos = 1,
+
+    pageMovimientos = 1,
+
+  } = {},
+
+  adminActual
 ) {
 
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
+
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
 
 
   pageConsumos =
@@ -1545,8 +2163,14 @@ export async function obtenerClienteDetalle(
     );
 
 
+  // ==================================================
+  // VALIDAR CLIENTE
+  // ==================================================
+
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
 
@@ -1557,6 +2181,10 @@ export async function obtenerClienteDetalle(
     );
   }
 
+
+  // ==================================================
+  // PAGINACIÓN
+  // ==================================================
 
   const limit =
     10;
@@ -1590,9 +2218,9 @@ export async function obtenerClienteDetalle(
     await getSqlPool();
 
 
-  // --------------------------------------------------
-  // CLIENTE + SALDO
-  // --------------------------------------------------
+  // ==================================================
+ // CLIENTE + PROPIEDAD
+  // ==================================================
 
   const clienteResult =
     await pool
@@ -1604,79 +2232,83 @@ export async function obtenerClienteDetalle(
         idCliente
       )
 
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
       .query(`
         SELECT
+
           C.ID_CLIENTE,
 
           C.TIPO_DOCUMENTO_CLIENTE,
+
           C.DOCUMENTO_CLIENTE,
 
           C.NOMBRES,
+
           C.APELLIDO_PATERNO,
+
           C.APELLIDO_MATERNO,
 
           C.RAZON_SOCIAL,
 
           C.EMAIL,
+
           C.TELEFONO,
 
           C.ESTADO,
 
+          C.ID_ADMIN,
+
+          A.USUARIO
+            AS ADMIN_USUARIO,
+
+          A.NOMBRE
+            AS ADMIN_NOMBRE,
+
+          A.ROL
+            AS ADMIN_ROL,
+
           C.FECHA_CREACION,
-          C.FECHA_ACTUALIZACION,
 
-          SB.ID_TOKEN
-            AS SALDO_ID_TOKEN,
-
-          SB.CREDITOS_DISPONIBLES,
-          SB.TOTAL_ASIGNADO,
-          SB.TOTAL_CONSUMIDO
+          C.FECHA_ACTUALIZACION
 
         FROM
           GestionAPIClientes.Clientes C
 
-        OUTER APPLY
-        (
-          SELECT TOP 1
+        LEFT JOIN
+          GestionAPIClientes.Administradores A
 
-            S.ID_TOKEN,
+            ON A.ID_ADMIN =
+               C.ID_ADMIN
 
-            S.CREDITOS_DISPONIBLES,
-            S.TOTAL_ASIGNADO,
-            S.TOTAL_CONSUMIDO
-
-          FROM
-            GestionAPIClientes.Saldos S
-
-          INNER JOIN
-            GestionAPIClientes.Tokens TSaldo
-              ON TSaldo.ID_TOKEN =
-                 S.ID_TOKEN
-
-          WHERE
-            S.ID_CLIENTE =
-              C.ID_CLIENTE
-
-          ORDER BY
-
-            CASE
-              WHEN TSaldo.ESTADO =
-                'ACTIVO'
-              THEN 0
-              ELSE 1
-            END,
-
-            S.ID_TOKEN DESC
-        ) SB
 
         WHERE
           C.ID_CLIENTE =
             @idCliente
+
+          AND
+          (
+            @esSuperAdmin = 1
+            OR C.ID_ADMIN = @idAdmin
+          )
       `);
 
 
   if (
-    clienteResult.recordset.length === 0
+    clienteResult.recordset.length ===
+    0
   ) {
 
     throw crearError(
@@ -1688,69 +2320,175 @@ export async function obtenerClienteDetalle(
 
 
   const cliente =
-    clienteResult
-      .recordset[0];
+    clienteResult.recordset[0];
 
+  // ==================================================
+// BOLSAS DE CRÉDITOS POR SERVICIO
+// ==================================================
+
+const saldosResult =
+  await pool
+    .request()
+
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
+
+    .query(`
+      SELECT
+        SS.ID_SERVICIO,
+
+        S.CODIGO,
+        S.NOMBRE,
+
+        SS.CREDITOS_DISPONIBLES,
+        SS.TOTAL_ASIGNADO,
+        SS.TOTAL_CONSUMIDO,
+
+        SS.FECHA_ACTUALIZACION
+
+      FROM
+        GestionAPIClientes.SaldosServicios SS
+
+      INNER JOIN
+        GestionAPIClientes.Servicios S
+          ON S.ID_SERVICIO =
+             SS.ID_SERVICIO
+
+      WHERE
+        SS.ID_CLIENTE =
+          @idCliente
+
+      ORDER BY
+        S.ID_SERVICIO
+    `);
+
+
+const creditosPorServicio = {};
+
+
+let totalDisponible = 0;
+let totalAsignado = 0;
+let totalConsumido = 0;
+
+
+for (
+  const saldo
+  of saldosResult.recordset
+) {
+
+  const codigo =
+    String(
+      saldo.CODIGO
+    ).toUpperCase();
+
+
+  const bolsa = {
+
+    idServicio:
+      Number(
+        saldo.ID_SERVICIO
+      ),
+
+    codigo,
+
+    nombre:
+      saldo.NOMBRE,
+
+    disponibles:
+      Number(
+        saldo.CREDITOS_DISPONIBLES
+      ),
+
+    totalAsignado:
+      Number(
+        saldo.TOTAL_ASIGNADO
+      ),
+
+    totalConsumido:
+      Number(
+        saldo.TOTAL_CONSUMIDO
+      ),
+
+    fechaActualizacion:
+      saldo.FECHA_ACTUALIZACION,
+
+  };
+
+
+  creditosPorServicio[codigo] =
+    bolsa;
+
+
+  totalDisponible +=
+    bolsa.disponibles;
+
+  totalAsignado +=
+    bolsa.totalAsignado;
+
+  totalConsumido +=
+    bolsa.totalConsumido;
+}
 
   const nombre =
     cliente.RAZON_SOCIAL ||
     [
       cliente.NOMBRES,
+
       cliente.APELLIDO_PATERNO,
+
       cliente.APELLIDO_MATERNO,
     ]
       .filter(Boolean)
       .join(" ");
 
 
-  // --------------------------------------------------
-  // TOKENS + SALDO
-  // --------------------------------------------------
+  // ==================================================
+  // TOKENS
+  // ==================================================
 
   const tokensResult =
-    await pool
-      .request()
+  await pool
+    .request()
 
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
 
-      .query(`
-        SELECT
-          T.ID_TOKEN,
-          T.TOKEN_PREFIJO,
-          T.ESTADO,
+    .query(`
+      SELECT
 
-          T.FECHA_CREACION,
-          T.FECHA_VENCIMIENTO,
-          T.ULTIMO_USO,
+        T.ID_TOKEN,
 
-          S.CREDITOS_DISPONIBLES,
-          S.TOTAL_ASIGNADO,
-          S.TOTAL_CONSUMIDO
+        T.TOKEN_PREFIJO,
 
-        FROM
-          GestionAPIClientes.Tokens T
+        T.ESTADO,
 
-        LEFT JOIN
-          GestionAPIClientes.Saldos S
-            ON S.ID_TOKEN =
-               T.ID_TOKEN
+        T.FECHA_CREACION,
 
-        WHERE
-          T.ID_CLIENTE =
-            @idCliente
+        T.FECHA_VENCIMIENTO,
 
-        ORDER BY
-          T.ID_TOKEN DESC
-      `);
+        T.ULTIMO_USO
+
+      FROM
+        GestionAPIClientes.Tokens T
+
+      WHERE
+        T.ID_CLIENTE =
+          @idCliente
+
+      ORDER BY
+        T.ID_TOKEN DESC
+    `);
 
 
-  // --------------------------------------------------
-  // TOTAL CONSULTAS
-  // --------------------------------------------------
+  // ==================================================
+  // TOTAL DE CONSUMOS
+  // ==================================================
 
   const totalConsumosResult =
     await pool
@@ -1806,9 +2544,9 @@ export async function obtenerClienteDetalle(
     limit;
 
 
-  // --------------------------------------------------
-  // CONSULTAS
-  // --------------------------------------------------
+  // ==================================================
+  // CONSUMOS PAGINADOS
+  // ==================================================
 
   const consumosResult =
     await pool
@@ -1834,22 +2572,34 @@ export async function obtenerClienteDetalle(
 
       .query(`
         SELECT
-          ID_CONSUMO,
-          ID_TOKEN,
-          ID_MOVIMIENTO,
 
-          TIPO_DOCUMENTO_CONSULTADO,
-          DOCUMENTO_CONSULTADO,
+        ID_CONSUMO,
 
-          CREDITOS_CONSUMIDOS,
+        ID_TOKEN,
 
-          ESTADO,
-          HTTP_STATUS,
-          MENSAJE,
+        ID_MOVIMIENTO,
 
-          IP_ORIGEN,
-          DURACION_MS,
-          FECHA
+        ID_SERVICIO,
+
+        TIPO_DOCUMENTO_CONSULTADO,
+
+        DOCUMENTO_CONSULTADO,
+
+        SERVICIO,
+
+        CREDITOS_CONSUMIDOS,
+
+        ESTADO,
+
+        HTTP_STATUS,
+
+        MENSAJE,
+
+        IP_ORIGEN,
+
+        DURACION_MS,
+
+        FECHA
 
         FROM
           GestionAPIClientes.Consumos
@@ -1869,9 +2619,9 @@ export async function obtenerClienteDetalle(
       `);
 
 
-  // --------------------------------------------------
-  // TOTAL MOVIMIENTOS
-  // --------------------------------------------------
+  // ==================================================
+  // TOTAL DE MOVIMIENTOS
+  // ==================================================
 
   const totalMovimientosResult =
     await pool
@@ -1927,68 +2677,85 @@ export async function obtenerClienteDetalle(
     limit;
 
 
-  // --------------------------------------------------
-  // MOVIMIENTOS
-  // --------------------------------------------------
+  // ==================================================
+  // MOVIMIENTOS PAGINADOS
+  // ==================================================
 
   const movimientosResult =
-    await pool
-      .request()
+  await pool
+    .request()
 
-      .input(
-        "idCliente",
-        sql.BigInt,
-        idCliente
-      )
+    .input(
+      "idCliente",
+      sql.BigInt,
+      idCliente
+    )
 
-      .input(
-        "offset",
-        sql.Int,
-        offsetMovimientos
-      )
+    .input(
+      "offset",
+      sql.Int,
+      offsetMovimientos
+    )
 
-      .input(
-        "limit",
-        sql.Int,
-        limit
-      )
+    .input(
+      "limit",
+      sql.Int,
+      limit
+    )
 
-      .query(`
-        SELECT
-          ID_MOVIMIENTO,
-          ID_TOKEN,
+    .query(`
+      SELECT
 
-          TIPO,
-          CANTIDAD,
+        M.ID_MOVIMIENTO,
 
-          SALDO_ANTES,
-          SALDO_DESPUES,
+        M.ID_TOKEN,
 
-          ORIGEN,
-          OBSERVACION,
-          FECHA
+        M.ID_SERVICIO,
 
-        FROM
-          GestionAPIClientes.Movimientos
+        S.CODIGO
+          AS SERVICIO,
 
-        WHERE
-          ID_CLIENTE =
-            @idCliente
+        M.TIPO,
 
-        ORDER BY
-          ID_MOVIMIENTO DESC
+        M.CANTIDAD,
 
-        OFFSET
-          @offset ROWS
+        M.SALDO_ANTES,
 
-        FETCH NEXT
-          @limit ROWS ONLY
-      `);
+        M.SALDO_DESPUES,
+
+        M.ORIGEN,
+
+        M.OBSERVACION,
+
+        M.FECHA
+
+      FROM
+        GestionAPIClientes.Movimientos M
+
+      LEFT JOIN
+        GestionAPIClientes.Servicios S
+
+          ON S.ID_SERVICIO =
+             M.ID_SERVICIO
+
+      WHERE
+        M.ID_CLIENTE =
+          @idCliente
+
+      ORDER BY
+        M.ID_MOVIMIENTO DESC
+
+      OFFSET
+        @offset ROWS
+
+      FETCH NEXT
+        @limit ROWS ONLY
+    `);
 
 
-  // --------------------------------------------------
+  // ==================================================
   // RESPUESTA
-  // --------------------------------------------------
+  // ==================================================
 
   return {
 
@@ -2011,16 +2778,13 @@ export async function obtenerClienteDetalle(
         cliente.NOMBRES,
 
       apellidoPaterno:
-        cliente
-          .APELLIDO_PATERNO,
+        cliente.APELLIDO_PATERNO,
 
       apellidoMaterno:
-        cliente
-          .APELLIDO_MATERNO,
+        cliente.APELLIDO_MATERNO,
 
       razonSocial:
-        cliente
-          .RAZON_SOCIAL,
+        cliente.RAZON_SOCIAL,
 
       email:
         cliente.EMAIL,
@@ -2031,165 +2795,153 @@ export async function obtenerClienteDetalle(
       estado:
         cliente.ESTADO,
 
+
+      administrador:
+        cliente.ID_ADMIN
+          ? {
+
+              idAdmin:
+                cliente.ID_ADMIN,
+
+              usuario:
+                cliente.ADMIN_USUARIO,
+
+              nombre:
+                cliente.ADMIN_NOMBRE,
+
+              rol:
+                cliente.ADMIN_ROL,
+
+            }
+          : null,
+
+
       fechaCreacion:
-        cliente
-          .FECHA_CREACION,
+        cliente.FECHA_CREACION,
 
       fechaActualizacion:
-        cliente
-          .FECHA_ACTUALIZACION,
+        cliente.FECHA_ACTUALIZACION,
     },
 
 
-    creditos: {
+    // --------------------------------------------------
+// CRÉDITOS
+// --------------------------------------------------
+
+creditos: {
+
+  disponibles:
+    totalDisponible,
+
+  totalAsignado:
+    totalAsignado,
+
+  totalConsumido:
+    totalConsumido,
+
+},
+
+
+// --------------------------------------------------
+// CRÉDITOS POR SERVICIO
+// --------------------------------------------------
+
+creditosPorServicio,
+
+
+  // --------------------------------------------------
+  // TOKENS
+  // --------------------------------------------------
+
+tokens:
+  tokensResult.recordset.map(
+    (token) => ({
 
       idToken:
-        cliente
-          .SALDO_ID_TOKEN,
+        token.ID_TOKEN,
 
-      disponibles:
-        Number(
-          cliente
-            .CREDITOS_DISPONIBLES ||
-          0
-        ),
+      prefijo:
+        token.TOKEN_PREFIJO,
 
-      totalAsignado:
-        Number(
-          cliente
-            .TOTAL_ASIGNADO ||
-          0
-        ),
+      estado:
+        token.ESTADO,
 
-      totalConsumido:
-        Number(
-          cliente
-            .TOTAL_CONSUMIDO ||
-          0
-        ),
-    },
+      fechaCreacion:
+        token.FECHA_CREACION,
 
+      fechaVencimiento:
+        token.FECHA_VENCIMIENTO,
 
-    tokens:
-      tokensResult
-        .recordset
-        .map(
-          (token) => ({
+      ultimoUso:
+        token.ULTIMO_USO,
 
-            idToken:
-              token
-                .ID_TOKEN,
+    })
+  ),
 
-            prefijo:
-              token
-                .TOKEN_PREFIJO,
-
-            estado:
-              token
-                .ESTADO,
-
-            fechaCreacion:
-              token
-                .FECHA_CREACION,
-
-            fechaVencimiento:
-              token
-                .FECHA_VENCIMIENTO,
-
-            ultimoUso:
-              token
-                .ULTIMO_USO,
-
-            creditos:
-              token
-                .CREDITOS_DISPONIBLES ===
-                null
-
-                ? null
-
-                : {
-
-                    disponibles:
-                      Number(
-                        token
-                          .CREDITOS_DISPONIBLES
-                      ),
-
-                    totalAsignado:
-                      Number(
-                        token
-                          .TOTAL_ASIGNADO
-                      ),
-
-                    totalConsumido:
-                      Number(
-                        token
-                          .TOTAL_CONSUMIDO
-                      ),
-                  },
-          })
-        ),
-
+    // --------------------------------------------------
+    // CONSUMOS
+    // --------------------------------------------------
 
     consumos:
-      consumosResult
-        .recordset
-        .map(
-          (consumo) => ({
+      consumosResult.recordset.map(
+        (consumo) => ({
 
-            idConsumo:
+          idConsumo:
+            consumo.ID_CONSUMO,
+
+          idToken:
+            consumo.ID_TOKEN,
+
+          idMovimiento:
+            consumo.ID_MOVIMIENTO,
+
+          idServicio:
+            consumo.ID_SERVICIO,
+
+          tipoDocumento:
+            consumo
+              .TIPO_DOCUMENTO_CONSULTADO,
+
+          documento:
+            consumo
+              .DOCUMENTO_CONSULTADO,
+
+          servicio:
+            consumo.SERVICIO ||
+            "RRCC",
+
+          creditosConsumidos:
+            Number(
               consumo
-                .ID_CONSUMO,
+                .CREDITOS_CONSUMIDOS ||
+              0
+            ),
 
-            idToken:
-              consumo
-                .ID_TOKEN,
+          estado:
+            consumo.ESTADO,
 
-            idMovimiento:
-              consumo
-                .ID_MOVIMIENTO,
+          httpStatus:
+            consumo.HTTP_STATUS,
 
-            tipoDocumento:
-              consumo
-                .TIPO_DOCUMENTO_CONSULTADO,
+          mensaje:
+            consumo.MENSAJE,
 
-            documento:
-              consumo
-                .DOCUMENTO_CONSULTADO,
+          ipOrigen:
+            consumo.IP_ORIGEN,
 
-            creditosConsumidos:
-              Number(
-                consumo
-                  .CREDITOS_CONSUMIDOS ||
-                0
-              ),
+          duracionMs:
+            consumo.DURACION_MS,
 
-            estado:
-              consumo
-                .ESTADO,
+          fecha:
+            consumo.FECHA,
 
-            httpStatus:
-              consumo
-                .HTTP_STATUS,
+        })
+      ),
 
-            mensaje:
-              consumo
-                .MENSAJE,
 
-            ipOrigen:
-              consumo
-                .IP_ORIGEN,
-
-            duracionMs:
-              consumo
-                .DURACION_MS,
-
-            fecha:
-              consumo
-                .FECHA,
-          })
-        ),
-
+    // --------------------------------------------------
+    // PAGINACIÓN CONSUMOS
+    // --------------------------------------------------
 
     paginacionConsumos: {
 
@@ -2206,50 +2958,54 @@ export async function obtenerClienteDetalle(
     },
 
 
+    // --------------------------------------------------
+    // MOVIMIENTOS
+    // --------------------------------------------------
+
     movimientos:
-      movimientosResult
-        .recordset
-        .map(
-          (movimiento) => ({
+      movimientosResult.recordset.map(
+        (movimiento) => ({
 
-            idMovimiento:
-              movimiento
-                .ID_MOVIMIENTO,
+          idMovimiento:
+            movimiento.ID_MOVIMIENTO,
 
-            idToken:
-              movimiento
-                .ID_TOKEN,
+          idToken:
+            movimiento.ID_TOKEN,
 
-            tipo:
-              movimiento
-                .TIPO,
+          idServicio:
+            movimiento.ID_SERVICIO,
 
-            cantidad:
-              movimiento
-                .CANTIDAD,
+          servicio:
+            movimiento.SERVICIO,
 
-            saldoAntes:
-              movimiento
-                .SALDO_ANTES,
+          tipo:
+            movimiento.TIPO,
 
-            saldoDespues:
-              movimiento
-                .SALDO_DESPUES,
+          cantidad:
+            movimiento.CANTIDAD,
 
-            origen:
-              movimiento
-                .ORIGEN,
+          saldoAntes:
+            movimiento.SALDO_ANTES,
 
-            observacion:
-              movimiento
-                .OBSERVACION,
+          saldoDespues:
+            movimiento.SALDO_DESPUES,
 
-            fecha:
-              movimiento
-                .FECHA,
-          })
-        ),
+          origen:
+            movimiento.ORIGEN,
 
+          observacion:
+            movimiento.OBSERVACION,
+
+          fecha:
+            movimiento.FECHA,
+
+        })
+      ),
+
+
+    // --------------------------------------------------
+    // PAGINACIÓN MOVIMIENTOS
+    // --------------------------------------------------
 
     paginacionMovimientos: {
 
@@ -2274,11 +3030,20 @@ export async function obtenerClienteDetalle(
 
 export async function actualizarEstadoCliente(
   idCliente,
-  estado
+  estado,
+  adminActual
 ) {
 
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
+
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
 
 
   estado =
@@ -2290,7 +3055,9 @@ export async function actualizarEstadoCliente(
 
 
   if (
-    !Number.isInteger(idCliente) ||
+    !Number.isInteger(
+      idCliente
+    ) ||
     idCliente <= 0
   ) {
 
@@ -2326,6 +3093,10 @@ export async function actualizarEstadoCliente(
     await getSqlPool();
 
 
+  // --------------------------------------------------
+  // VALIDAR CLIENTE Y PROPIEDAD
+  // --------------------------------------------------
+
   const clienteResult =
     await pool
       .request()
@@ -2336,10 +3107,25 @@ export async function actualizarEstadoCliente(
         idCliente
       )
 
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
+
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
+
       .query(`
         SELECT
           ID_CLIENTE,
-          ESTADO
+          ESTADO,
+          ID_ADMIN
 
         FROM
           GestionAPIClientes.Clientes
@@ -2347,11 +3133,18 @@ export async function actualizarEstadoCliente(
         WHERE
           ID_CLIENTE =
             @idCliente
+
+          AND
+          (
+            @esSuperAdmin = 1
+            OR ID_ADMIN = @idAdmin
+          )
       `);
 
 
   if (
-    clienteResult.recordset.length === 0
+    clienteResult.recordset.length ===
+    0
   ) {
 
     throw crearError(
@@ -2368,36 +3161,74 @@ export async function actualizarEstadoCliente(
       .ESTADO;
 
 
-  await pool
-    .request()
+  // --------------------------------------------------
+  // ACTUALIZAR ESTADO
+  // --------------------------------------------------
 
-    .input(
-      "idCliente",
-      sql.BigInt,
-      idCliente
-    )
+  const updateResult =
+    await pool
+      .request()
 
-    .input(
-      "estado",
-      sql.VarChar(20),
-      estado
-    )
+      .input(
+        "idCliente",
+        sql.BigInt,
+        idCliente
+      )
 
-    .query(`
-      UPDATE
-        GestionAPIClientes.Clientes
+      .input(
+        "estado",
+        sql.VarChar(20),
+        estado
+      )
 
-      SET
-        ESTADO =
-          @estado,
+      .input(
+        "idAdmin",
+        sql.BigInt,
+        contextoAdmin.idAdmin
+      )
 
-        FECHA_ACTUALIZACION =
-          SYSDATETIME()
+      .input(
+        "esSuperAdmin",
+        sql.Bit,
+        contextoAdmin.esSuperAdmin
+          ? 1
+          : 0
+      )
 
-      WHERE
-        ID_CLIENTE =
-          @idCliente
-    `);
+      .query(`
+        UPDATE
+          GestionAPIClientes.Clientes
+
+        SET
+          ESTADO =
+            @estado,
+
+          FECHA_ACTUALIZACION =
+            SYSDATETIME()
+
+        WHERE
+          ID_CLIENTE =
+            @idCliente
+
+          AND
+          (
+            @esSuperAdmin = 1
+            OR ID_ADMIN = @idAdmin
+          )
+      `);
+
+
+  if (
+    updateResult.rowsAffected[0] !==
+    1
+  ) {
+
+    throw crearError(
+      "No fue posible actualizar el estado del cliente.",
+      409,
+      "CLIENT_STATUS_UPDATE_FAILED"
+    );
+  }
 
 
   return {
@@ -2409,4 +3240,380 @@ export async function actualizarEstadoCliente(
     estadoActual:
       estado,
   };
+}
+
+// ==================================================
+// ASIGNAR / REASIGNAR ADMINISTRADOR A CLIENTE
+// SOLO SUPERADMIN
+// ==================================================
+
+export async function asignarAdministradorCliente(
+  idCliente,
+  idAdmin
+) {
+
+  idCliente =
+    Number(
+      idCliente
+    );
+
+
+  if (
+    !Number.isInteger(idCliente) ||
+    idCliente <= 0
+  ) {
+
+    throw crearError(
+      "El cliente no es válido.",
+      400,
+      "INVALID_CLIENT"
+    );
+  }
+
+
+  // --------------------------------------------------
+  // PERMITIR NULL PARA DEJAR CLIENTE SIN ASIGNAR
+  // --------------------------------------------------
+
+  let idAdminDestino =
+    null;
+
+
+  if (
+    idAdmin !== null &&
+    idAdmin !== undefined &&
+    idAdmin !== ""
+  ) {
+
+    idAdminDestino =
+      Number(
+        idAdmin
+      );
+
+
+    if (
+      !Number.isInteger(
+        idAdminDestino
+      ) ||
+      idAdminDestino <= 0
+    ) {
+
+      throw crearError(
+        "El administrador no es válido.",
+        400,
+        "INVALID_ADMIN"
+      );
+    }
+  }
+
+
+  const pool =
+    await getSqlPool();
+
+
+  const transaction =
+    new sql.Transaction(
+      pool
+    );
+
+
+  try {
+
+    await transaction.begin(
+      sql.ISOLATION_LEVEL.SERIALIZABLE
+    );
+
+
+    // --------------------------------------------------
+    // VALIDAR CLIENTE
+    // --------------------------------------------------
+
+    const clienteResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .query(`
+          SELECT
+            ID_CLIENTE,
+            ID_ADMIN,
+            ESTADO,
+
+            TIPO_DOCUMENTO_CLIENTE,
+            DOCUMENTO_CLIENTE,
+
+            NOMBRES,
+            APELLIDO_PATERNO,
+            APELLIDO_MATERNO,
+
+            RAZON_SOCIAL
+
+          FROM
+            GestionAPIClientes.Clientes
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+        `);
+
+
+    if (
+      clienteResult.recordset.length ===
+      0
+    ) {
+
+      throw crearError(
+        "Cliente no encontrado.",
+        404,
+        "CLIENT_NOT_FOUND"
+      );
+    }
+
+
+    const cliente =
+      clienteResult.recordset[0];
+
+
+    const idAdminAnterior =
+      cliente.ID_ADMIN === null
+        ? null
+        : Number(
+            cliente.ID_ADMIN
+          );
+
+
+    // --------------------------------------------------
+    // VALIDAR ADMINISTRADOR DESTINO
+    // --------------------------------------------------
+
+    let administradorDestino =
+      null;
+
+
+    if (
+      idAdminDestino !== null
+    ) {
+
+      const adminResult =
+        await new sql.Request(
+          transaction
+        )
+
+          .input(
+            "idAdmin",
+            sql.BigInt,
+            idAdminDestino
+          )
+
+          .query(`
+            SELECT
+              ID_ADMIN,
+              USUARIO,
+              NOMBRE,
+              EMAIL,
+              ROL,
+              ESTADO
+
+            FROM
+              GestionAPIClientes.Administradores
+                WITH (
+                  UPDLOCK,
+                  HOLDLOCK
+                )
+
+            WHERE
+              ID_ADMIN =
+                @idAdmin
+          `);
+
+
+      if (
+        adminResult.recordset.length ===
+        0
+      ) {
+
+        throw crearError(
+          "Administrador no encontrado.",
+          404,
+          "ADMIN_NOT_FOUND"
+        );
+      }
+
+
+      administradorDestino =
+        adminResult.recordset[0];
+
+
+      // --------------------------------------------------
+      // SOLO SE PUEDEN ASIGNAR ADMIN NORMALES
+      // --------------------------------------------------
+
+      if (
+        administradorDestino.ROL !==
+        "ADMIN"
+      ) {
+
+        throw crearError(
+          "El cliente solo puede ser asignado a un administrador con rol ADMIN.",
+          400,
+          "CLIENT_ADMIN_ROLE_REQUIRED"
+        );
+      }
+
+
+      // --------------------------------------------------
+      // SOLO ADMINISTRADORES ACTIVOS
+      // --------------------------------------------------
+
+      if (
+        administradorDestino.ESTADO !==
+        "ACTIVO"
+      ) {
+
+        throw crearError(
+          "No puede asignar el cliente a un administrador bloqueado.",
+          409,
+          "ADMIN_NOT_ACTIVE"
+        );
+      }
+    }
+
+
+    // --------------------------------------------------
+    // ACTUALIZAR CLIENTE
+    // --------------------------------------------------
+
+    const updateResult =
+      await new sql.Request(
+        transaction
+      )
+
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
+
+        .input(
+          "idAdmin",
+          sql.BigInt,
+          idAdminDestino
+        )
+
+        .query(`
+          UPDATE
+            GestionAPIClientes.Clientes
+
+          SET
+            ID_ADMIN =
+              @idAdmin,
+
+            FECHA_ACTUALIZACION =
+              SYSDATETIME()
+
+          OUTPUT
+            INSERTED.ID_CLIENTE,
+            INSERTED.ID_ADMIN,
+            INSERTED.FECHA_ACTUALIZACION
+
+          WHERE
+            ID_CLIENTE =
+              @idCliente
+        `);
+
+
+    if (
+      updateResult.recordset.length ===
+      0
+    ) {
+
+      throw crearError(
+        "No fue posible actualizar el administrador del cliente.",
+        409,
+        "CLIENT_ADMIN_UPDATE_FAILED"
+      );
+    }
+
+
+    await transaction.commit();
+
+
+    const nombreCliente =
+      cliente.RAZON_SOCIAL ||
+      [
+        cliente.NOMBRES,
+        cliente.APELLIDO_PATERNO,
+        cliente.APELLIDO_MATERNO,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+
+    return {
+
+      idCliente,
+
+      nombreCliente,
+
+      idAdminAnterior,
+
+      idAdminActual:
+        idAdminDestino,
+
+      administrador:
+        administradorDestino
+          ? {
+
+              idAdmin:
+                administradorDestino.ID_ADMIN,
+
+              usuario:
+                administradorDestino.USUARIO,
+
+              nombre:
+                administradorDestino.NOMBRE,
+
+              email:
+                administradorDestino.EMAIL,
+
+              rol:
+                administradorDestino.ROL,
+
+              estado:
+                administradorDestino.ESTADO,
+            }
+          : null,
+
+      fechaActualizacion:
+        updateResult
+          .recordset[0]
+          .FECHA_ACTUALIZACION,
+    };
+
+
+  } catch (error) {
+
+    try {
+
+      await transaction.rollback();
+
+    } catch {
+
+      // La transacción pudo haberse revertido.
+
+    }
+
+
+    throw error;
+  }
 }

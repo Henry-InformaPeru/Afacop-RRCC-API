@@ -6,6 +6,10 @@ import {
 } from "../config/sqlserver.js";
 
 
+// ==================================================
+// UTILIDADES
+// ==================================================
+
 function crearError(
   message,
   statusCode,
@@ -25,6 +29,73 @@ function crearError(
 }
 
 
+// ==================================================
+// CONTEXTO DEL ADMINISTRADOR
+// ==================================================
+
+function obtenerContextoAdministrador(
+  adminActual
+) {
+
+  const idAdmin =
+    Number(
+      adminActual?.idAdmin
+    );
+
+
+  const rol =
+    String(
+      adminActual?.rol || ""
+    )
+      .trim()
+      .toUpperCase();
+
+
+  if (
+    !Number.isInteger(idAdmin) ||
+    idAdmin <= 0
+  ) {
+
+    throw crearError(
+      "El administrador no es válido.",
+      401,
+      "INVALID_ADMIN"
+    );
+  }
+
+
+  if (
+    ![
+      "ADMIN",
+      "SUPERADMIN",
+    ].includes(rol)
+  ) {
+
+    throw crearError(
+      "El administrador no tiene un rol válido.",
+      403,
+      "INVALID_ADMIN_ROLE"
+    );
+  }
+
+
+  return {
+
+    idAdmin,
+
+    rol,
+
+    esSuperAdmin:
+      rol === "SUPERADMIN",
+
+  };
+}
+
+
+// ==================================================
+// GENERAR TOKEN
+// ==================================================
+
 function generarToken() {
 
   const secreto =
@@ -37,6 +108,10 @@ function generarToken() {
 }
 
 
+// ==================================================
+// GENERAR HASH
+// ==================================================
+
 function generarHash(token) {
 
   return crypto
@@ -47,17 +122,72 @@ function generarHash(token) {
 }
 
 
-// --------------------------------------------------
+// ==================================================
+// NORMALIZAR FECHA DE VENCIMIENTO
+// ==================================================
+
+function normalizarFechaVencimiento(
+  fechaVencimiento
+) {
+
+  if (!fechaVencimiento) {
+
+    return null;
+  }
+
+
+  const fecha =
+    new Date(
+      fechaVencimiento
+    );
+
+
+  if (
+    Number.isNaN(
+      fecha.getTime()
+    )
+  ) {
+
+    throw crearError(
+      "La fecha de vencimiento no es válida.",
+      400,
+      "INVALID_EXPIRATION_DATE"
+    );
+  }
+
+
+  return fecha;
+}
+
+
+// ==================================================
 // REGENERAR TOKEN
-// --------------------------------------------------
+// ==================================================
 
 export async function regenerarTokenCliente(
   idCliente,
-  fechaVencimiento = null
+  fechaVencimiento = null,
+  adminActual
 ) {
 
+  // ==================================================
+  // 1. VALIDAR ADMINISTRADOR
+  // ==================================================
+
+  const contextoAdmin =
+    obtenerContextoAdministrador(
+      adminActual
+    );
+
+
+  // ==================================================
+  // 2. VALIDAR CLIENTE
+  // ==================================================
+
   idCliente =
-    Number(idCliente);
+    Number(
+      idCliente
+    );
 
 
   if (
@@ -73,39 +203,28 @@ export async function regenerarTokenCliente(
   }
 
 
-  let fechaVencimientoSql =
-    null;
+  // ==================================================
+  // 3. VALIDAR FECHA DE VENCIMIENTO
+  // ==================================================
+
+  const fechaVencimientoSql =
+    normalizarFechaVencimiento(
+      fechaVencimiento
+    );
 
 
-  if (fechaVencimiento) {
-
-    fechaVencimientoSql =
-      new Date(
-        fechaVencimiento
-      );
-
-
-    if (
-      Number.isNaN(
-        fechaVencimientoSql.getTime()
-      )
-    ) {
-
-      throw crearError(
-        "La fecha de vencimiento no es válida.",
-        400,
-        "INVALID_EXPIRATION_DATE"
-      );
-    }
-  }
-
+  // ==================================================
+  // 4. GENERAR NUEVO TOKEN
+  // ==================================================
 
   const token =
     generarToken();
 
 
   const tokenHash =
-    generarHash(token);
+    generarHash(
+      token
+    );
 
 
   const tokenPrefijo =
@@ -115,24 +234,34 @@ export async function regenerarTokenCliente(
     );
 
 
+  // ==================================================
+  // 5. CONEXIÓN
+  // ==================================================
+
   const pool =
     await getSqlPool();
 
 
   const transaction =
-    new sql.Transaction(pool);
+    new sql.Transaction(
+      pool
+    );
 
 
   try {
+
+    // ==================================================
+    // 6. INICIAR TRANSACCIÓN
+    // ==================================================
 
     await transaction.begin(
       sql.ISOLATION_LEVEL.SERIALIZABLE
     );
 
 
-    // --------------------------------------------------
-    // VALIDAR CLIENTE
-    // --------------------------------------------------
+    // ==================================================
+    // 7. VALIDAR CLIENTE Y PROPIEDAD
+    // ==================================================
 
     const clienteResult =
       await new sql.Request(
@@ -145,22 +274,48 @@ export async function regenerarTokenCliente(
           idCliente
         )
 
+        .input(
+          "idAdmin",
+          sql.BigInt,
+          contextoAdmin.idAdmin
+        )
+
+        .input(
+          "esSuperAdmin",
+          sql.Bit,
+          contextoAdmin.esSuperAdmin
+            ? 1
+            : 0
+        )
+
         .query(`
           SELECT
             ID_CLIENTE,
-            ESTADO
+            ESTADO,
+            ID_ADMIN
 
           FROM
             GestionAPIClientes.Clientes
+              WITH (
+                UPDLOCK,
+                HOLDLOCK
+              )
 
           WHERE
             ID_CLIENTE =
               @idCliente
+
+            AND
+            (
+              @esSuperAdmin = 1
+              OR ID_ADMIN = @idAdmin
+            )
         `);
 
 
     if (
-      clienteResult.recordset.length === 0
+      clienteResult.recordset.length ===
+      0
     ) {
 
       throw crearError(
@@ -171,9 +326,29 @@ export async function regenerarTokenCliente(
     }
 
 
-    // --------------------------------------------------
-    // OBTENER TOKEN ACTIVO
-    // --------------------------------------------------
+    const cliente =
+      clienteResult.recordset[0];
+
+
+    // ==================================================
+    // 8. VALIDAR ESTADO DEL CLIENTE
+    // ==================================================
+
+    if (
+      cliente.ESTADO !== "ACTIVO"
+    ) {
+
+      throw crearError(
+        "El cliente no se encuentra activo.",
+        409,
+        "CLIENT_NOT_ACTIVE"
+      );
+    }
+
+
+    // ==================================================
+    // 9. BUSCAR TOKEN ACTIVO
+    // ==================================================
 
     const tokenActivoResult =
       await new sql.Request(
@@ -210,7 +385,8 @@ export async function regenerarTokenCliente(
 
 
     if (
-      tokenActivoResult.recordset.length === 0
+      tokenActivoResult.recordset.length ===
+      0
     ) {
 
       throw crearError(
@@ -222,7 +398,8 @@ export async function regenerarTokenCliente(
 
 
     if (
-      tokenActivoResult.recordset.length > 1
+      tokenActivoResult.recordset.length >
+      1
     ) {
 
       throw crearError(
@@ -241,20 +418,14 @@ export async function regenerarTokenCliente(
       );
 
 
-    // --------------------------------------------------
-    // BLOQUEAR SALDO ACTUAL
-    // --------------------------------------------------
+    // ==================================================
+    // 10. REVOCAR TOKEN ANTERIOR
+    // ==================================================
 
-    const saldoResult =
+    const revocarResult =
       await new sql.Request(
         transaction
       )
-
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
 
         .input(
           "idTokenAnterior",
@@ -262,75 +433,47 @@ export async function regenerarTokenCliente(
           idTokenAnterior
         )
 
-        .query(`
-          SELECT
-            CREDITOS_DISPONIBLES,
-            TOTAL_ASIGNADO,
-            TOTAL_CONSUMIDO
+        .input(
+          "idCliente",
+          sql.BigInt,
+          idCliente
+        )
 
-          FROM
-            GestionAPIClientes.Saldos
-              WITH (
-                UPDLOCK,
-                HOLDLOCK
-              )
+        .query(`
+          UPDATE
+            GestionAPIClientes.Tokens
+
+          SET
+            ESTADO =
+              'REVOCADO'
 
           WHERE
-            ID_CLIENTE =
+            ID_TOKEN =
+              @idTokenAnterior
+
+            AND ID_CLIENTE =
               @idCliente
 
-            AND ID_TOKEN =
-              @idTokenAnterior
+            AND ESTADO =
+              'ACTIVO'
         `);
 
 
     if (
-      saldoResult.recordset.length === 0
+      revocarResult.rowsAffected[0] !== 1
     ) {
 
       throw crearError(
-        "El token activo no tiene un registro de saldo.",
+        "No fue posible revocar el token anterior.",
         409,
-        "TOKEN_BALANCE_NOT_FOUND"
+        "TOKEN_REVOKE_FAILED"
       );
     }
 
 
-    const saldoActual =
-      saldoResult.recordset[0];
-
-
-    // --------------------------------------------------
-    // REVOCAR TOKEN ANTERIOR
-    // --------------------------------------------------
-
-    await new sql.Request(
-      transaction
-    )
-
-      .input(
-        "idTokenAnterior",
-        sql.BigInt,
-        idTokenAnterior
-      )
-
-      .query(`
-        UPDATE
-          GestionAPIClientes.Tokens
-
-        SET
-          ESTADO =
-            'REVOCADO'
-
-        WHERE
-          ID_TOKEN =
-            @idTokenAnterior
-      `);
-
-
-    // --------------------------------------------------
-    // CREAR TOKEN NUEVO
-    // --------------------------------------------------
+    // ==================================================
+    // 11. CREAR TOKEN NUEVO
+    // ==================================================
 
     const tokenResult =
       await new sql.Request(
@@ -366,9 +509,12 @@ export async function regenerarTokenCliente(
             GestionAPIClientes.Tokens
           (
             ID_CLIENTE,
+
             TOKEN_HASH,
             TOKEN_PREFIJO,
+
             ESTADO,
+
             FECHA_VENCIMIENTO
           )
 
@@ -378,9 +524,12 @@ export async function regenerarTokenCliente(
           VALUES
           (
             @idCliente,
+
             @tokenHash,
             @tokenPrefijo,
+
             'ACTIVO',
+
             @fechaVencimiento
           )
         `);
@@ -394,67 +543,40 @@ export async function regenerarTokenCliente(
       );
 
 
-    // --------------------------------------------------
-    // TRANSFERIR LA BOLSA DE CRÉDITOS
-    // --------------------------------------------------
-
-    const transferResult =
-      await new sql.Request(
-        transaction
-      )
-
-        .input(
-          "idCliente",
-          sql.BigInt,
-          idCliente
-        )
-
-        .input(
-          "idTokenAnterior",
-          sql.BigInt,
-          idTokenAnterior
-        )
-
-        .input(
-          "idTokenNuevo",
-          sql.BigInt,
-          idToken
-        )
-
-        .query(`
-          UPDATE
-            GestionAPIClientes.Saldos
-
-          SET
-            ID_TOKEN =
-              @idTokenNuevo,
-
-            FECHA_ACTUALIZACION =
-              SYSDATETIME()
-
-          WHERE
-            ID_CLIENTE =
-              @idCliente
-
-            AND ID_TOKEN =
-              @idTokenAnterior
-        `);
+    // ==================================================
+    // IMPORTANTE
+    //
+    // NO SE MODIFICAN LOS SALDOS.
+    //
+    // Las bolsas de créditos ahora pertenecen a:
+    //
+    // ID_CLIENTE + ID_SERVICIO
+    //
+    // en:
+    //
+    // GestionAPIClientes.SaldosServicios
+    //
+    // Por eso regenerar el token NO debe:
+    //
+    // - crear bolsas nuevas
+    // - mover créditos
+    // - cambiar ID_TOKEN en saldos
+    // - reiniciar créditos
+    //
+    // RRCC y SUELDOS conservan exactamente sus saldos.
+    // ==================================================
 
 
-    if (
-      transferResult.rowsAffected[0] !== 1
-    ) {
-
-      throw crearError(
-        "No fue posible transferir el saldo al nuevo token.",
-        409,
-        "TOKEN_BALANCE_TRANSFER_FAILED"
-      );
-    }
-
+    // ==================================================
+    // 12. CONFIRMAR TRANSACCIÓN
+    // ==================================================
 
     await transaction.commit();
 
+
+    // ==================================================
+    // 13. RESPUESTA
+    // ==================================================
 
     return {
 
@@ -469,30 +591,17 @@ export async function regenerarTokenCliente(
       estado:
         "ACTIVO",
 
-      creditosDisponibles:
-        Number(
-          saldoActual
-            .CREDITOS_DISPONIBLES
-        ),
-
-      totalAsignado:
-        Number(
-          saldoActual
-            .TOTAL_ASIGNADO
-        ),
-
-      totalConsumido:
-        Number(
-          saldoActual
-            .TOTAL_CONSUMIDO
-        ),
-
       fechaVencimiento:
         fechaVencimientoSql,
+
     };
 
 
   } catch (error) {
+
+    // ==================================================
+    // REVERTIR TRANSACCIÓN
+    // ==================================================
 
     try {
 
@@ -501,6 +610,7 @@ export async function regenerarTokenCliente(
     } catch {
 
       // La transacción pudo haberse revertido.
+
     }
 
 
