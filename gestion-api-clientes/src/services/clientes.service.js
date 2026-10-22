@@ -681,7 +681,9 @@ const serviciosResult =
       WHERE
         CODIGO IN (
           'RRCC',
-          'SUELDOS'
+          'SUELDOS',
+          'FALLECIDOS',
+          'TELEFONOS'
         )
 
         AND ESTADO =
@@ -703,13 +705,29 @@ const servicioSueldos =
   );
 
 
+const servicioFallecidos =
+  serviciosResult.recordset.find(
+    (servicio) =>
+      servicio.CODIGO === "FALLECIDOS"
+  );
+
+
+const servicioTelefonos =
+  serviciosResult.recordset.find(
+    (servicio) =>
+      servicio.CODIGO === "TELEFONOS"
+  );
+
+
 if (
   !servicioRRCC ||
-  !servicioSueldos
+  !servicioSueldos ||
+  !servicioFallecidos ||
+  !servicioTelefonos
 ) {
 
   throw crearError(
-    "Los servicios RRCC y SUELDOS deben estar configurados y activos.",
+    "Los servicios RRCC, SUELDOS, FALLECIDOS y TELEFONOS deben estar configurados y activos.",
     500,
     "SERVICES_NOT_CONFIGURED"
   );
@@ -725,6 +743,18 @@ const idServicioRRCC =
 const idServicioSueldos =
   Number(
     servicioSueldos.ID_SERVICIO
+  );
+
+
+const idServicioFallecidos =
+  Number(
+    servicioFallecidos.ID_SERVICIO
+  );
+
+
+const idServicioTelefonos =
+  Number(
+    servicioTelefonos.ID_SERVICIO
   );
 
 
@@ -796,6 +826,94 @@ await new sql.Request(
     "idServicio",
     sql.BigInt,
     idServicioSueldos
+  )
+
+  .query(`
+    INSERT INTO
+      GestionAPIClientes.SaldosServicios
+    (
+      ID_CLIENTE,
+      ID_SERVICIO,
+
+      CREDITOS_DISPONIBLES,
+      TOTAL_ASIGNADO,
+      TOTAL_CONSUMIDO
+    )
+
+    VALUES
+    (
+      @idCliente,
+      @idServicio,
+
+      0,
+      0,
+      0
+    )
+  `);
+
+
+// --------------------------------------------------
+// BOLSA FALLECIDOS
+// --------------------------------------------------
+
+await new sql.Request(
+  transaction
+)
+
+  .input(
+    "idCliente",
+    sql.BigInt,
+    idCliente
+  )
+
+  .input(
+    "idServicio",
+    sql.BigInt,
+    idServicioFallecidos
+  )
+
+  .query(`
+    INSERT INTO
+      GestionAPIClientes.SaldosServicios
+    (
+      ID_CLIENTE,
+      ID_SERVICIO,
+
+      CREDITOS_DISPONIBLES,
+      TOTAL_ASIGNADO,
+      TOTAL_CONSUMIDO
+    )
+
+    VALUES
+    (
+      @idCliente,
+      @idServicio,
+
+      0,
+      0,
+      0
+    )
+  `);
+
+
+// --------------------------------------------------
+// BOLSA TELEFONOS
+// --------------------------------------------------
+
+await new sql.Request(
+  transaction
+)
+
+  .input(
+    "idCliente",
+    sql.BigInt,
+    idCliente
+  )
+
+  .input(
+    "idServicio",
+    sql.BigInt,
+    idServicioTelefonos
   )
 
   .query(`
@@ -937,6 +1055,32 @@ if (
 
         },
 
+        FALLECIDOS: {
+
+          disponibles:
+            0,
+
+          totalAsignado:
+            0,
+
+          totalConsumido:
+            0,
+
+        },
+
+        TELEFONOS: {
+
+          disponibles:
+            0,
+
+          totalAsignado:
+            0,
+
+          totalConsumido:
+            0,
+
+        },
+
       },
 
 
@@ -1054,6 +1198,8 @@ export async function recargarCreditos(
     ![
       "RRCC",
       "SUELDOS",
+      "FALLECIDOS",
+      "TELEFONOS",
     ].includes(
       servicio
     )
@@ -1800,6 +1946,36 @@ export async function listarClientes(
             0
           ) AS SUELDOS_CONSUMIDO,
 
+          ISNULL(
+            SB.FALLECIDOS_DISPONIBLES,
+            0
+          ) AS FALLECIDOS_DISPONIBLES,
+
+          ISNULL(
+            SB.FALLECIDOS_ASIGNADO,
+            0
+          ) AS FALLECIDOS_ASIGNADO,
+
+          ISNULL(
+            SB.FALLECIDOS_CONSUMIDO,
+            0
+          ) AS FALLECIDOS_CONSUMIDO,
+
+          ISNULL(
+            SB.TELEFONOS_DISPONIBLES,
+            0
+          ) AS TELEFONOS_DISPONIBLES,
+
+          ISNULL(
+            SB.TELEFONOS_ASIGNADO,
+            0
+          ) AS TELEFONOS_ASIGNADO,
+
+          ISNULL(
+            SB.TELEFONOS_CONSUMIDO,
+            0
+          ) AS TELEFONOS_CONSUMIDO,
+
           (
             SELECT
               COUNT(*)
@@ -1890,7 +2066,57 @@ export async function listarClientes(
                   THEN SS.TOTAL_CONSUMIDO
                 ELSE 0
               END
-            ) AS SUELDOS_CONSUMIDO
+            ) AS SUELDOS_CONSUMIDO,
+
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'FALLECIDOS'
+                  THEN SS.CREDITOS_DISPONIBLES
+                ELSE 0
+              END
+            ) AS FALLECIDOS_DISPONIBLES,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'FALLECIDOS'
+                  THEN SS.TOTAL_ASIGNADO
+                ELSE 0
+              END
+            ) AS FALLECIDOS_ASIGNADO,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'FALLECIDOS'
+                  THEN SS.TOTAL_CONSUMIDO
+                ELSE 0
+              END
+            ) AS FALLECIDOS_CONSUMIDO,
+
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'TELEFONOS'
+                  THEN SS.CREDITOS_DISPONIBLES
+                ELSE 0
+              END
+            ) AS TELEFONOS_DISPONIBLES,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'TELEFONOS'
+                  THEN SS.TOTAL_ASIGNADO
+                ELSE 0
+              END
+            ) AS TELEFONOS_ASIGNADO,
+
+            MAX(
+              CASE
+                WHEN S.CODIGO = 'TELEFONOS'
+                  THEN SS.TOTAL_CONSUMIDO
+                ELSE 0
+              END
+            ) AS TELEFONOS_CONSUMIDO
 
           FROM
             GestionAPIClientes.SaldosServicios SS
@@ -2075,6 +2301,50 @@ export async function listarClientes(
               totalConsumido:
                 Number(
                   cliente.SUELDOS_CONSUMIDO ||
+                  0
+                ),
+
+            },
+
+            FALLECIDOS: {
+
+              disponibles:
+                Number(
+                  cliente.FALLECIDOS_DISPONIBLES ||
+                  0
+                ),
+
+              totalAsignado:
+                Number(
+                  cliente.FALLECIDOS_ASIGNADO ||
+                  0
+                ),
+
+              totalConsumido:
+                Number(
+                  cliente.FALLECIDOS_CONSUMIDO ||
+                  0
+                ),
+
+            },
+
+            TELEFONOS: {
+
+              disponibles:
+                Number(
+                  cliente.TELEFONOS_DISPONIBLES ||
+                  0
+                ),
+
+              totalAsignado:
+                Number(
+                  cliente.TELEFONOS_ASIGNADO ||
+                  0
+                ),
+
+              totalConsumido:
+                Number(
+                  cliente.TELEFONOS_CONSUMIDO ||
                   0
                 ),
 

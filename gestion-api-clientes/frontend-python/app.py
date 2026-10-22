@@ -3134,7 +3134,9 @@ def cliente_recargar_creditos(id_cliente):
 
     if servicio not in (
         "RRCC",
-        "SUELDOS"
+        "SUELDOS",
+        "FALLECIDOS",
+        "TELEFONOS"
     ):
         return redirect(
             url_for(
@@ -4449,6 +4451,8 @@ def consumos():
         "",
         "RRCC",
         "SUELDOS",
+        "FALLECIDOS",
+        "TELEFONOS",
     ):
 
         servicio = ""
@@ -4914,7 +4918,15 @@ def portal_cuenta():
 
             sueldos_json=None,
 
-            sueldos_form={}
+            sueldos_form={},
+
+            fallecidos_json=None,
+
+            fallecidos_form={},
+
+            telefonos_json=None,
+
+            telefonos_form={}
         )
 
 
@@ -4966,7 +4978,15 @@ def portal_cuenta():
 
             sueldos_json=None,
 
-            sueldos_form={}
+            sueldos_form={},
+
+            fallecidos_json=None,
+
+            fallecidos_form={},
+
+            telefonos_json=None,
+
+            telefonos_form={}
         )
 
 
@@ -4991,7 +5011,15 @@ def portal_cuenta():
 
         sueldos_json=None,
 
-        sueldos_form={}
+        sueldos_form={},
+
+        fallecidos_json=None,
+
+        fallecidos_form={},
+
+        telefonos_json=None,
+
+        telefonos_form={}
     )
 
 # --------------------------------------------------
@@ -5236,7 +5264,15 @@ def portal_consulta():
 
         sueldos_json=None,
 
-        sueldos_form={}
+        sueldos_form={},
+
+        fallecidos_json=None,
+
+        fallecidos_form={},
+
+        telefonos_json=None,
+
+        telefonos_form={}
     )
 
 # --------------------------------------------------
@@ -5457,6 +5493,476 @@ def portal_sueldos():
             sueldos_json,
 
         sueldos_form={
+            "tipoDocumento":
+                tipo_documento,
+
+            "documento":
+                documento,
+        },
+
+        # FALLECIDOS
+        fallecidos_json=None,
+        fallecidos_form={},
+
+        # TELEFONOS
+        telefonos_json=None,
+        telefonos_form={}
+    )
+
+# --------------------------------------------------
+# CONSULTA FALLECIDOS DESDE EL PORTAL
+# --------------------------------------------------
+
+@app.route(
+    "/portal/fallecidos",
+    methods=["POST"]
+)
+def portal_fallecidos():
+
+    token = request.cookies.get(
+        "portal_token"
+    )
+
+    # --------------------------------------------------
+    # VALIDAR SESIÓN
+    # --------------------------------------------------
+
+    if not token:
+
+        return redirect(
+            url_for(
+                "portal_login"
+            )
+        )
+
+    # --------------------------------------------------
+    # DATOS DEL FORMULARIO
+    # --------------------------------------------------
+
+    tipo_documento = (
+        request.form
+        .get(
+            "tipoDocumento",
+            ""
+        )
+        .strip()
+        .upper()
+    )
+
+    documento = (
+        request.form
+        .get(
+            "documento",
+            ""
+        )
+        .strip()
+    )
+
+    # --------------------------------------------------
+    # VALIDACIÓN BÁSICA
+    # --------------------------------------------------
+
+    if (
+        not tipo_documento
+        or
+        not documento
+    ):
+
+        return redirect(
+            url_for(
+                "portal_cuenta"
+            )
+        )
+
+    # --------------------------------------------------
+    # REALIZAR CONSULTA DE FALLECIDOS
+    # --------------------------------------------------
+
+    try:
+
+        response_backend = requests.post(
+            f"{BACKEND_URL}/api/cliente/fallecidos",
+
+            json={
+                "tipoDocumento":
+                    tipo_documento,
+
+                "documento":
+                    documento,
+            },
+
+            headers={
+                "Authorization":
+                    f"Bearer {token}"
+            },
+
+            timeout=30
+        )
+
+        try:
+
+            resultado_backend = (
+                response_backend.json()
+            )
+
+        except ValueError:
+
+            resultado_backend = {
+                "success": False,
+                "error":
+                    "El servidor devolvió "
+                    "una respuesta no válida.",
+                "code":
+                    "INVALID_RESPONSE"
+            }
+
+    except requests.RequestException:
+
+        response_backend = None
+
+        resultado_backend = {
+            "success": False,
+            "error":
+                "No se pudo conectar "
+                "con el servidor.",
+            "code":
+                "CONNECTION_ERROR"
+        }
+
+    # --------------------------------------------------
+    # TOKEN INVÁLIDO / REVOCADO / CLIENTE BLOQUEADO
+    # --------------------------------------------------
+
+    if (
+        response_backend is not None
+        and
+        response_backend.status_code
+        in (401, 403)
+    ):
+
+        response = make_response(
+            redirect(
+                url_for(
+                    "portal_login"
+                )
+            )
+        )
+
+        response.delete_cookie(
+            "portal_token",
+            path="/"
+        )
+
+        return response
+
+    # --------------------------------------------------
+    # OBTENER CUENTA ACTUALIZADA
+    # --------------------------------------------------
+
+    cuenta = None
+
+    try:
+
+        response_cuenta = requests.get(
+            f"{BACKEND_URL}/api/cliente/cuenta",
+
+            headers={
+                "Authorization":
+                    f"Bearer {token}"
+            },
+
+            timeout=10
+        )
+
+        if response_cuenta.ok:
+
+            datos_cuenta = (
+                response_cuenta.json()
+            )
+
+            cuenta = (
+                datos_cuenta.get(
+                    "data",
+                    {}
+                )
+            )
+
+    except (
+        requests.RequestException,
+        ValueError
+    ):
+
+        cuenta = None
+
+    # --------------------------------------------------
+    # CONVERTIR RESPUESTA COMPLETA A JSON
+    # --------------------------------------------------
+
+    fallecidos_json = json.dumps(
+        resultado_backend,
+        ensure_ascii=False,
+        indent=2
+    )
+
+    # --------------------------------------------------
+    # MOSTRAR PORTAL
+    # --------------------------------------------------
+
+    return render_template(
+        "portal_cuenta.html",
+
+        cuenta=cuenta,
+
+        error=None,
+
+        # RRCC
+        consulta_json=None,
+        consulta_form={},
+
+        # SUELDOS
+        sueldos_json=None,
+        sueldos_form={},
+
+        # FALLECIDOS
+        fallecidos_json=
+            fallecidos_json,
+
+        fallecidos_form={
+            "tipoDocumento":
+                tipo_documento,
+
+            "documento":
+                documento,
+        },
+
+        # TELEFONOS
+        telefonos_json=None,
+        telefonos_form={}
+    )
+
+# --------------------------------------------------
+# CONSULTA TELÉFONOS DESDE EL PORTAL
+# --------------------------------------------------
+
+@app.route(
+    "/portal/telefonos",
+    methods=["POST"]
+)
+def portal_telefonos():
+
+    token = request.cookies.get(
+        "portal_token"
+    )
+
+    # --------------------------------------------------
+    # VALIDAR SESIÓN
+    # --------------------------------------------------
+
+    if not token:
+
+        return redirect(
+            url_for(
+                "portal_login"
+            )
+        )
+
+    # --------------------------------------------------
+    # DATOS DEL FORMULARIO
+    # --------------------------------------------------
+
+    tipo_documento = (
+        request.form
+        .get(
+            "tipoDocumento",
+            ""
+        )
+        .strip()
+        .upper()
+    )
+
+    documento = (
+        request.form
+        .get(
+            "documento",
+            ""
+        )
+        .strip()
+    )
+
+    # --------------------------------------------------
+    # VALIDACIÓN BÁSICA
+    # --------------------------------------------------
+
+    if (
+        not tipo_documento
+        or
+        not documento
+    ):
+
+        return redirect(
+            url_for(
+                "portal_cuenta"
+            )
+        )
+
+    # --------------------------------------------------
+    # REALIZAR CONSULTA DE TELÉFONOS
+    # --------------------------------------------------
+
+    try:
+
+        response_backend = requests.post(
+            f"{BACKEND_URL}/api/cliente/telefonos",
+
+            json={
+                "tipoDocumento":
+                    tipo_documento,
+
+                "documento":
+                    documento,
+            },
+
+            headers={
+                "Authorization":
+                    f"Bearer {token}"
+            },
+
+            timeout=30
+        )
+
+        try:
+
+            resultado_backend = (
+                response_backend.json()
+            )
+
+        except ValueError:
+
+            resultado_backend = {
+                "success": False,
+                "error":
+                    "El servidor devolvió "
+                    "una respuesta no válida.",
+                "code":
+                    "INVALID_RESPONSE"
+            }
+
+    except requests.RequestException:
+
+        response_backend = None
+
+        resultado_backend = {
+            "success": False,
+            "error":
+                "No se pudo conectar "
+                "con el servidor.",
+            "code":
+                "CONNECTION_ERROR"
+        }
+
+    # --------------------------------------------------
+    # TOKEN INVÁLIDO / REVOCADO / CLIENTE BLOQUEADO
+    # --------------------------------------------------
+
+    if (
+        response_backend is not None
+        and
+        response_backend.status_code
+        in (401, 403)
+    ):
+
+        response = make_response(
+            redirect(
+                url_for(
+                    "portal_login"
+                )
+            )
+        )
+
+        response.delete_cookie(
+            "portal_token",
+            path="/"
+        )
+
+        return response
+
+    # --------------------------------------------------
+    # OBTENER CUENTA ACTUALIZADA
+    # --------------------------------------------------
+
+    cuenta = None
+
+    try:
+
+        response_cuenta = requests.get(
+            f"{BACKEND_URL}/api/cliente/cuenta",
+
+            headers={
+                "Authorization":
+                    f"Bearer {token}"
+            },
+
+            timeout=10
+        )
+
+        if response_cuenta.ok:
+
+            datos_cuenta = (
+                response_cuenta.json()
+            )
+
+            cuenta = (
+                datos_cuenta.get(
+                    "data",
+                    {}
+                )
+            )
+
+    except (
+        requests.RequestException,
+        ValueError
+    ):
+
+        cuenta = None
+
+    # --------------------------------------------------
+    # CONVERTIR RESPUESTA COMPLETA A JSON
+    # --------------------------------------------------
+
+    telefonos_json = json.dumps(
+        resultado_backend,
+        ensure_ascii=False,
+        indent=2
+    )
+
+    # --------------------------------------------------
+    # MOSTRAR PORTAL
+    # --------------------------------------------------
+
+    return render_template(
+        "portal_cuenta.html",
+
+        cuenta=cuenta,
+
+        error=None,
+
+        # RRCC
+        consulta_json=None,
+        consulta_form={},
+
+        # SUELDOS
+        sueldos_json=None,
+        sueldos_form={},
+
+        # FALLECIDOS
+        fallecidos_json=None,
+        fallecidos_form={},
+
+        # TELEFONOS
+        telefonos_json=
+            telefonos_json,
+
+        telefonos_form={
             "tipoDocumento":
                 tipo_documento,
 

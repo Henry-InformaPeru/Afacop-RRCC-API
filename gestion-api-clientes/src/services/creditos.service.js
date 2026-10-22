@@ -11,6 +11,8 @@ import {
 const SERVICIOS_PERMITIDOS = [
   "RRCC",
   "SUELDOS",
+  "FALLECIDOS",
+  "TELEFONOS",
 ];
 
 

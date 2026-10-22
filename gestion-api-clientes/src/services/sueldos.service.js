@@ -47,9 +47,8 @@ function normalizarTexto(
     return null;
   }
 
-
   return String(valor)
-    .trim();
+    .trim() || null;
 }
 
 
@@ -74,78 +73,12 @@ function normalizarNumero(
     return null;
   }
 
-
   const numero =
     Number(valor);
-
 
   return Number.isFinite(numero)
     ? numero
     : null;
-}
-
-
-// ==================================================
-// MAPEAR REGISTRO DE SUELDOS
-// ==================================================
-
-function mapearRegistro(
-  registro,
-  tipoDocumento,
-  fechaConsulta
-) {
-
-  return {
-
-    periodo:
-      normalizarTexto(
-        registro.PERIODO
-      ),
-
-    tipoDocumento:
-      normalizarTexto(
-        tipoDocumento
-      ),
-
-    documento:
-      normalizarTexto(
-        registro.DOCUMENTO
-      ),
-
-    nombres:
-      normalizarTexto(
-        registro.APENOM
-      ),
-
-    ruc:
-      normalizarTexto(
-        registro.RUC
-      ),
-
-    empresa:
-      normalizarTexto(
-        registro.EMPRESA
-      ),
-
-    rangoSueldo:
-      normalizarTexto(
-        registro.RANGO_SUELDO
-      ),
-
-    nivelIngreso:
-      normalizarTexto(
-        registro.NIVEL_INGRESO
-      ),
-
-    sueldo:
-      normalizarNumero(
-        registro.SUELDO
-      ),
-
-    fechaConsulta:
-      fechaConsulta,
-
-  };
 }
 
 
@@ -162,13 +95,6 @@ export async function consultarSueldos({
 
   // ==================================================
   // 1. VALIDAR DOCUMENTO
-  //
-  // Reutilizamos exactamente las mismas reglas de:
-  //
-  // DNI
-  // RUC
-  // CE
-  // PASAPORTE
   // ==================================================
 
   const datos =
@@ -185,7 +111,6 @@ export async function consultarSueldos({
   const pool =
     await getSqlPool();
 
-
   let result;
 
 
@@ -193,53 +118,36 @@ export async function consultarSueldos({
 
     // ==================================================
     // 3. CONSULTAR OPERADOR.SUELDOS
-    //
-    // Por ahora buscamos por DOCUMENTO.
-    //
-    // No usamos TIPODOC como filtro hasta que
-    // negocio confirme la equivalencia completa
-    // de códigos 03, 06, 08, 09, etc.
-    //
-    // Importante:
-    // utilizamos igualdad directa y no LTRIM/RTRIM
-    // sobre la columna para permitir que SQL Server
-    // pueda aprovechar un índice en DOCUMENTO.
     // ==================================================
 
     result =
-  await pool
-    .request()
-
-    .input(
-      "documento",
-      sql.VarChar(30),
-      datos.documento
-    )
-
-    .query(`
-      SELECT
-        PERIODO,
-        DOCUMENTO,
-        APENOM,
-        RUC,
-        EMPRESA,
-        RANGO_SUELDO,
-        NIVEL_INGRESO,
-        SUELDO
-
-      FROM
-        Buscador.Operador.Sueldos
-
-      WHERE
-        DOCUMENTO =
-          @documento
-
-      ORDER BY
-        PERIODO DESC,
-        FECHA_CARGA DESC,
-        ID DESC
-    `);
-
+      await pool
+        .request()
+        .input(
+          "documento",
+          sql.VarChar(30),
+          datos.documento
+        )
+        .query(`
+          SELECT
+            PERIODO,
+            DOCUMENTO,
+            APENOM,
+            RUC,
+            EMPRESA,
+            RANGO_SUELDO,
+            NIVEL_INGRESO,
+            SUELDO
+          FROM
+            Buscador.Operador.Sueldos
+          WHERE
+            DOCUMENTO =
+              @documento
+          ORDER BY
+            PERIODO DESC,
+            FECHA_CARGA DESC,
+            ID DESC
+        `);
 
   } catch (error) {
 
@@ -247,7 +155,6 @@ export async function consultarSueldos({
       "Error consultando Operador.Sueldos:",
       error
     );
-
 
     throw crearError(
       "No se pudo consultar el servicio de sueldos.",
@@ -258,34 +165,15 @@ export async function consultarSueldos({
 
 
   // ==================================================
-  // 4. MAPEAR RESULTADOS
-  // ==================================================
-
-  const fechaConsulta =
-  new Date().toISOString();
-
-
-    const registros =
-    result.recordset.map(
-        (registro) =>
-        mapearRegistro(
-            registro,
-            datos.tipoDocumento,
-            fechaConsulta
-        )
-    );
-
-
-  // ==================================================
-  // 5. SIN INFORMACIÓN
+  // 4. SIN INFORMACIÓN
   // ==================================================
 
   if (
-    registros.length === 0
+    !result.recordset ||
+    result.recordset.length === 0
   ) {
 
     return {
-
       status:
         404,
 
@@ -299,37 +187,91 @@ export async function consultarSueldos({
         datos.documento,
 
       data: {
-
         error:
           "No se encontró información de sueldos para el documento consultado.",
 
         code:
           "SUELDOS_SIN_DATOS",
-
       },
     };
   }
 
 
   // ==================================================
+  // 5. MAPEAR PERIODOS Y RESPUESTA AGRUPADA
+  // ==================================================
+
+  const primerRegistro =
+    result.recordset[0];
+
+  const nombres =
+    normalizarTexto(
+      primerRegistro.APENOM
+    );
+
+  const periodos =
+    result.recordset.map(
+      (registro) => ({
+        periodo:
+          normalizarTexto(
+            registro.PERIODO
+          ),
+
+        ruc:
+          normalizarTexto(
+            registro.RUC
+          ),
+
+        empresa:
+          normalizarTexto(
+            registro.EMPRESA
+          ),
+
+        sueldo:
+          normalizarNumero(
+            registro.SUELDO
+          ),
+
+        rangoSueldo:
+          normalizarTexto(
+            registro.RANGO_SUELDO
+          ),
+
+        nivelIngreso:
+          normalizarTexto(
+            registro.NIVEL_INGRESO
+          ),
+      })
+    );
+
+
+  // ==================================================
   // 6. RESPUESTA EXITOSA
   // ==================================================
 
-    return {
-
+  return {
     status:
-        200,
+      200,
 
     ok:
-        true,
+      true,
 
     tipoDocumento:
-        datos.tipoDocumento,
+      datos.tipoDocumento,
 
     documento:
+      datos.documento,
+
+    data: {
+      tipoDocumento:
+        datos.tipoDocumento,
+
+      documento:
         datos.documento,
 
-    data:
-        registros,
-    };
+      nombres,
+
+      periodos,
+    },
+  };
 }

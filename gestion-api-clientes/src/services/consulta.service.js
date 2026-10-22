@@ -1,3 +1,13 @@
+import {
+  getSqlPool,
+  sql,
+} from "../config/sqlserver.js";
+
+
+// ==================================================
+// CREAR ERROR
+// ==================================================
+
 function crearError(
   message,
   statusCode,
@@ -17,236 +27,59 @@ function crearError(
 }
 
 
-// --------------------------------------------------
-// REORDENAR NOMBRE
-// --------------------------------------------------
+// ==================================================
+// NORMALIZAR TEXTO
+// ==================================================
 
-function reordenarNombre(nombre) {
-
-  nombre =
-    String(
-      nombre || ""
-    )
-      .trim()
-      .replace(
-        /\s+/g,
-        " "
-      );
-
-
-  if (!nombre) {
-
-    return nombre;
-  }
-
-
-  const partes =
-    nombre.split(" ");
-
-
-  if (
-    partes.length < 3
-  ) {
-
-    return nombre;
-  }
-
-
-  const apellidos =
-    partes.slice(-2);
-
-
-  const nombres =
-    partes.slice(
-      0,
-      -2
-    );
-
-
-  return [
-    ...apellidos,
-    ...nombres,
-  ].join(" ");
-}
-
-
-// --------------------------------------------------
-// ADAPTAR DATOS RRCC
-// --------------------------------------------------
-
-function adaptarDatosRRCC(datos) {
-
-  if (
-    !datos ||
-    typeof datos !== "object" ||
-    Array.isArray(datos)
-  ) {
-
-    return datos;
-  }
-
-
-  let rating =
-    datos.rating;
-
-
-  if (
-    rating &&
-    typeof rating === "object"
-  ) {
-
-    rating = {
-
-      NOR:
-        rating.normal ??
-        rating.NOR ??
-        0,
-
-      CPP:
-        rating.problemas ??
-        rating.CPP ??
-        0,
-
-      DEF:
-        rating.deficiente ??
-        rating.DEF ??
-        0,
-
-      DUD:
-        rating.dudoso ??
-        rating.DUD ??
-        0,
-
-      PER:
-        rating.perdida ??
-        rating.PER ??
-        0,
-
-      reportan:
-        rating.reportan ??
-        rating.reportar ??
-        0,
-    };
-  }
-
-
-  const deudas =
-    Array.isArray(
-      datos.deudas
-    )
-
-      ? datos.deudas.map(
-          (deuda) => {
-
-            const {
-              capital,
-              codigoEmpresa,
-              ...resto
-            } = deuda;
-
-
-            return {
-              ...resto,
-
-              saldo:
-                capital ??
-                deuda.saldo,
-            };
-          }
-        )
-
-      : datos.deudas;
-
-
-  const lineas =
-    Array.isArray(
-      datos.lineas
-    )
-
-      ? datos.lineas.map(
-          (linea) => {
-
-            const {
-              codigoEmpresa,
-              diferencia,
-              consistencia,
-              consistente,
-              ...resto
-            } = linea;
-
-
-            return resto;
-          }
-        )
-
-      : datos.lineas;
-
-
-  return {
-
-    ...datos,
-
-    nombre:
-      reordenarNombre(
-        datos.nombre
-      ),
-
-    rating,
-
-    deudas,
-
-    lineas,
-  };
-}
-
-
-// --------------------------------------------------
-// ADAPTAR WRAPPER
-// --------------------------------------------------
-
-function adaptarRespuestaRRCC(
-  respuesta
+function normalizarTexto(
+  valor
 ) {
 
   if (
-    !respuesta ||
-    typeof respuesta !== "object"
+    valor === null ||
+    valor === undefined
   ) {
 
-    return respuesta;
+    return null;
   }
 
+  const texto =
+    String(valor)
+      .trim();
 
-  if (
-    respuesta.data &&
-    typeof respuesta.data ===
-      "object" &&
-    !Array.isArray(
-      respuesta.data
-    )
-  ) {
-
-    return {
-
-      ...respuesta,
-
-      data:
-        adaptarDatosRRCC(
-          respuesta.data
-        ),
-    };
-  }
-
-
-  return adaptarDatosRRCC(
-    respuesta
-  );
+  return texto || null;
 }
 
 
-// --------------------------------------------------
+// ==================================================
+// NORMALIZAR NÚMERO
+// ==================================================
+
+function normalizarNumero(
+  valor
+) {
+
+  if (
+    valor === null ||
+    valor === undefined ||
+    valor === ""
+  ) {
+
+    return 0;
+  }
+
+  const num =
+    Number(valor);
+
+  return Number.isFinite(num)
+    ? num
+    : 0;
+}
+
+
+// ==================================================
 // VALIDAR DOCUMENTO
-// --------------------------------------------------
+// ==================================================
 
 export function validarDocumento(
   tipoDocumento,
@@ -260,13 +93,21 @@ export function validarDocumento(
       .trim()
       .toUpperCase();
 
-
   documento =
     String(
       documento || ""
     )
       .trim();
 
+  // Compatibilidad con alias
+  if (
+    tipoDocumento === "CARNET DE EXTRANJERIA" ||
+    tipoDocumento === "CARNET DE EXTRANJERÍA" ||
+    tipoDocumento === "CARNET_EXTRANJERIA" ||
+    tipoDocumento === "CARNET_DE_EXTRANJERIA"
+  ) {
+    tipoDocumento = "CE";
+  }
 
   const tiposPermitidos = [
     "DNI",
@@ -274,7 +115,6 @@ export function validarDocumento(
     "CE",
     "PASAPORTE",
   ];
-
 
   if (
     !tiposPermitidos.includes(
@@ -289,7 +129,6 @@ export function validarDocumento(
     );
   }
 
-
   if (!documento) {
 
     throw crearError(
@@ -298,7 +137,6 @@ export function validarDocumento(
       "DOCUMENT_REQUIRED"
     );
   }
-
 
   if (
     tipoDocumento === "DNI" &&
@@ -314,7 +152,6 @@ export function validarDocumento(
     );
   }
 
-
   if (
     tipoDocumento === "RUC" &&
     !/^\d{11}$/.test(
@@ -328,7 +165,6 @@ export function validarDocumento(
       "INVALID_RUC"
     );
   }
-
 
   if (
     tipoDocumento === "CE" &&
@@ -347,7 +183,6 @@ export function validarDocumento(
       "INVALID_CE"
     );
   }
-
 
   if (
     tipoDocumento ===
@@ -368,7 +203,6 @@ export function validarDocumento(
     );
   }
 
-
   return {
     tipoDocumento,
     documento,
@@ -376,9 +210,13 @@ export function validarDocumento(
 }
 
 
-// --------------------------------------------------
+// ==================================================
 // CONSULTAR RRCC
-// --------------------------------------------------
+//
+// Devuelve la información limpia agrupada en el
+// arreglo periodos (ordenado del más actual al más antiguo),
+// sin repetir el mes más reciente en la raíz.
+// ==================================================
 
 export async function consultarRRCC({
 
@@ -393,156 +231,281 @@ export async function consultarRRCC({
       documento
     );
 
+  const pool =
+    await getSqlPool();
 
-  const baseUrl =
-    String(
-      process.env.RRCC_API_URL ||
-      ""
-    )
-      .trim()
-      .replace(
-        /\/+$/,
-        ""
-      );
-
-
-  const apiKey =
-    String(
-      process.env.RRCC_API_KEY ||
-      ""
-    )
-      .trim();
-
-
-  if (
-    !baseUrl ||
-    !apiKey
-  ) {
-
-    throw crearError(
-      "La conexión con RRCC no está configurada.",
-      500,
-      "RRCC_NOT_CONFIGURED"
-    );
-  }
-
-
-  const url =
-    `${baseUrl}/v1/rrcc/evaluar/` +
-    encodeURIComponent(
-      datos.documento
-    );
-
-
-  let response;
-
+  let califResult;
+  let deudaResult;
+  let lineasResult;
 
   try {
 
-    response =
-      await fetch(
-        url,
-        {
+    const docParam =
+      datos.documento;
 
-          method:
-            "GET",
+    // 1. Calificaciones por periodo
+    califResult =
+      await pool
+        .request()
+        .input(
+          "doc",
+          sql.VarChar(20),
+          docParam
+        )
+        .query(`
+          SELECT
+            PERIODO,
+            CODIGOSBS,
+            NOR,
+            CPP,
+            DEF,
+            DUD,
+            PER,
+            REPORTAN,
+            APE_PAT,
+            APE_MAT,
+            PRI_NOMBRE,
+            SEG_NOMBRE,
+            FECHA_CARGA
+          FROM Buscador.[RRCC].[Calificacion]
+          WHERE DOCUMENTO = @doc
+          ORDER BY PERIODO DESC, FECHA_CARGA DESC
+        `);
 
-          headers: {
+    // 2. Deudas por periodo
+    deudaResult =
+      await pool
+        .request()
+        .input(
+          "doc",
+          sql.VarChar(20),
+          docParam
+        )
+        .query(`
+          SELECT
+            PERIODO,
+            CODIGOSBS,
+            RAZONSOCIAL,
+            CODIGOEMPRESA,
+            ENTIDAD,
+            TIPO_DEUDA,
+            DIAS,
+            CALIFICACION,
+            SALDO,
+            FECHA_CARGA
+          FROM Buscador.[RRCC].[Deuda]
+          WHERE DOCUMENTO = @doc
+          ORDER BY PERIODO DESC, ENTIDAD, TIPO_DEUDA
+        `);
 
-            Accept:
-              "application/json",
-
-            "x-api-key":
-              apiKey,
-          },
-
-          signal:
-            AbortSignal.timeout(
-              20000
-            ),
-        }
-      );
-
+    // 3. Líneas de crédito por periodo
+    lineasResult =
+      await pool
+        .request()
+        .input(
+          "doc",
+          sql.VarChar(20),
+          docParam
+        )
+        .query(`
+          SELECT
+            PERIODO,
+            CODIGOSBS,
+            RAZONSOCIAL,
+            CODIGOEMPRESA,
+            ENTIDAD,
+            TIPO,
+            LINEA_CREDITO,
+            LINEA_NO_UTILIZADA,
+            LINEA_UTILIZADA,
+            FECHA_CARGA
+          FROM Buscador.[RRCC].[LineasCredito]
+          WHERE DOCUMENTO = @doc
+          ORDER BY PERIODO DESC, ENTIDAD
+        `);
 
   } catch (error) {
 
-    if (
-      error?.name ===
-        "TimeoutError" ||
-      error?.name ===
-        "AbortError"
-    ) {
+    console.error(
+      "Error consultando RRCC en SQL Server:",
+      error
+    );
 
-      throw crearError(
-        "El servicio RRCC excedió el tiempo de espera.",
-        504,
-        "RRCC_TIMEOUT"
-      );
+    throw crearError(
+      "No se pudo consultar el servicio RRCC.",
+      500,
+      "RRCC_QUERY_ERROR"
+    );
+  }
+
+  const calificaciones =
+    califResult.recordset;
+
+  const deudas =
+    deudaResult.recordset;
+
+  const lineas =
+    lineasResult.recordset;
+
+  // Si no se encontró ningún dato en ninguna de las 3 tablas
+  if (
+    calificaciones.length === 0 &&
+    deudas.length === 0 &&
+    lineas.length === 0
+  ) {
+
+    return {
+      status: 404,
+      ok: false,
+      tipoDocumento: datos.tipoDocumento,
+      documento: datos.documento,
+      data: {
+        error:
+          "No se encontró información crediticia para el documento consultado.",
+        code:
+          "RRCC_CLIENT_NOT_FOUND",
+      },
+    };
+  }
+
+  // Determinar Nombre / Razón Social y Código SBS
+  const c0 = calificaciones[0];
+  const d0 = deudas[0];
+  const l0 = lineas[0];
+
+  const codigoSbs =
+    c0?.CODIGOSBS ||
+    d0?.CODIGOSBS ||
+    l0?.CODIGOSBS ||
+    "";
+
+  let nombreFinal = "";
+
+  const esRuc =
+    datos.tipoDocumento === "RUC" ||
+    datos.documento.length === 11;
+
+  if (esRuc) {
+    // Para RUC / Empresas: Razón Social íntegra sin alteración
+    nombreFinal =
+      c0?.APE_PAT ||
+      d0?.RAZONSOCIAL ||
+      l0?.RAZONSOCIAL ||
+      "";
+  } else {
+    // Para Personas Naturales: [APE_PAT] [APE_MAT] [PRI_NOMBRE] [SEG_NOMBRE]
+    if (c0) {
+      nombreFinal = [
+        c0.APE_PAT,
+        c0.APE_MAT,
+        c0.PRI_NOMBRE,
+        c0.SEG_NOMBRE,
+      ]
+        .filter(Boolean)
+        .map(s => String(s).trim())
+        .filter(Boolean)
+        .join(" ");
+    } else {
+      nombreFinal =
+        d0?.RAZONSOCIAL ||
+        l0?.RAZONSOCIAL ||
+        "";
     }
-
-
-    throw crearError(
-      "No se pudo conectar con el servicio RRCC.",
-      502,
-      "RRCC_CONNECTION_ERROR"
-    );
   }
 
+  // Agrupar todos los periodos presentes ordenados de más reciente a más antiguo
+  const periodosSet = new Set();
 
-  const texto =
-    await response.text();
+  calificaciones.forEach(
+    r => r.PERIODO && periodosSet.add(String(r.PERIODO).trim())
+  );
 
+  deudas.forEach(
+    r => r.PERIODO && periodosSet.add(String(r.PERIODO).trim())
+  );
 
-  let data;
+  lineas.forEach(
+    r => r.PERIODO && periodosSet.add(String(r.PERIODO).trim())
+  );
 
+  const periodosOrdenados =
+    Array.from(periodosSet).sort((a, b) => b.localeCompare(a));
 
-  try {
+  const periodos = periodosOrdenados.map((periodo) => {
 
-    data =
-      texto
-
-        ? JSON.parse(
-            texto
-          )
-
-        : {};
-
-
-  } catch {
-
-    throw crearError(
-      "RRCC devolvió una respuesta inválida.",
-      502,
-      "RRCC_INVALID_RESPONSE"
+    const c = calificaciones.find(
+      r => String(r.PERIODO).trim() === periodo
     );
-  }
 
+    const rating = c
+      ? {
+          NOR: Number(c.NOR ?? 0),
+          CPP: Number(c.CPP ?? 0),
+          DEF: Number(c.DEF ?? 0),
+          DUD: Number(c.DUD ?? 0),
+          PER: Number(c.PER ?? 0),
+          reportan: Number(String(c.REPORTAN ?? "0").trim()) || 0,
+        }
+      : null;
 
-  const dataAdaptada =
-    response.ok
+    const deudasPeriodo = deudas
+      .filter(d => String(d.PERIODO).trim() === periodo)
+      .map(d => ({
+        entidad: normalizarTexto(d.ENTIDAD),
+        tipoDeuda: normalizarTexto(d.TIPO_DEUDA),
+        calificacion: normalizarTexto(d.CALIFICACION),
+        saldo: normalizarNumero(d.SALDO),
+        dias: normalizarNumero(d.DIAS),
+      }));
 
-      ? adaptarRespuestaRRCC(
-          data
-        )
+    const lineasPeriodo = lineas
+      .filter(l => String(l.PERIODO).trim() === periodo)
+      .map(l => {
+        const lineaCredito = normalizarNumero(l.LINEA_CREDITO);
+        const lineaUtilizada = normalizarNumero(l.LINEA_UTILIZADA);
+        const lineaNoUtilizada = normalizarNumero(l.LINEA_NO_UTILIZADA);
 
-      : data;
+        const porcentajeUtilizado =
+          lineaCredito > 0
+            ? (lineaUtilizada / lineaCredito) * 100
+            : 0;
 
+        const porcentajeNoUtilizado =
+          lineaCredito > 0
+            ? (lineaNoUtilizada / lineaCredito) * 100
+            : 0;
+
+        return {
+          entidad: normalizarTexto(l.ENTIDAD),
+          tipo: normalizarTexto(l.TIPO),
+          lineaCredito,
+          lineaUtilizada,
+          lineaNoUtilizada,
+          porcentajeUtilizado: Number(porcentajeUtilizado.toFixed(2)),
+          porcentajeNoUtilizado: Number(porcentajeNoUtilizado.toFixed(2)),
+        };
+      });
+
+    return {
+      periodo,
+      fechaCarga: c?.FECHA_CARGA ?? null,
+      rating,
+      deudas: deudasPeriodo,
+      lineas: lineasPeriodo,
+    };
+  });
 
   return {
-
-    status:
-      response.status,
-
-    ok:
-      response.ok,
-
-    tipoDocumento:
-      datos.tipoDocumento,
-
-    documento:
-      datos.documento,
-
-    data:
-      dataAdaptada,
+    status: 200,
+    ok: true,
+    tipoDocumento: datos.tipoDocumento,
+    documento: datos.documento,
+    data: {
+      documento: datos.documento,
+      tipoDocumento: datos.tipoDocumento,
+      codigoSbs: normalizarTexto(codigoSbs),
+      nombre: normalizarTexto(nombreFinal),
+      periodos,
+    },
   };
 }

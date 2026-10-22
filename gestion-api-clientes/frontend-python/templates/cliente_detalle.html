@@ -40,116 +40,48 @@
 
         =========================================== -->
 
-        <aside class="sidebar">
+                <aside class="sidebar">
 
             <div class="sidebar-brand">
-
                 <div class="sidebar-logo">
-
                     API
-
                 </div>
-
                 <div>
-
-                    <strong>
-
-                        Gestión API
-
-                    </strong>
-
-                    <span>
-
-                        Clientes
-
-                    </span>
-
+                    <strong>Gestión API</strong>
+                    <span>Panel de Control</span>
                 </div>
-
             </div>
 
             <nav class="sidebar-nav">
-
-                <a
-
-                    href="{{ url_for('dashboard') }}"
-
-                    class="nav-link"
-
-                >
-
-                    <span class="nav-icon">
-
-                        ▦
-
-                    </span>
-
-                    Dashboard
-
+                <a href="{{ url_for('dashboard') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+                    <span>Dashboard</span>
                 </a>
 
-                <a
-
-                    href="{{ url_for('clientes') }}"
-
-                    class="nav-link active"
-
-                >
-
-                    <span class="nav-icon">
-
-                        👥
-
-                    </span>
-
-                    Clientes
-
+                <a href="{{ url_for('clientes') }}" class="nav-link active">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span>Clientes</span>
                 </a>
 
-                <a
-
-                    href="{{ url_for('consumos') }}"
-
-                    class="nav-link"
-
-                >
-
-                    <span class="nav-icon">
-
-                        ◫
-
-                    </span>
-
-                    Consumos
-
+                <a href="{{ url_for('consumos') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                    <span>Consumos</span>
                 </a>
 
+                {% if administrador and administrador.rol == "SUPERADMIN" %}
+                <a href="{{ url_for('administradores') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span>Administradores</span>
+                </a>
+                {% endif %}
             </nav>
 
             <div class="sidebar-footer">
-
-                <form
-
-                    method="POST"
-
-                    action="{{ url_for('logout') }}"
-
-                >
-
-                    <button
-
-                        type="submit"
-
-                        class="logout-button"
-
-                    >
-
-                        Cerrar sesión
-
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <button type="submit" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión
                     </button>
-
                 </form>
-
             </div>
 
         </aside>
@@ -161,6 +93,15 @@
         =========================================== -->
 
         <main class="main-content">
+
+            <div class="admin-breadcrumbs">
+                <a href="{{ url_for('clientes') }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><path d="m15 18-6-6 6-6"/></svg>
+                    Clientes
+                </a>
+                <span>/</span>
+                <span style="color: #0f172a; font-weight: 600;">{{ data.cliente.nombre }}</span>
+            </div>
 
             <!-- ERROR -->
 
@@ -211,79 +152,96 @@
             =========================================== -->
 
             <header class="client-detail-header">
-
                 <div>
-
                     <div class="client-title-row">
-
-                        <h1>
-
-                            {{ data.cliente.nombre }}
-
-                        </h1>
-
+                        <h1>{{ data.cliente.nombre }}</h1>
                         {% if data.cliente.estado == "ACTIVO" %}
-
-                        <span class="badge badge-active">
-
-                            ACTIVO
-
-                        </span>
-
+                        <span class="badge badge-active">ACTIVO</span>
                         {% else %}
-
-                        <span class="badge badge-blocked">
-
-                            {{ data.cliente.estado }}
-
-                        </span>
-
+                        <span class="badge badge-blocked">{{ data.cliente.estado }}</span>
                         {% endif %}
-
                     </div>
-
-                    <p>
-
-                        {{ data.cliente.tipoDocumento }}
-
-                        {{ data.cliente.documento }}
-
+                    <p style="margin-top: 8px;">
+                        <span class="doc-badge">{{ data.cliente.tipoDocumento }}: {{ data.cliente.documento }}</span>
+                        {% if data.cliente.email %}
+                        <span style="margin-left: 8px; color: #64748b; font-size: 13.5px;">{{ data.cliente.email }}</span>
+                        {% endif %}
                     </p>
-
                 </div>
+            </header>
 
-                <!-- ACCIONES -->
-
-                <div class="detail-actions">
-
-                    <!-- RECARGAR -->
-
+            <!-- ==========================================
+                BARRA DE ACCIONES ACOPLADA
+            =========================================== -->
+            <section class="client-actions-bar">
+                <!-- ACCIONES DE ESTADO Y TOKEN -->
+                <div class="client-status-actions">
+                    <!-- BLOQUEAR / ACTIVAR -->
                     <form
                         method="POST"
-                        action="{{ url_for(
-                            'cliente_recargar_creditos',
-                            id_cliente=data.cliente.idCliente
-                        ) }}"
-                        class="recharge-form"
+                        action="{{ url_for('cliente_estado', id_cliente=data.cliente.idCliente) }}"
+                        style="margin: 0;"
                     >
+                        {% if data.cliente.estado == "ACTIVO" %}
+                        <input type="hidden" name="estado" value="BLOQUEADO">
+                        <button type="submit" class="btn-action-account btn-action-block">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Bloquear cliente</span>
+                        </button>
+                        {% else %}
+                        <input type="hidden" name="estado" value="ACTIVO">
+                        <button type="submit" class="btn-action-account btn-action-activate">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                            </svg>
+                            <span>Activar cliente</span>
+                        </button>
+                        {% endif %}
+                    </form>
 
+                    <!-- REGENERAR TOKEN -->
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_regenerar_token', id_cliente=data.cliente.idCliente) }}"
+                        style="margin: 0;"
+                    >
+                        <button type="submit" class="btn-action-account btn-action-regenerate">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m21 2-2 2m-1.5 1.5L10 13m-4.5 1.5L2 18l3 3 3.5-3.5m4.5-4.5 2-2"/>
+                                <circle cx="7.5" cy="16.5" r="1.5"/>
+                            </svg>
+                            <span>Regenerar token</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CAJA DE RECARGA DE SALDO -->
+                <div class="client-recharge-card">
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_recargar_creditos', id_cliente=data.cliente.idCliente) }}"
+                        class="client-recharge-form"
+                    >
+                        <span class="recharge-badge-label">Recarga:</span>
                         <select
                             name="servicio"
                             class="recharge-service-select"
                             required
                         >
-                            <option value="RRCC">
-                                RRCC
-                            </option>
-
-                            <option value="SUELDOS">
-                                SUELDOS
-                            </option>
+                            <option value="RRCC">RRCC</option>
+                            <option value="SUELDOS">SUELDOS</option>
+                            <option value="FALLECIDOS">FALLECIDOS</option>
+                            <option value="TELEFONOS">TELEFONOS</option>
                         </select>
 
                         <input
                             type="number"
                             name="cantidad"
+                            id="adminRechargeAmount"
                             min="1"
                             step="1"
                             placeholder="Créditos"
@@ -292,114 +250,25 @@
 
                         <button
                             type="submit"
-                            class="secondary-action"
+                            class="btn-recharge-submit"
                         >
-                            Recargar
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>Recargar</span>
                         </button>
-
                     </form>
 
-                    <!-- BLOQUEAR / ACTIVAR -->
-
-                    <form
-
-                        method="POST"
-
-                        action="{{ url_for(
-
-                            'cliente_estado',
-
-                            id_cliente=data.cliente.idCliente
-
-                        ) }}"
-
-                    >
-
-                        {% if data.cliente.estado == "ACTIVO" %}
-
-                        <input
-
-                            type="hidden"
-
-                            name="estado"
-
-                            value="BLOQUEADO"
-
-                        >
-
-                        <button
-
-                            type="submit"
-
-                            class="danger-action"
-
-                        >
-
-                            Bloquear
-
-                        </button>
-
-                        {% else %}
-
-                        <input
-
-                            type="hidden"
-
-                            name="estado"
-
-                            value="ACTIVO"
-
-                        >
-
-                        <button
-
-                            type="submit"
-
-                            class="success-action"
-
-                        >
-
-                            Activar
-
-                        </button>
-
-                        {% endif %}
-
-                    </form>
-
-                    <!-- REGENERAR TOKEN -->
-
-                    <form
-
-                        method="POST"
-
-                        action="{{ url_for(
-
-                            'cliente_regenerar_token',
-
-                            id_cliente=data.cliente.idCliente
-
-                        ) }}"
-
-                    >
-
-                        <button
-
-                            type="submit"
-
-                            class="primary-action"
-
-                        >
-
-                            Regenerar token
-
-                        </button>
-
-                    </form>
-
+                    <div class="quick-recharge-row">
+                        <span class="quick-recharge-label">Monto rápido:</span>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 50;">+50</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 100;">+100</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 500;">+500</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 1000;">+1000</button>
+                    </div>
                 </div>
-
-            </header>
+            </section>
 
             <!-- ==========================================
 
@@ -463,63 +332,108 @@
                 CRÉDITOS POR SERVICIO
             =========================================== -->
 
-            <section class="detail-stats">
+            <div style="margin: 28px 0 14px 0; display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Saldos por Servicio de API</h3>
+                <span style="font-size: 12px; color: #64748b;">4 servicios independientes</span>
+            </div>
 
-                <article class="stat-card">
-                    <div class="stat-title">
-                        RRCC disponibles
+            <div class="services-balance-grid">
+                <!-- RRCC -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-rrcc">RRCC</span>
+                            <span>Calificación SBS</span>
+                        </div>
                     </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.RRCC.disponibles if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.RRCC.disponibles if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.RRCC.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.RRCC.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
                     </div>
-                </article>
+                </div>
 
-                <article class="stat-card">
-                    <div class="stat-title">
-                        RRCC asignados
+                <!-- SUELDOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-sueldos">SUELDOS</span>
+                            <span>Planillas / Sueldos</span>
+                        </div>
                     </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.RRCC.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.SUELDOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.SUELDOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.SUELDOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
                     </div>
-                </article>
+                </div>
 
-                <article class="stat-card">
-                    <div class="stat-title">
-                        RRCC consumidos
+                <!-- FALLECIDOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-fallecidos">FALLECIDOS</span>
+                            <span>Defunciones</span>
+                        </div>
                     </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.RRCC.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.FALLECIDOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.FALLECIDOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.FALLECIDOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
                     </div>
-                </article>
+                </div>
 
-                <article class="stat-card">
-                    <div class="stat-title">
-                        SUELDOS disponibles
+                <!-- TELEFONOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-telefonos">TELEFONOS</span>
+                            <span>Líneas y Operadores</span>
+                        </div>
                     </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.SUELDOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.TELEFONOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.TELEFONOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.TELEFONOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
                     </div>
-                </article>
-
-                <article class="stat-card">
-                    <div class="stat-title">
-                        SUELDOS asignados
-                    </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.SUELDOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}
-                    </div>
-                </article>
-
-                <article class="stat-card">
-                    <div class="stat-title">
-                        SUELDOS consumidos
-                    </div>
-                    <div class="stat-value">
-                        {{ data.creditosPorServicio.SUELDOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}
-                    </div>
-                </article>
-
-            </section>
+                </div>
+            </div>
 
             <!-- ==========================================
 
@@ -1462,6 +1376,22 @@
 
                         </span>
 
+                        {% elif consumo.servicio == "FALLECIDOS" %}
+
+                        <span class="badge badge-info">
+
+                            FALLECIDOS
+
+                        </span>
+
+                        {% elif consumo.servicio == "TELEFONOS" %}
+
+                        <span class="badge badge-telefonos">
+
+                            TELEFONOS
+
+                        </span>
+
                         {% else %}
 
                         <span class="badge badge-active">
@@ -1812,6 +1742,18 @@
 
                                     <span class="badge badge-warning">
                                         SUELDOS
+                                    </span>
+
+                                    {% elif movimiento.servicio == "FALLECIDOS" %}
+
+                                    <span class="badge badge-info">
+                                        FALLECIDOS
+                                    </span>
+
+                                    {% elif movimiento.servicio == "TELEFONOS" %}
+
+                                    <span class="badge badge-telefonos">
+                                        TELEFONOS
                                     </span>
 
                                     {% elif movimiento.servicio == "RRCC" %}
@@ -2474,6 +2416,7 @@
 
         </script>
 
-    </body>
+        <script src="{{ url_for('static', filename='js/custom-select.js') }}?v=2"></script>
+</body>
 
 </html>

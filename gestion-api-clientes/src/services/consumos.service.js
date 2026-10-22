@@ -11,6 +11,8 @@ import {
 const SERVICIOS_PERMITIDOS = [
   "RRCC",
   "SUELDOS",
+  "FALLECIDOS",
+  "TELEFONOS",
 ];
 
 
@@ -469,6 +471,8 @@ export async function listarConsumos(
     "",
     "RRCC",
     "SUELDOS",
+    "FALLECIDOS",
+    "TELEFONOS",
   ];
 
 

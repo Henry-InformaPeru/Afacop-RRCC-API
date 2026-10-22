@@ -1,4 +1,21 @@
+# Entorno virtual de Python
 .venv/
+venv/
+ENV/
+env/
+
+# Cachés y compilados de Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+
+# Entornos y secretos
 .env
+.env.*
+*.env
+!.env.example
+
+# Logs
+*.log

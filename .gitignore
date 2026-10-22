@@ -1,6 +1,40 @@
+# Dependencias y entorno raíz (RRCC)
 node_modules/
 .env
-rrcc-api.tar
+.env.*
+*.env
+!.env.example
+!.env.template
 
+# Logs y depuración
+logs/
+*.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Empaquetados e imágenes locales
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+*.rar
+*.7z
+
+# IDEs y Editores
+.idea/
+.vscode/
+*.swp
+*~
+
+# Herramientas de IA
+.agents/
+.gemini/
+
+# Archivos del Sistema Operativo
 .DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

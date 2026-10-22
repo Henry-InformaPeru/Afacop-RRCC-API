@@ -42,6 +42,16 @@ import {
 } from "../services/sueldos.service.js";
 
 
+import {
+  consultarFallecidos,
+} from "../services/fallecidos.service.js";
+
+
+import {
+  consultarTelefonos,
+} from "../services/telefonos.service.js";
+
+
 
 const router =
   Router();
@@ -508,9 +518,6 @@ async function procesarConsultaRRCC(
 
         code:
           codigo,
-
-        data:
-          rrcc.data,
 
       });
 
@@ -980,9 +987,6 @@ async function procesarConsultaSueldos(
         code:
           codigo,
 
-        data:
-          sueldos.data,
-
       });
 
 
@@ -1163,6 +1167,898 @@ router.get(
 
   procesarConsultaSueldos
 
+);
+
+
+
+// ==================================================
+// PROCESAR CONSULTA FALLECIDOS
+//
+// Esta función es compartida por:
+//
+// POST -> Portal
+// GET  -> API comercial
+// ==================================================
+
+async function procesarConsultaFallecidos(
+  req,
+  res
+) {
+
+  aplicarNoCache(
+    res
+  );
+
+
+  const inicio =
+    Date.now();
+
+
+  const cliente =
+    req.clienteApi;
+
+
+  let datosConsulta =
+    null;
+
+
+  let reserva =
+    null;
+
+
+  let consumoRegistrado =
+    false;
+
+
+  try {
+
+    // ==============================================
+    // 1. OBTENER DATOS
+    // ==============================================
+
+    const entrada =
+      obtenerDatosEntrada(
+        req
+      );
+
+
+    // ==============================================
+    // 2. VALIDAR DOCUMENTO
+    // ==============================================
+
+    datosConsulta =
+      validarDocumento(
+        entrada.tipoDocumento,
+        entrada.documento
+      );
+
+
+    // ==============================================
+    // 3. RESERVAR 1 CRÉDITO FALLECIDOS
+    // ==============================================
+
+    reserva =
+      await reservarCredito({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        servicio:
+          "FALLECIDOS",
+
+      });
+
+
+    // ==============================================
+    // 4. CONSULTAR FALLECIDOS
+    // ==============================================
+
+    const fallecidos =
+      await consultarFallecidos({
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+      });
+
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    // ==============================================
+    // 5. CONSULTA EXITOSA
+    // ==============================================
+
+    if (
+      fallecidos.ok
+    ) {
+
+      await registrarConsumo({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        idMovimiento:
+          reserva.idMovimiento,
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+        servicio:
+          "FALLECIDOS",
+
+        creditosConsumidos:
+          1,
+
+        estado:
+          "EXITOSA",
+
+        httpStatus:
+          fallecidos.status ||
+          200,
+
+        mensaje:
+          "Consulta de fallecidos procesada correctamente.",
+
+        ipOrigen:
+          req.ip,
+
+        duracionMs,
+
+      });
+
+
+      consumoRegistrado =
+        true;
+
+
+      return res
+        .status(
+          fallecidos.status ||
+          200
+        )
+        .json({
+
+          success:
+            true,
+
+          data:
+            fallecidos.data,
+
+        });
+    }
+
+
+    // ==============================================
+    // 6. SIN DATOS / ERROR
+    // ==============================================
+
+    const estado =
+      fallecidos.status === 404
+
+        ? "SIN_DATOS"
+
+        : "ERROR";
+
+
+    const mensaje =
+      fallecidos.data?.error ||
+      fallecidos.data?.message ||
+      fallecidos.data?.mensaje ||
+      (
+        fallecidos.status === 404
+
+          ? "No se encontró información de fallecimiento para el documento consultado."
+
+          : "La consulta de fallecidos fue procesada con error."
+      );
+
+
+    const codigo =
+      fallecidos.data?.code ||
+      (
+        fallecidos.status === 404
+
+          ? "FALLECIDOS_SIN_DATOS"
+
+          : "FALLECIDOS_ERROR"
+      );
+
+
+    await registrarConsumo({
+
+      idCliente:
+        cliente.idCliente,
+
+      idToken:
+        cliente.idToken,
+
+      idMovimiento:
+        reserva.idMovimiento,
+
+      tipoDocumento:
+        datosConsulta
+          .tipoDocumento,
+
+      documento:
+        datosConsulta
+          .documento,
+
+      servicio:
+        "FALLECIDOS",
+
+      creditosConsumidos:
+        1,
+
+      estado,
+
+      httpStatus:
+        fallecidos.status,
+
+      mensaje,
+
+      ipOrigen:
+        req.ip,
+
+      duracionMs,
+
+    });
+
+
+    consumoRegistrado =
+      true;
+
+
+    return res
+      .status(
+        fallecidos.status ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          mensaje,
+
+        code:
+          codigo,
+
+      });
+
+
+  } catch (
+    error
+  ) {
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    console.error(
+      "Error realizando consulta de fallecidos:",
+      error
+    );
+
+
+    if (
+      reserva &&
+      datosConsulta &&
+      !consumoRegistrado
+    ) {
+
+      try {
+
+        await registrarConsumo({
+
+          idCliente:
+            cliente.idCliente,
+
+          idToken:
+            cliente.idToken,
+
+          idMovimiento:
+            reserva.idMovimiento,
+
+          tipoDocumento:
+            datosConsulta
+              .tipoDocumento,
+
+          documento:
+            datosConsulta
+              .documento,
+
+          servicio:
+            "FALLECIDOS",
+
+          creditosConsumidos:
+            1,
+
+          estado:
+            "ERROR",
+
+          httpStatus:
+            error.statusCode ||
+            500,
+
+          mensaje:
+            error.message ||
+            "Error procesando la consulta de fallecidos.",
+
+          ipOrigen:
+            req.ip,
+
+          duracionMs,
+
+        });
+
+
+        consumoRegistrado =
+          true;
+
+
+      } catch (
+        errorRegistro
+      ) {
+
+        console.error(
+          "ERROR registrando consumo de fallecidos:",
+          errorRegistro
+        );
+      }
+    }
+
+
+    return res
+      .status(
+        error.statusCode ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          error.statusCode
+
+            ? error.message
+
+            : "Error interno del servidor.",
+
+        code:
+          error.code ||
+          "INTERNAL_ERROR",
+
+      });
+  }
+}
+
+
+
+// ==================================================
+// FALLECIDOS - POST
+//
+// PORTAL WEB
+//
+// Autenticación:
+// Authorization: Bearer <token>
+//
+// Datos:
+// BODY JSON
+// ==================================================
+
+router.post(
+  "/fallecidos",
+
+  clienteIpLimiter,
+
+  clientTokenAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaFallecidos
+);
+
+
+
+// ==================================================
+// FALLECIDOS - GET
+//
+// API COMERCIAL
+//
+// Autenticación:
+// Authorization: Basic <credencial>
+//
+// Ejemplo:
+//
+// GET
+// /api/cliente/fallecidos
+// ?tipoDocumento=DNI
+// &documento=08526314
+// ==================================================
+
+router.get(
+  "/fallecidos",
+
+  clienteIpLimiter,
+
+  clientBasicAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaFallecidos
+);
+
+
+
+// ==================================================
+// PROCESAR CONSULTA TELÉFONOS
+//
+// Esta función es compartida por:
+//
+// POST -> Portal
+// GET  -> API comercial
+// ==================================================
+
+async function procesarConsultaTelefonos(
+  req,
+  res
+) {
+
+  aplicarNoCache(
+    res
+  );
+
+
+  const inicio =
+    Date.now();
+
+
+  const cliente =
+    req.clienteApi;
+
+
+  let datosConsulta =
+    null;
+
+
+  let reserva =
+    null;
+
+
+  let consumoRegistrado =
+    false;
+
+
+  try {
+
+    // ==============================================
+    // 1. OBTENER DATOS
+    // ==============================================
+
+    const entrada =
+      obtenerDatosEntrada(
+        req
+      );
+
+
+    // ==============================================
+    // 2. VALIDAR DOCUMENTO
+    // ==============================================
+
+    datosConsulta =
+      validarDocumento(
+        entrada.tipoDocumento,
+        entrada.documento
+      );
+
+
+    // ==============================================
+    // 3. RESERVAR 1 CRÉDITO TELÉFONOS
+    // ==============================================
+
+    reserva =
+      await reservarCredito({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        servicio:
+          "TELEFONOS",
+
+      });
+
+
+    // ==============================================
+    // 4. CONSULTAR TELÉFONOS
+    // ==============================================
+
+    const telefonos =
+      await consultarTelefonos({
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+      });
+
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    // ==============================================
+    // 5. CONSULTA EXITOSA
+    // ==============================================
+
+    if (
+      telefonos.ok
+    ) {
+
+      await registrarConsumo({
+
+        idCliente:
+          cliente.idCliente,
+
+        idToken:
+          cliente.idToken,
+
+        idMovimiento:
+          reserva.idMovimiento,
+
+        tipoDocumento:
+          datosConsulta
+            .tipoDocumento,
+
+        documento:
+          datosConsulta
+            .documento,
+
+        servicio:
+          "TELEFONOS",
+
+        creditosConsumidos:
+          1,
+
+        estado:
+          "EXITOSA",
+
+        httpStatus:
+          telefonos.status ||
+          200,
+
+        mensaje:
+          "Consulta de teléfonos procesada correctamente.",
+
+        ipOrigen:
+          req.ip,
+
+        duracionMs,
+
+      });
+
+
+      consumoRegistrado =
+        true;
+
+
+      return res
+        .status(
+          telefonos.status ||
+          200
+        )
+        .json({
+
+          success:
+            true,
+
+          data:
+            telefonos.data,
+
+        });
+    }
+
+
+    // ==============================================
+    // 6. SIN DATOS / ERROR
+    // ==============================================
+
+    const estado =
+      telefonos.status === 404
+
+        ? "SIN_DATOS"
+
+        : "ERROR";
+
+
+    const mensaje =
+      telefonos.data?.error ||
+      telefonos.data?.message ||
+      telefonos.data?.mensaje ||
+      telefonos.error ||
+      (
+        telefonos.status === 404
+
+          ? "No se encontró información de teléfonos para el documento consultado."
+
+          : "La consulta de teléfonos fue procesada con error."
+      );
+
+
+    const codigo =
+      telefonos.data?.code ||
+      telefonos.code ||
+      (
+        telefonos.status === 404
+
+          ? "TELEFONOS_SIN_DATOS"
+
+          : "TELEFONOS_ERROR"
+      );
+
+
+    await registrarConsumo({
+
+      idCliente:
+        cliente.idCliente,
+
+      idToken:
+        cliente.idToken,
+
+      idMovimiento:
+        reserva.idMovimiento,
+
+      tipoDocumento:
+        datosConsulta
+          .tipoDocumento,
+
+      documento:
+        datosConsulta
+          .documento,
+
+      servicio:
+        "TELEFONOS",
+
+      creditosConsumidos:
+        1,
+
+      estado,
+
+      httpStatus:
+        telefonos.status,
+
+      mensaje,
+
+      ipOrigen:
+        req.ip,
+
+      duracionMs,
+
+    });
+
+
+    consumoRegistrado =
+      true;
+
+
+    return res
+      .status(
+        telefonos.status ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          mensaje,
+
+        code:
+          codigo,
+
+      });
+
+
+  } catch (
+    error
+  ) {
+
+    const duracionMs =
+      Date.now() -
+      inicio;
+
+
+    console.error(
+      "Error realizando consulta de teléfonos:",
+      error
+    );
+
+
+    if (
+      reserva &&
+      datosConsulta &&
+      !consumoRegistrado
+    ) {
+
+      try {
+
+        await registrarConsumo({
+
+          idCliente:
+            cliente.idCliente,
+
+          idToken:
+            cliente.idToken,
+
+          idMovimiento:
+            reserva.idMovimiento,
+
+          tipoDocumento:
+            datosConsulta
+              .tipoDocumento,
+
+          documento:
+            datosConsulta
+              .documento,
+
+          servicio:
+            "TELEFONOS",
+
+          creditosConsumidos:
+            1,
+
+          estado:
+            "ERROR",
+
+          httpStatus:
+            error.statusCode ||
+            500,
+
+          mensaje:
+            error.message ||
+            "Error procesando la consulta de teléfonos.",
+
+          ipOrigen:
+            req.ip,
+
+          duracionMs,
+
+        });
+
+
+        consumoRegistrado =
+          true;
+
+
+      } catch (
+        errorRegistro
+      ) {
+
+        console.error(
+          "ERROR registrando consumo de teléfonos:",
+          errorRegistro
+        );
+      }
+    }
+
+
+    return res
+      .status(
+        error.statusCode ||
+        500
+      )
+      .json({
+
+        success:
+          false,
+
+        error:
+          error.statusCode
+
+            ? error.message
+
+            : "Error interno del servidor.",
+
+        code:
+          error.code ||
+          "INTERNAL_ERROR",
+
+      });
+  }
+}
+
+
+
+// ==================================================
+// TELÉFONOS - POST
+//
+// PORTAL WEB
+//
+// Autenticación:
+// Authorization: Bearer <token>
+//
+// Datos:
+// BODY JSON
+// ==================================================
+
+router.post(
+  "/telefonos",
+
+  clienteIpLimiter,
+
+  clientTokenAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaTelefonos
+);
+
+
+
+// ==================================================
+// TELÉFONOS - GET
+//
+// API COMERCIAL
+//
+// Autenticación:
+// Authorization: Basic <credencial>
+//
+// Ejemplo:
+//
+// GET
+// /api/cliente/telefonos
+// ?tipoDocumento=DNI
+// &documento=25485119
+// ==================================================
+
+router.get(
+  "/telefonos",
+
+  clienteIpLimiter,
+
+  clientBasicAuth,
+
+  consultaTokenLimiter,
+
+  limitarConsultasConcurrentes,
+
+  procesarConsultaTelefonos
 );
 
 

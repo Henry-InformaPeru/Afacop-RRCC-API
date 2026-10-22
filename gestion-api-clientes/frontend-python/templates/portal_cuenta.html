@@ -16,7 +16,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}?v=17"
+        href="{{ url_for('static', filename='css/style.css') }}?v=43"
     >
 
 
@@ -119,6 +119,215 @@
             }
         }
 
+    
+
+    
+    
+        /* ==================================================
+           DESPLEGABLE ELEGANTE BASADO EN EL DISEÑO DE REFERENCIA
+        ================================================== */
+        .portal-modal {
+            min-height: 490px !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .portal-modal-body {
+            flex: 1 !important;
+            min-height: 390px !important;
+            overflow: visible !important;
+            padding-bottom: 30px !important;
+        }
+
+        .portal-modal-form {
+            overflow: visible !important;
+        }
+
+        /* Si los resultados están visibles y el contenido es largo, permitir scroll */
+        .portal-modal-body:has(.portal-modal-result:not([style*="display: none"])) {
+            overflow-y: auto !important;
+        }
+
+        .portal-hidden-select {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+            z-index: 50;
+        }
+
+        /* CAJA DEL SELECTOR / TRIGGER */
+        .custom-dropdown-trigger {
+            width: 100%;
+            height: 46px;
+            padding: 0 14px;
+            background: #ffffff;
+            border: 1.5px solid #d1d5db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            color: #1f2937;
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            user-select: none;
+        }
+
+        .custom-dropdown-trigger:hover {
+            border-color: #9ca3af;
+            background: #f9fafb;
+        }
+
+        .custom-dropdown-trigger:focus,
+        .custom-dropdown-trigger.is-active {
+            border-color: #1d4ed8;
+            background: #ffffff;
+            box-shadow: 0 0 0 3.5px rgba(29, 78, 216, 0.12);
+        }
+
+        .trigger-text {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .trigger-text.is-placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .trigger-chevron {
+            color: #6b7280;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-dropdown-trigger.is-active .trigger-chevron {
+            transform: rotate(180deg);
+            color: #1d4ed8;
+        }
+
+        /* MENÚ DESPLEGABLE FLOTANTE (ESTILO DE LA FOTO) */
+        .custom-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            min-width: 240px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 4px 0;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+            z-index: 1050;
+            overflow: hidden;
+            animation: dropdownFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ELEMENTOS DE LA LISTA */
+        .custom-dropdown-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 42px;
+            padding: 0 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 450;
+            color: #374151;
+            transition: all 0.12s ease;
+            user-select: none;
+        }
+
+        .custom-dropdown-option:hover {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        /* ELEMENTO SELECCIONADO (AZUL PASTEL COMO EN LA FOTO) */
+        .custom-dropdown-option.is-selected {
+            background: #ebedf7;
+            color: #0e23a1;
+            font-weight: 600;
+        }
+
+        .opt-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .opt-check {
+            color: #0e23a1;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .custom-dropdown-option.is-selected .opt-check {
+            opacity: 1;
+        }
+
+        /* INPUT DE DOCUMENTO ESTILIZADO */
+        .portal-modal-form .portal-query-field input {
+            height: 46px !important;
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 8px !important;
+            padding: 0 14px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .portal-modal-form .portal-query-field input:hover {
+            border-color: #9ca3af !important;
+        }
+
+        .portal-modal-form .portal-query-field input:focus {
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 0 0 3.5px rgba(29, 78, 216, 0.12) !important;
+        }
+
+        /* BOTÓN CONSULTAR */
+        .portal-modal-submit .portal-query-button {
+            height: 46px !important;
+            border-radius: 8px !important;
+            padding: 0 24px !important;
+            font-weight: 600 !important;
+            background: #172033 !important;
+            box-shadow: 0 2px 6px rgba(23, 32, 51, 0.15) !important;
+        }
+    
     </style>
 
 </head>
@@ -260,6 +469,58 @@
         %}
 
 
+        {% set fallecidos =
+            creditos_servicios.get(
+                'FALLECIDOS',
+                {}
+            )
+        %}
+
+
+        {% set fallecidos_disponibles =
+            (fallecidos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set fallecidos_asignados =
+            (fallecidos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set fallecidos_consumidos =
+            (fallecidos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos =
+            creditos_servicios.get(
+                'TELEFONOS',
+                {}
+            )
+        %}
+
+
+        {% set telefonos_disponibles =
+            (telefonos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos_asignados =
+            (telefonos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos_consumidos =
+            (telefonos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
 
         <!-- ==================================================
              DATOS DEL CLIENTE
@@ -336,248 +597,249 @@
 
 
 
-        <!-- ==================================================
-             CONSULTA RRCC
+                <!-- ==================================================
+             HUB DE SERVICIOS / CATÁLOGO DE APIS
         ================================================== -->
+        <section class="portal-services-section">
 
-        <section class="portal-query-launch">
-
-
-            <div class="portal-query-launch-content">
-
-
-                <span class="portal-label">
-                    Consulta RRCC
-                </span>
-
-
-                <h2>
-                    Consulta de calificación
-                </h2>
-
-
-                <p>
-                    Consulta información utilizando DNI, RUC,
-                    Carnet de Extranjería o Pasaporte.
-                </p>
-
-
-
-                <!-- SALDO RRCC -->
-
-                <div class="portal-service-stats">
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Disponibles
-                        </span>
-
-                        <strong>
-                            {{ rrcc_disponibles }}
-                        </strong>
-
-                    </div>
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Asignados
-                        </span>
-
-                        <strong>
-                            {{ rrcc_asignados }}
-                        </strong>
-
-                    </div>
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Consumidos
-                        </span>
-
-                        <strong>
-                            {{ rrcc_consumidos }}
-                        </strong>
-
-                    </div>
-
-
+            <!-- CABECERA Y BUSCADOR -->
+            <div class="portal-services-header">
+                <div class="portal-services-header-text">
+                    <h2>
+                        Catálogo de Servicios API
+                        <span class="portal-services-count-badge" id="servicesCounter">4 disponibles</span>
+                    </h2>
+                    <p>
+                        Selecciona el servicio que deseas consultar en línea o verifica el saldo de tu cuenta.
+                    </p>
                 </div>
 
-
-            </div>
-
-
-
-            <div class="portal-query-launch-actions">
-
-
-                <span class="portal-query-cost">
-                    1 crédito por consulta
-                </span>
-
-
-                <button
-                    type="button"
-                    id="abrirConsultaModal"
-
-                    class="
-                        portal-query-button
-                        {% if rrcc_disponibles <= 0 %}
-                        portal-query-button-disabled
-                        {% endif %}
-                    "
-
-                    {% if rrcc_disponibles <= 0 %}
-                    disabled
-                    {% endif %}
-                >
-
-                    {% if rrcc_disponibles > 0 %}
-
-                        Nueva consulta
-
-                    {% else %}
-
-                        Sin créditos
-
-                    {% endif %}
-
-                </button>
-
-
-            </div>
-
-
-        </section>
-
-
-
-        <!-- ==================================================
-             CONSULTA SUELDOS
-        ================================================== -->
-
-        <section class="portal-query-launch">
-
-
-            <div class="portal-query-launch-content">
-
-
-                <span class="portal-label">
-                    Consulta Sueldos
-                </span>
-
-
-                <h2>
-                    Consulta de sueldos
-                </h2>
-
-
-                <p>
-                    Consulta información laboral y salarial utilizando
-                    DNI, RUC, Carnet de Extranjería o Pasaporte.
-                </p>
-
-
-
-                <!-- SALDO SUELDOS -->
-
-                <div class="portal-service-stats">
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Disponibles
-                        </span>
-
-                        <strong>
-                            {{ sueldos_disponibles }}
-                        </strong>
-
+                <div class="portal-services-search-wrapper">
+                    <div class="portal-services-search-box">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input
+                            type="text"
+                            id="serviceSearchInput"
+                            class="portal-services-search-input"
+                            placeholder="Buscar servicio (ej. teléfonos, sueldos, riesgo...)"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="clearServiceSearch" class="clear-search-btn" title="Limpiar búsqueda" style="display: none;">
+                            &times;
+                        </button>
                     </div>
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Asignados
-                        </span>
-
-                        <strong>
-                            {{ sueldos_asignados }}
-                        </strong>
-
-                    </div>
-
-
-                    <div class="portal-service-stat">
-
-                        <span>
-                            Consumidos
-                        </span>
-
-                        <strong>
-                            {{ sueldos_consumidos }}
-                        </strong>
-
-                    </div>
-
-
                 </div>
+            </div>
 
+            <!-- FILTROS POR CATEGORÍA -->
+            <div class="portal-category-filters">
+                <button type="button" class="category-filter-btn is-active" data-filter="all">Todos (4)</button>
+                <button type="button" class="category-filter-btn" data-filter="financiero">Financiero (2)</button>
+                <button type="button" class="category-filter-btn" data-filter="personas">Personas (1)</button>
+                <button type="button" class="category-filter-btn" data-filter="contacto">Contacto (1)</button>
+            </div>
+
+            <!-- GRID DE TARJETAS DE SERVICIOS -->
+            <div class="portal-services-grid" id="servicesGrid">
+
+                <!-- 1. SERVICIO RRCC -->
+                <article class="portal-service-card" data-category="financiero" data-keywords="rrcc calificación riesgo sbs creditos financiero ruc dni ce pasaporte deudas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-rrcc">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-rrcc">RRCC</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Calificación</h3>
+                            <p class="portal-service-desc">
+                                Reporte financiero y calificación crediticia consolidada mediante DNI, RUC, CE o Pasaporte.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if rrcc_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ rrcc_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirConsultaModal"
+                            class="portal-service-launch-btn {% if rrcc_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if rrcc_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if rrcc_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 2. SERVICIO SUELDOS -->
+                <article class="portal-service-card" data-category="financiero" data-keywords="sueldos salarios laboral remuneraciones ingresos planilla ruc essalud sunat empresas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-sueldos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                    <line x1="2" x2="22" y1="10" y2="10"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-sueldos">SUELDOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Sueldos</h3>
+                            <p class="portal-service-desc">
+                                Información de historial laboral, empleadores, rango salarial y condición laboral formal.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if sueldos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ sueldos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirSueldosModal"
+                            class="portal-service-launch-btn {% if sueldos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if sueldos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if sueldos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 3. SERVICIO FALLECIDOS -->
+                <article class="portal-service-card" data-category="personas" data-keywords="fallecidos difuntos acta defuncion defunciones reniec acta inscripcion muerte personas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-fallecidos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <line x1="19" x2="19" y1="8" y2="14"/>
+                                    <line x1="22" x2="16" y1="11" y2="11"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-fallecidos">FALLECIDOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Fallecidos</h3>
+                            <p class="portal-service-desc">
+                                Verificación inmediata de condición de defunción, acta y fecha de defunción registrada.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if fallecidos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ fallecidos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirFallecidosModal"
+                            class="portal-service-launch-btn {% if fallecidos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if fallecidos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if fallecidos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 4. SERVICIO TELÉFONOS -->
+                <article class="portal-service-card" data-category="contacto" data-keywords="teléfonos celulares líneas contactos bitel claro entel movistar operadoras titulares">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-telefonos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-telefonos">TELÉFONOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Teléfonos</h3>
+                            <p class="portal-service-desc">
+                                Búsqueda de líneas celulares y fijas registradas bajo la titularidad del documento.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if telefonos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ telefonos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirTelefonosModal"
+                            class="portal-service-launch-btn {% if telefonos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if telefonos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if telefonos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
 
             </div>
 
-
-
-            <div class="portal-query-launch-actions">
-
-
-                <span class="portal-query-cost">
-                    1 crédito por consulta
-                </span>
-
-
-                <button
-                    type="button"
-                    id="abrirSueldosModal"
-
-                    class="
-                        portal-query-button
-                        {% if sueldos_disponibles <= 0 %}
-                        portal-query-button-disabled
-                        {% endif %}
-                    "
-
-                    {% if sueldos_disponibles <= 0 %}
-                    disabled
-                    {% endif %}
-                >
-
-                    {% if sueldos_disponibles > 0 %}
-
-                        Nueva consulta
-
-                    {% else %}
-
-                        Sin créditos
-
-                    {% endif %}
-
-                </button>
-
-
+            <!-- ESTADO VACÍO CUANDO NO HAY COINCIDENCIAS -->
+            <div class="portal-services-empty" id="servicesEmptyState" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <h3>No se encontraron servicios</h3>
+                <p>No hay servicios que coincidan con "<span id="emptySearchTerm"></span>". Intenta con otra palabra clave.</p>
+                <button type="button" class="reset-filter-btn" id="resetServicesFilterBtn">Ver todos los servicios</button>
             </div>
-
 
         </section>
-
 
         {% endif %}
 
@@ -1662,6 +1924,612 @@
 </div>
 
 
+
+<div
+    class="portal-modal-overlay"
+    id="fallecidosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if fallecidos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fallecidosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER FALLECIDOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="fallecidosModalTitulo">
+                    Consulta de fallecidos
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarFallecidosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY FALLECIDOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO FALLECIDOS
+            ================================================== -->
+
+            <form
+                id="fallecidosForm"
+                method="POST"
+                action="{{ url_for('portal_fallecidos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="fallecidosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="fallecidosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="fallecidosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="fallecidosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if fallecidos_form %}{{ fallecidos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="fallecidosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="fallecidosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if fallecidos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if fallecidos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if fallecidos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO FALLECIDOS
+            ================================================== -->
+
+            {% if fallecidos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="fallecidosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de fallecidos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copyFallecidosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="fallecidosJsonResponse"
+                        class="portal-json-response"
+                    >{{ fallecidos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<div
+    class="portal-modal-overlay"
+    id="telefonosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if telefonos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="telefonosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER TELÉFONOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="telefonosModalTitulo">
+                    Consulta de líneas móviles
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarTelefonosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY TELÉFONOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO TELÉFONOS
+            ================================================== -->
+
+            <form
+                id="telefonosForm"
+                method="POST"
+                action="{{ url_for('portal_telefonos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="telefonosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="telefonosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="telefonosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="telefonosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if telefonos_form %}{{ telefonos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="telefonosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="telefonosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if telefonos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if telefonos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if telefonos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO TELÉFONOS
+            ================================================== -->
+
+            {% if telefonos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="telefonosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de teléfonos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copyTelefonosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="telefonosJsonResponse"
+                        class="portal-json-response"
+                    >{{ telefonos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
 {% endif %}
 
 
@@ -1885,6 +2753,122 @@
         );
 
 
+    // =====================================================
+    // ELEMENTOS FALLECIDOS
+    // =====================================================
+
+    const fallecidosModal =
+        document.getElementById(
+            "fallecidosModal"
+        );
+
+
+    const abrirFallecidosModal =
+        document.getElementById(
+            "abrirFallecidosModal"
+        );
+
+
+    const cerrarFallecidosModal =
+        document.getElementById(
+            "cerrarFallecidosModal"
+        );
+
+
+    const fallecidosForm =
+        document.getElementById(
+            "fallecidosForm"
+        );
+
+
+    const fallecidosSubmitButton =
+        document.getElementById(
+            "fallecidosSubmitButton"
+        );
+
+
+    const fallecidosTipoDocumento =
+        document.getElementById(
+            "fallecidosTipoDocumento"
+        );
+
+
+    const fallecidosDocumento =
+        document.getElementById(
+            "fallecidosDocumento"
+        );
+
+
+    const fallecidosDocumentoAyuda =
+        document.getElementById(
+            "fallecidosDocumentoAyuda"
+        );
+
+
+    const fallecidosResultado =
+        document.getElementById(
+            "fallecidosResultado"
+        );
+
+
+    // =====================================================
+    // ELEMENTOS TELÉFONOS
+    // =====================================================
+
+    const telefonosModal =
+        document.getElementById(
+            "telefonosModal"
+        );
+
+
+    const abrirTelefonosModal =
+        document.getElementById(
+            "abrirTelefonosModal"
+        );
+
+
+    const cerrarTelefonosModal =
+        document.getElementById(
+            "cerrarTelefonosModal"
+        );
+
+
+    const telefonosForm =
+        document.getElementById(
+            "telefonosForm"
+        );
+
+
+    const telefonosSubmitButton =
+        document.getElementById(
+            "telefonosSubmitButton"
+        );
+
+
+    const telefonosTipoDocumento =
+        document.getElementById(
+            "telefonosTipoDocumento"
+        );
+
+
+    const telefonosDocumento =
+        document.getElementById(
+            "telefonosDocumento"
+        );
+
+
+    const telefonosDocumentoAyuda =
+        document.getElementById(
+            "telefonosDocumentoAyuda"
+        );
+
+
+    const telefonosResultado =
+        document.getElementById(
+            "telefonosResultado"
+        );
+
+
 
     // =====================================================
     // MODALES
@@ -1949,6 +2933,10 @@
             "aria-hidden",
             "true"
         );
+
+        if (window.history.replaceState) {
+            window.history.replaceState(null, "", "{{ url_for('portal_cuenta') }}");
+        }
 
 
         const existeOtroModalAbierto =
@@ -2142,6 +3130,178 @@
 
 
     // =====================================================
+    // LIMPIAR NUEVA CONSULTA FALLECIDOS
+    // =====================================================
+
+    function limpiarNuevaConsultaFallecidos() {
+
+
+        if (fallecidosForm) {
+
+            fallecidosForm.reset();
+
+            fallecidosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (fallecidosTipoDocumento) {
+
+            fallecidosTipoDocumento.value =
+                "";
+        }
+
+
+        if (fallecidosDocumento) {
+
+            fallecidosDocumento.value =
+                "";
+
+            fallecidosDocumento.setCustomValidity(
+                ""
+            );
+
+            fallecidosDocumento.placeholder =
+                "Ingrese documento";
+
+            fallecidosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            fallecidosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (fallecidosDocumentoAyuda) {
+
+            fallecidosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            fallecidosSubmitButton &&
+            !fallecidosSubmitButton.disabled
+        ) {
+
+            fallecidosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (fallecidosResultado) {
+
+            fallecidosResultado.style.display =
+                "none";
+        }
+
+
+        if (fallecidosModal) {
+
+            const modalBody =
+                fallecidosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA TELÉFONOS
+    // =====================================================
+
+    function limpiarNuevaConsultaTelefonos() {
+
+
+        if (telefonosForm) {
+
+            telefonosForm.reset();
+
+            telefonosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (telefonosTipoDocumento) {
+
+            telefonosTipoDocumento.value =
+                "";
+        }
+
+
+        if (telefonosDocumento) {
+
+            telefonosDocumento.value =
+                "";
+
+            telefonosDocumento.setCustomValidity(
+                ""
+            );
+
+            telefonosDocumento.placeholder =
+                "Ingrese documento";
+
+            telefonosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            telefonosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (telefonosDocumentoAyuda) {
+
+            telefonosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            telefonosSubmitButton &&
+            !telefonosSubmitButton.disabled
+        ) {
+
+            telefonosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (telefonosResultado) {
+
+            telefonosResultado.style.display =
+                "none";
+        }
+
+
+        if (telefonosModal) {
+
+            const modalBody =
+                telefonosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
     // ABRIR RRCC
     // =====================================================
 
@@ -2222,6 +3382,86 @@
 
 
     // =====================================================
+    // ABRIR FALLECIDOS
+    // =====================================================
+
+    if (
+        abrirFallecidosModal &&
+        !abrirFallecidosModal.disabled
+    ) {
+
+        abrirFallecidosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaFallecidos();
+
+                abrirModal(
+                    fallecidosModal,
+                    fallecidosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarFallecidosModal) {
+
+        cerrarFallecidosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    fallecidosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ABRIR TELÉFONOS
+    // =====================================================
+
+    if (
+        abrirTelefonosModal &&
+        !abrirTelefonosModal.disabled
+    ) {
+
+        abrirTelefonosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaTelefonos();
+
+                abrirModal(
+                    telefonosModal,
+                    telefonosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarTelefonosModal) {
+
+        cerrarTelefonosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    telefonosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
     // CERRAR AL PULSAR FONDO
     // =====================================================
 
@@ -2265,6 +3505,46 @@
     }
 
 
+    if (fallecidosModal) {
+
+        fallecidosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    fallecidosModal
+                ) {
+
+                    cerrarModal(
+                        fallecidosModal
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (telefonosModal) {
+
+        telefonosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    telefonosModal
+                ) {
+
+                    cerrarModal(
+                        telefonosModal
+                    );
+                }
+            }
+        );
+    }
+
+
 
     // =====================================================
     // ESC
@@ -2292,6 +3572,36 @@
 
                 cerrarModal(
                     sueldosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                fallecidosModal &&
+                fallecidosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    fallecidosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                telefonosModal &&
+                telefonosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    telefonosModal
                 );
 
                 return;
@@ -2817,6 +4127,272 @@
                         true;
 
                     sueldosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS FALLECIDOS
+    // =====================================================
+
+    if (
+        fallecidosTipoDocumento &&
+        fallecidosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            fallecidosTipoDocumento,
+            fallecidosDocumento,
+            fallecidosDocumentoAyuda
+        );
+
+
+        fallecidosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                fallecidosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento,
+                    fallecidosDocumentoAyuda
+                );
+
+
+                fallecidosDocumento.focus();
+            }
+        );
+
+
+        fallecidosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+            }
+        );
+
+
+        fallecidosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO FALLECIDOS
+    // =====================================================
+
+    if (fallecidosForm) {
+
+        fallecidosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    fallecidosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        fallecidosTipoDocumento,
+                        fallecidosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    fallecidosDocumento.reportValidity();
+
+                    fallecidosDocumento.focus();
+
+                    return;
+                }
+
+
+                fallecidosForm.dataset.enviando =
+                    "true";
+
+
+                if (fallecidosSubmitButton) {
+
+                    fallecidosSubmitButton.disabled =
+                        true;
+
+                    fallecidosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS TELÉFONOS
+    // =====================================================
+
+    if (
+        telefonosTipoDocumento &&
+        telefonosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            telefonosTipoDocumento,
+            telefonosDocumento,
+            telefonosDocumentoAyuda
+        );
+
+
+        telefonosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                telefonosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento,
+                    telefonosDocumentoAyuda
+                );
+
+
+                telefonosDocumento.focus();
+            }
+        );
+
+
+        telefonosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+            }
+        );
+
+
+        telefonosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO TELÉFONOS
+    // =====================================================
+
+    if (telefonosForm) {
+
+        telefonosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    telefonosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        telefonosTipoDocumento,
+                        telefonosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    telefonosDocumento.reportValidity();
+
+                    telefonosDocumento.focus();
+
+                    return;
+                }
+
+
+                telefonosForm.dataset.enviando =
+                    "true";
+
+
+                if (telefonosSubmitButton) {
+
+                    telefonosSubmitButton.disabled =
+                        true;
+
+                    telefonosSubmitButton.textContent =
                         "Consultando...";
                 }
             }
@@ -3912,16 +5488,22 @@
 
 
 
+        /* PERIODO ACTUAL PARA VISTA RESUMEN */
+        const periodoActual =
+            (Array.isArray(datos.periodos) && datos.periodos.length > 0)
+                ? datos.periodos[0]
+                : datos;
+
         /* RATING */
 
         const rating =
-            datos.rating &&
-            typeof datos.rating ===
+            periodoActual.rating &&
+            typeof periodoActual.rating ===
             "object"
 
-                ? datos.rating
+                ? periodoActual.rating
 
-                : {};
+                : (datos.rating && typeof datos.rating === "object" ? datos.rating : {});
 
 
         const ratingNOR =
@@ -4079,7 +5661,7 @@
 
         renderizarDeudas(
 
-            datos.deudas,
+            periodoActual.deudas ?? datos.deudas,
 
             datos.totalCapital
             ??
@@ -4091,7 +5673,7 @@
 
         renderizarLineas(
 
-            datos.lineas,
+            periodoActual.lineas ?? datos.lineas,
 
             datos.totalLineaCredito
             ??
@@ -4113,7 +5695,7 @@
                     "Reporte actualizado con el periodo "
                     +
                     formatoPeriodo(
-                        datos.periodo
+                        periodoActual.periodo ?? datos.periodo
                     )
                 );
         }
@@ -4244,6 +5826,52 @@
 
 
 
+    const copyFallecidosJsonButton =
+        document.getElementById(
+            "copyFallecidosJsonButton"
+        );
+
+
+    if (copyFallecidosJsonButton) {
+
+        copyFallecidosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "fallecidosJsonResponse",
+                    copyFallecidosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    const copyTelefonosJsonButton =
+        document.getElementById(
+            "copyTelefonosJsonButton"
+        );
+
+
+    if (copyTelefonosJsonButton) {
+
+        copyTelefonosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "telefonosJsonResponse",
+                    copyTelefonosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
     // =====================================================
     // INICIALIZACIÓN
     // =====================================================
@@ -4294,10 +5922,332 @@
                 );
             }
 
+
+
+            configurarDocumentoCampo(
+                fallecidosTipoDocumento,
+                fallecidosDocumento,
+                fallecidosDocumentoAyuda
+            );
+
+
+            if (
+                fallecidosModal &&
+                fallecidosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    fallecidosModal
+                );
+            }
+
+
+
+            configurarDocumentoCampo(
+                telefonosTipoDocumento,
+                telefonosDocumento,
+                telefonosDocumentoAyuda
+            );
+
+
+            if (
+                telefonosModal &&
+                telefonosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    telefonosModal
+                );
+            }
+
+            // Desvincular reenvío de formulario POST al recargar (F5)
+            if (
+                (consultaModal && consultaModal.dataset.autoOpen === "true") ||
+                (sueldosModal && sueldosModal.dataset.autoOpen === "true") ||
+                (fallecidosModal && fallecidosModal.dataset.autoOpen === "true") ||
+                (telefonosModal && telefonosModal.dataset.autoOpen === "true") ||
+                window.location.pathname !== "{{ url_for('portal_cuenta') }}"
+            ) {
+                if (window.history.replaceState) {
+                    window.history.replaceState(null, "", "{{ url_for('portal_cuenta') }}");
+                }
+            }
+
         }
     );
 
 
+
+    // =====================================================
+    // ESTILO DINÁMICO DE PLACEHOLDER EN SELECTS
+    // =====================================================
+    document.querySelectorAll(".portal-modal-form select").forEach(function (select) {
+        function actualizarEstadoSelect() {
+            if (!select.value) {
+                select.classList.add("is-placeholder");
+            } else {
+                select.classList.remove("is-placeholder");
+            }
+        }
+        select.addEventListener("change", actualizarEstadoSelect);
+        actualizarEstadoSelect();
+    });
+
+
+
+    
+
+    
+    // =====================================================
+    // BUSCADOR Y FILTRADO DE SERVICIOS EN TIEMPO REAL
+    // =====================================================
+    const serviceSearchInput = document.getElementById("serviceSearchInput");
+    const clearServiceSearch = document.getElementById("clearServiceSearch");
+    const servicesGrid = document.getElementById("servicesGrid");
+    const servicesEmptyState = document.getElementById("servicesEmptyState");
+    const emptySearchTerm = document.getElementById("emptySearchTerm");
+    const servicesCounter = document.getElementById("servicesCounter");
+    const categoryFilterBtns = document.querySelectorAll(".category-filter-btn");
+    const resetServicesFilterBtn = document.getElementById("resetServicesFilterBtn");
+
+    let activeCategory = "all";
+
+    function filtrarServicios() {
+        if (!servicesGrid) return;
+        const query = (serviceSearchInput ? serviceSearchInput.value : "").trim().toLowerCase();
+        const cards = servicesGrid.querySelectorAll(".portal-service-card");
+        let visibleCount = 0;
+
+        if (clearServiceSearch) {
+            clearServiceSearch.style.display = query.length > 0 ? "flex" : "none";
+        }
+
+        cards.forEach(function (card) {
+            const cat = card.dataset.category || "";
+            const keywords = (card.dataset.keywords || "").toLowerCase();
+            const title = (card.querySelector(".portal-service-title") ? card.querySelector(".portal-service-title").textContent : "").toLowerCase();
+            const desc = (card.querySelector(".portal-service-desc") ? card.querySelector(".portal-service-desc").textContent : "").toLowerCase();
+            const matchesCat = (activeCategory === "all" || cat === activeCategory);
+            const matchesQuery = (!query || title.includes(query) || desc.includes(query) || keywords.includes(query));
+
+            if (matchesCat && matchesQuery) {
+                card.style.display = "flex";
+                visibleCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        if (servicesCounter) {
+            servicesCounter.textContent = visibleCount + (visibleCount === 1 ? " disponible" : " disponibles");
+        }
+
+        if (servicesEmptyState) {
+            if (visibleCount === 0) {
+                servicesEmptyState.style.display = "block";
+                if (emptySearchTerm) {
+                    emptySearchTerm.textContent = query || activeCategory;
+                }
+            } else {
+                servicesEmptyState.style.display = "none";
+            }
+        }
+    }
+
+    if (serviceSearchInput) {
+        serviceSearchInput.addEventListener("input", filtrarServicios);
+    }
+
+    if (clearServiceSearch) {
+        clearServiceSearch.addEventListener("click", function () {
+            serviceSearchInput.value = "";
+            filtrarServicios();
+            serviceSearchInput.focus();
+        });
+    }
+
+    if (resetServicesFilterBtn) {
+        resetServicesFilterBtn.addEventListener("click", function () {
+            if (serviceSearchInput) {
+                serviceSearchInput.value = "";
+            }
+            activeCategory = "all";
+            categoryFilterBtns.forEach(function (btn) {
+                btn.classList.toggle("is-active", btn.dataset.filter === "all");
+            });
+            filtrarServicios();
+        });
+    }
+
+    categoryFilterBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            categoryFilterBtns.forEach(function (b) {
+                b.classList.remove("is-active");
+            });
+            btn.classList.add("is-active");
+            activeCategory = btn.dataset.filter;
+            filtrarServicios();
+        });
+    });
+
+
+    // =====================================================
+    // DROPDOWN PERSONALIZADO ELEGANTE (ESTILO DE LA FOTO)
+    // =====================================================
+    const documentDisplayNames = {
+        "": "Seleccionar",
+        "DNI": "DNI",
+        "RUC": "RUC",
+        "CE": "Carnet de Extranjería",
+        "PASAPORTE": "Pasaporte"
+    };
+
+    function setupCustomSelect(selectElement) {
+        if (!selectElement || selectElement.dataset.customized === "true") return;
+        selectElement.dataset.customized = "true";
+        selectElement.classList.add("portal-hidden-select");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "custom-dropdown";
+
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "custom-dropdown-trigger";
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+
+        const triggerText = document.createElement("span");
+        triggerText.className = "trigger-text is-placeholder";
+        triggerText.textContent = "Seleccionar";
+
+        trigger.appendChild(triggerText);
+        trigger.innerHTML += `
+            <svg class="trigger-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        `;
+
+        const menu = document.createElement("div");
+        menu.className = "custom-dropdown-menu";
+        menu.setAttribute("role", "listbox");
+        menu.style.display = "none";
+
+        const options = ["", "DNI", "RUC", "CE", "PASAPORTE"];
+        options.forEach(function (val) {
+            const label = documentDisplayNames[val] || val;
+            const optDiv = document.createElement("div");
+            optDiv.className = "custom-dropdown-option";
+            optDiv.setAttribute("role", "option");
+            optDiv.dataset.value = val;
+
+            optDiv.innerHTML = `
+                <span class="opt-title">${label}</span>
+                <svg class="opt-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+
+            optDiv.addEventListener("click", function (e) {
+                e.stopPropagation();
+                selectElement.value = val;
+                selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+                updateCustomDisplay();
+                closeDropdown();
+                const form = selectElement.closest("form");
+                if (form) {
+                    const docInput = form.querySelector('input[name="documento"]');
+                    if (docInput) docInput.focus();
+                }
+            });
+
+            menu.appendChild(optDiv);
+        });
+
+        function updateCustomDisplay() {
+            const val = selectElement.value || "";
+            const currentText = trigger.querySelector(".trigger-text");
+            if (!currentText) return;
+
+            if (val && val !== "") {
+                currentText.textContent = documentDisplayNames[val] || val;
+                currentText.classList.remove("is-placeholder");
+            } else {
+                currentText.textContent = "Seleccionar";
+                currentText.classList.add("is-placeholder");
+            }
+
+            menu.querySelectorAll(".custom-dropdown-option").forEach(function (el) {
+                if (el.dataset.value === val) {
+                    el.classList.add("is-selected");
+                } else {
+                    el.classList.remove("is-selected");
+                }
+            });
+        }
+
+        function openDropdown() {
+            document.querySelectorAll(".custom-dropdown-menu").forEach(function (m) {
+                if (m !== menu) m.style.display = "none";
+            });
+            document.querySelectorAll(".custom-dropdown-trigger").forEach(function (t) {
+                if (t !== trigger) {
+                    t.classList.remove("is-active");
+                    t.setAttribute("aria-expanded", "false");
+                }
+            });
+            menu.style.display = "block";
+            trigger.classList.add("is-active");
+            trigger.setAttribute("aria-expanded", "true");
+        }
+
+        function closeDropdown() {
+            menu.style.display = "none";
+            trigger.classList.remove("is-active");
+            trigger.setAttribute("aria-expanded", "false");
+        }
+
+        trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (menu.style.display === "block") {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!wrapper.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && menu.style.display === "block") {
+                closeDropdown();
+            }
+        });
+
+        selectElement.addEventListener("change", updateCustomDisplay);
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(menu);
+        selectElement.parentNode.insertBefore(wrapper, selectElement.nextSibling);
+
+        updateCustomDisplay();
+    }
+
+    // Inicializar los selects personalizados con el estilo de la foto
+    [
+        document.getElementById("tipoDocumento"),
+        document.getElementById("sueldosTipoDocumento"),
+        document.getElementById("fallecidosTipoDocumento"),
+        document.getElementById("telefonosTipoDocumento")
+    ].forEach(function (s) {
+        if (s) setupCustomSelect(s);
+    });
+    
 </script>
 
 
