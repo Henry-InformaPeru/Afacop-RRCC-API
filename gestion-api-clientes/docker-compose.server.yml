@@ -1,0 +1,66 @@
+services:
+
+  gestion-api-clientes:
+    image: gestion-api-clientes-backend:latest
+    container_name: gestion-api-clientes
+    restart: unless-stopped
+
+    env_file:
+      - path: ./backend.env
+        format: raw
+
+    ports:
+      - "127.0.0.1:4200:4200"
+
+    networks:
+      - gestion-api-network
+      - rrcc-network
+
+
+  gestion-api-frontend:
+    image: gestion-api-clientes-frontend:latest
+    container_name: gestion-api-frontend
+    restart: unless-stopped
+
+    env_file:
+      - path: ./frontend.env
+        format: raw
+
+    ports:
+      - "127.0.0.1:5000:5000"
+
+    depends_on:
+      - gestion-api-clientes
+
+    networks:
+      - gestion-api-network
+
+
+  ngrok-gestion:
+    image: ngrok/ngrok:latest
+    container_name: ngrok-gestion
+    restart: unless-stopped
+
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN_GESTION}
+
+    command:
+      - http
+      - http://gestion-api-frontend:5000
+      - --log=stdout
+
+    depends_on:
+      - gestion-api-frontend
+
+    networks:
+      - gestion-api-network
+
+
+networks:
+
+  gestion-api-network:
+    driver: bridge
+
+  rrcc-network:
+    external: true
+    name: rrcc-api_default

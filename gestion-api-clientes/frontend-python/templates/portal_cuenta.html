@@ -1,0 +1,6256 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Mi cuenta | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=43"
+    >
+
+
+    <style>
+
+        /* ==================================================
+           SALDOS POR SERVICIO
+        ================================================== */
+
+        .portal-query-launch-content {
+            min-width: 0;
+            flex: 1;
+        }
+
+
+        .portal-service-stats {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 16px;
+        }
+
+
+        .portal-service-stat {
+            min-width: 105px;
+
+            padding: 9px 12px;
+
+            border: 1px solid #e3e9f0;
+            border-radius: 9px;
+
+            background: #f8fafc;
+        }
+
+
+        .portal-service-stat span {
+            display: block;
+
+            margin-bottom: 3px;
+
+            color: #7c8797;
+
+            font-size: 10px;
+            font-weight: 600;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.3px;
+        }
+
+
+        .portal-service-stat strong {
+            display: block;
+
+            color: #172033;
+
+            font-size: 17px;
+            font-weight: 750;
+        }
+
+
+        /* ==================================================
+           BOTÓN SIN CRÉDITOS
+        ================================================== */
+
+        .portal-query-button.portal-query-button-disabled,
+        .portal-query-button.portal-query-button-disabled:hover,
+        .portal-query-button.portal-query-button-disabled:disabled {
+
+            background: #e5e9ef;
+
+            color: #8993a3;
+
+            opacity: 1;
+
+            cursor: not-allowed;
+
+            box-shadow: none;
+        }
+
+
+        @media (max-width: 800px) {
+
+            .portal-service-stats {
+
+                width: 100%;
+
+                display: grid;
+
+                grid-template-columns:
+                    repeat(3, 1fr);
+            }
+
+
+            .portal-service-stat {
+                min-width: 0;
+            }
+        }
+
+    
+
+    
+    
+        /* ==================================================
+           DESPLEGABLE ELEGANTE BASADO EN EL DISEÑO DE REFERENCIA
+        ================================================== */
+        .portal-modal {
+            min-height: 490px !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+
+        .portal-modal-body {
+            flex: 1 !important;
+            min-height: 390px !important;
+            overflow: visible !important;
+            padding-bottom: 30px !important;
+        }
+
+        .portal-modal-form {
+            overflow: visible !important;
+        }
+
+        /* Si los resultados están visibles y el contenido es largo, permitir scroll */
+        .portal-modal-body:has(.portal-modal-result:not([style*="display: none"])) {
+            overflow-y: auto !important;
+        }
+
+        .portal-hidden-select {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+            z-index: 50;
+        }
+
+        /* CAJA DEL SELECTOR / TRIGGER */
+        .custom-dropdown-trigger {
+            width: 100%;
+            height: 46px;
+            padding: 0 14px;
+            background: #ffffff;
+            border: 1.5px solid #d1d5db;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            color: #1f2937;
+            outline: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            user-select: none;
+        }
+
+        .custom-dropdown-trigger:hover {
+            border-color: #9ca3af;
+            background: #f9fafb;
+        }
+
+        .custom-dropdown-trigger:focus,
+        .custom-dropdown-trigger.is-active {
+            border-color: #1d4ed8;
+            background: #ffffff;
+            box-shadow: 0 0 0 3.5px rgba(29, 78, 216, 0.12);
+        }
+
+        .trigger-text {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .trigger-text.is-placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .trigger-chevron {
+            color: #6b7280;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .custom-dropdown-trigger.is-active .trigger-chevron {
+            transform: rotate(180deg);
+            color: #1d4ed8;
+        }
+
+        /* MENÚ DESPLEGABLE FLOTANTE (ESTILO DE LA FOTO) */
+        .custom-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            width: 100%;
+            min-width: 240px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 4px 0;
+            box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 4px 8px -2px rgba(15, 23, 42, 0.04);
+            z-index: 1050;
+            overflow: hidden;
+            animation: dropdownFadeIn 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ELEMENTOS DE LA LISTA */
+        .custom-dropdown-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 42px;
+            padding: 0 16px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 450;
+            color: #374151;
+            transition: all 0.12s ease;
+            user-select: none;
+        }
+
+        .custom-dropdown-option:hover {
+            background: #f9fafb;
+            color: #111827;
+        }
+
+        /* ELEMENTO SELECCIONADO (AZUL PASTEL COMO EN LA FOTO) */
+        .custom-dropdown-option.is-selected {
+            background: #ebedf7;
+            color: #0e23a1;
+            font-weight: 600;
+        }
+
+        .opt-title {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .opt-check {
+            color: #0e23a1;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+        }
+
+        .custom-dropdown-option.is-selected .opt-check {
+            opacity: 1;
+        }
+
+        /* INPUT DE DOCUMENTO ESTILIZADO */
+        .portal-modal-form .portal-query-field input {
+            height: 46px !important;
+            border: 1.5px solid #d1d5db !important;
+            border-radius: 8px !important;
+            padding: 0 14px !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+            transition: all 0.2s ease !important;
+        }
+
+        .portal-modal-form .portal-query-field input:hover {
+            border-color: #9ca3af !important;
+        }
+
+        .portal-modal-form .portal-query-field input:focus {
+            border-color: #1d4ed8 !important;
+            box-shadow: 0 0 0 3.5px rgba(29, 78, 216, 0.12) !important;
+        }
+
+        /* BOTÓN CONSULTAR */
+        .portal-modal-submit .portal-query-button {
+            height: 46px !important;
+            border-radius: 8px !important;
+            padding: 0 24px !important;
+            font-weight: 600 !important;
+            background: #172033 !important;
+            box-shadow: 0 2px 6px rgba(23, 32, 51, 0.15) !important;
+        }
+    
+    </style>
+
+</head>
+
+
+<body class="portal-body">
+
+
+<div class="portal-shell">
+
+
+    <!-- ==================================================
+         HEADER
+    ================================================== -->
+
+    <header class="portal-header">
+
+        <div class="portal-header-brand">
+
+            <div class="portal-small-logo">
+                API
+            </div>
+
+
+            <div>
+
+                <strong>
+                    Portal de consultas
+                </strong>
+
+                <span>
+                    RRCC / Sueldos
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <form
+            method="POST"
+            action="{{ url_for('portal_logout') }}"
+        >
+
+            <button
+                type="submit"
+                class="portal-logout"
+            >
+                Cerrar sesión
+            </button>
+
+        </form>
+
+    </header>
+
+
+
+    <!-- ==================================================
+         CONTENIDO PRINCIPAL
+    ================================================== -->
+
+    <main class="portal-content">
+
+
+        {% if error %}
+
+        <div class="alert-error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+
+
+        {% if cuenta %}
+
+
+        <!-- ==================================================
+             PREPARAR SALDOS POR SERVICIO
+        ================================================== -->
+
+        {% set creditos_servicios =
+            cuenta.get(
+                'creditosPorServicio',
+                {}
+            )
+        %}
+
+
+        {% set rrcc =
+            creditos_servicios.get(
+                'RRCC',
+                {}
+            )
+        %}
+
+
+        {% set sueldos =
+            creditos_servicios.get(
+                'SUELDOS',
+                {}
+            )
+        %}
+
+
+        {% set rrcc_disponibles =
+            (rrcc.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set rrcc_asignados =
+            (rrcc.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set rrcc_consumidos =
+            (rrcc.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_disponibles =
+            (sueldos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_asignados =
+            (sueldos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set sueldos_consumidos =
+            (sueldos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+        {% set fallecidos =
+            creditos_servicios.get(
+                'FALLECIDOS',
+                {}
+            )
+        %}
+
+
+        {% set fallecidos_disponibles =
+            (fallecidos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set fallecidos_asignados =
+            (fallecidos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set fallecidos_consumidos =
+            (fallecidos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos =
+            creditos_servicios.get(
+                'TELEFONOS',
+                {}
+            )
+        %}
+
+
+        {% set telefonos_disponibles =
+            (telefonos.get('disponibles', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos_asignados =
+            (telefonos.get('totalAsignado', 0) or 0)
+            | int
+        %}
+
+
+        {% set telefonos_consumidos =
+            (telefonos.get('totalConsumido', 0) or 0)
+            | int
+        %}
+
+
+
+        <!-- ==================================================
+             DATOS DEL CLIENTE
+        ================================================== -->
+
+        <section class="portal-welcome">
+
+            <span class="portal-label">
+                Mi cuenta
+            </span>
+
+
+            <h1>
+                {{ cuenta.nombre }}
+            </h1>
+
+
+            <p>
+                {{ cuenta.tipoDocumento }}
+                {{ cuenta.documento }}
+            </p>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             TOTALES GENERALES
+        ================================================== -->
+
+        <section class="portal-credit-grid">
+
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Créditos disponibles
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.disponibles }}
+                </strong>
+
+            </article>
+
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Total asignado
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.totalAsignado }}
+                </strong>
+
+            </article>
+
+
+            <article class="portal-credit-card">
+
+                <span>
+                    Total consumido
+                </span>
+
+                <strong>
+                    {{ cuenta.creditos.totalConsumido }}
+                </strong>
+
+            </article>
+
+
+        </section>
+
+
+
+                <!-- ==================================================
+             HUB DE SERVICIOS / CATÁLOGO DE APIS
+        ================================================== -->
+        <section class="portal-services-section">
+
+            <!-- CABECERA Y BUSCADOR -->
+            <div class="portal-services-header">
+                <div class="portal-services-header-text">
+                    <h2>
+                        Catálogo de Servicios API
+                        <span class="portal-services-count-badge" id="servicesCounter">4 disponibles</span>
+                    </h2>
+                    <p>
+                        Selecciona el servicio que deseas consultar en línea o verifica el saldo de tu cuenta.
+                    </p>
+                </div>
+
+                <div class="portal-services-search-wrapper">
+                    <div class="portal-services-search-box">
+                        <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input
+                            type="text"
+                            id="serviceSearchInput"
+                            class="portal-services-search-input"
+                            placeholder="Buscar servicio (ej. teléfonos, sueldos, riesgo...)"
+                            autocomplete="off"
+                        >
+                        <button type="button" id="clearServiceSearch" class="clear-search-btn" title="Limpiar búsqueda" style="display: none;">
+                            &times;
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTROS POR CATEGORÍA -->
+            <div class="portal-category-filters">
+                <button type="button" class="category-filter-btn is-active" data-filter="all">Todos (4)</button>
+                <button type="button" class="category-filter-btn" data-filter="financiero">Financiero (2)</button>
+                <button type="button" class="category-filter-btn" data-filter="personas">Personas (1)</button>
+                <button type="button" class="category-filter-btn" data-filter="contacto">Contacto (1)</button>
+            </div>
+
+            <!-- GRID DE TARJETAS DE SERVICIOS -->
+            <div class="portal-services-grid" id="servicesGrid">
+
+                <!-- 1. SERVICIO RRCC -->
+                <article class="portal-service-card" data-category="financiero" data-keywords="rrcc calificación riesgo sbs creditos financiero ruc dni ce pasaporte deudas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-rrcc">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-rrcc">RRCC</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Calificación</h3>
+                            <p class="portal-service-desc">
+                                Reporte financiero y calificación crediticia consolidada mediante DNI, RUC, CE o Pasaporte.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if rrcc_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ rrcc_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirConsultaModal"
+                            class="portal-service-launch-btn {% if rrcc_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if rrcc_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if rrcc_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 2. SERVICIO SUELDOS -->
+                <article class="portal-service-card" data-category="financiero" data-keywords="sueldos salarios laboral remuneraciones ingresos planilla ruc essalud sunat empresas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-sueldos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect width="20" height="14" x="2" y="5" rx="2"/>
+                                    <line x1="2" x2="22" y1="10" y2="10"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-sueldos">SUELDOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Sueldos</h3>
+                            <p class="portal-service-desc">
+                                Información de historial laboral, empleadores, rango salarial y condición laboral formal.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if sueldos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ sueldos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirSueldosModal"
+                            class="portal-service-launch-btn {% if sueldos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if sueldos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if sueldos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 3. SERVICIO FALLECIDOS -->
+                <article class="portal-service-card" data-category="personas" data-keywords="fallecidos difuntos acta defuncion defunciones reniec acta inscripcion muerte personas">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-fallecidos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="9" cy="7" r="4"/>
+                                    <line x1="19" x2="19" y1="8" y2="14"/>
+                                    <line x1="22" x2="16" y1="11" y2="11"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-fallecidos">FALLECIDOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Fallecidos</h3>
+                            <p class="portal-service-desc">
+                                Verificación inmediata de condición de defunción, acta y fecha de defunción registrada.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if fallecidos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ fallecidos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirFallecidosModal"
+                            class="portal-service-launch-btn {% if fallecidos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if fallecidos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if fallecidos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+                <!-- 4. SERVICIO TELÉFONOS -->
+                <article class="portal-service-card" data-category="contacto" data-keywords="teléfonos celulares líneas contactos bitel claro entel movistar operadoras titulares">
+                    <div>
+                        <div class="portal-service-card-top">
+                            <div class="portal-service-icon-box icon-telefonos">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                            </div>
+                            <div class="portal-service-badges">
+                                <span class="portal-service-cost">1 crédito</span>
+                                <span class="portal-service-tag tag-telefonos">TELÉFONOS</span>
+                            </div>
+                        </div>
+
+                        <div class="portal-service-card-body">
+                            <h3 class="portal-service-title">Consulta de Teléfonos</h3>
+                            <p class="portal-service-desc">
+                                Búsqueda de líneas celulares y fijas registradas bajo la titularidad del documento.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="portal-service-card-footer">
+                        <div class="portal-service-balance">
+                            <span class="balance-label">Disponibles</span>
+                            <span class="balance-value {% if telefonos_disponibles <= 0 %}balance-zero{% endif %}">
+                                {{ telefonos_disponibles }}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            id="abrirTelefonosModal"
+                            class="portal-service-launch-btn {% if telefonos_disponibles <= 0 %}is-disabled{% endif %}"
+                            {% if telefonos_disponibles <= 0 %}disabled{% endif %}
+                        >
+                            <span>{% if telefonos_disponibles > 0 %}Consultar{% else %}Sin saldo{% endif %}</span>
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </article>
+
+            </div>
+
+            <!-- ESTADO VACÍO CUANDO NO HAY COINCIDENCIAS -->
+            <div class="portal-services-empty" id="servicesEmptyState" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <h3>No se encontraron servicios</h3>
+                <p>No hay servicios que coincidan con "<span id="emptySearchTerm"></span>". Intenta con otra palabra clave.</p>
+                <button type="button" class="reset-filter-btn" id="resetServicesFilterBtn">Ver todos los servicios</button>
+            </div>
+
+        </section>
+
+        {% endif %}
+
+
+    </main>
+
+
+</div>
+
+
+
+<!-- ==================================================
+     MODAL CONSULTA RRCC
+================================================== -->
+
+{% if cuenta %}
+
+
+<div
+    class="portal-modal-overlay"
+    id="consultaModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if consulta_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="consultaModalTitulo"
+    >
+
+
+        <!-- ==================================================
+             HEADER RRCC
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="consultaModalTitulo">
+                    Consulta de calificación de personas
+                </h2>
+
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarConsultaModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY RRCC
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO RRCC
+            ================================================== -->
+
+            <form
+                id="consultaForm"
+                method="POST"
+                action="{{ url_for('portal_consulta') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="tipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="tipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if consulta_form and consulta_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="documento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="documento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if consulta_form %}{{ consulta_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="documentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="consultaSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if rrcc_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if rrcc_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if rrcc_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO RRCC
+            ================================================== -->
+
+            {% if consulta_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="consultaResultado"
+            >
+
+
+
+                <!-- ==================================================
+                     SELECTOR DE VISTA
+                ================================================== -->
+
+                <div class="portal-result-tabs">
+
+
+                    <button
+                        type="button"
+                        class="portal-result-tab active"
+                        id="resumenTab"
+                    >
+                        Vista resumen
+                    </button>
+
+
+                    <button
+                        type="button"
+                        class="portal-result-tab"
+                        id="jsonTab"
+                    >
+                        Vista JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <!-- ==================================================
+                     VISTA RESUMEN RRCC
+                ================================================== -->
+
+                <div
+                    class="portal-result-view active"
+                    id="resumenView"
+                >
+
+
+                    <div
+                        class="portal-result-error"
+                        id="consultaErrorView"
+                        hidden
+                    ></div>
+
+
+
+                    <div id="resumenContenido">
+
+
+
+                        <!-- ==================================================
+                             METADATOS
+                        ================================================== -->
+
+                        <div class="portal-report-meta">
+
+
+                            <div class="portal-report-meta-item">
+
+                                <span>
+                                    Documento
+                                </span>
+
+                                <strong id="resumenDocumento">
+                                    -
+                                </strong>
+
+                            </div>
+
+
+
+                            <div
+                                class="
+                                    portal-report-meta-item
+                                    portal-report-name
+                                "
+                            >
+
+                                <span>
+                                    Nombre
+                                </span>
+
+                                <strong id="resumenNombre">
+                                    -
+                                </strong>
+
+                            </div>
+
+
+
+                            <div class="portal-report-meta-item">
+
+                                <span>
+                                    Consulta
+                                </span>
+
+                                <strong id="resumenConsulta">
+                                    -
+                                </strong>
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <!-- ==================================================
+                             CALIFICACIÓN
+                        ================================================== -->
+
+                        <section class="portal-report-section">
+
+
+                            <div class="portal-report-section-title">
+                                Calificación crediticia
+                            </div>
+
+
+
+                            <div class="portal-rating-bar">
+
+
+                                <span
+                                    id="ratingBarNOR"
+                                    class="rating-nor"
+                                ></span>
+
+
+                                <span
+                                    id="ratingBarCPP"
+                                    class="rating-cpp"
+                                ></span>
+
+
+                                <span
+                                    id="ratingBarDEF"
+                                    class="rating-def"
+                                ></span>
+
+
+                                <span
+                                    id="ratingBarDUD"
+                                    class="rating-dud"
+                                ></span>
+
+
+                                <span
+                                    id="ratingBarPER"
+                                    class="rating-per"
+                                ></span>
+
+
+                                <span
+                                    id="ratingBarReportan"
+                                    class="rating-reportan"
+                                ></span>
+
+
+                            </div>
+
+
+
+                            <div class="portal-rating-grid">
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Normal
+                                    </span>
+
+                                    <strong
+                                        id="ratingNOR"
+                                        class="rating-value-nor"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Prob. Potenciales
+                                    </span>
+
+                                    <strong
+                                        id="ratingCPP"
+                                        class="rating-value-cpp"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Deficiente
+                                    </span>
+
+                                    <strong
+                                        id="ratingDEF"
+                                        class="rating-value-def"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Dudoso
+                                    </span>
+
+                                    <strong
+                                        id="ratingDUD"
+                                        class="rating-value-dud"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Pérdida
+                                    </span>
+
+                                    <strong
+                                        id="ratingPER"
+                                        class="rating-value-per"
+                                    >
+                                        0%
+                                    </strong>
+
+                                </div>
+
+
+
+                                <div class="portal-rating-item">
+
+                                    <span>
+                                        Reportan
+                                    </span>
+
+                                    <strong
+                                        id="ratingReportan"
+                                        class="rating-value-reportan"
+                                    >
+                                        0
+                                    </strong>
+
+                                </div>
+
+
+                            </div>
+
+
+                        </section>
+
+
+
+                        <!-- ==================================================
+                             DEUDAS
+                        ================================================== -->
+
+                        <section class="portal-report-section">
+
+
+                            <div class="portal-report-section-title">
+                                Detalle de deuda
+                            </div>
+
+
+                            <div class="portal-report-table-wrap">
+
+
+                                <table class="portal-report-table">
+
+
+                                    <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            Entidad
+                                        </th>
+
+                                        <th>
+                                            Tipo de deuda
+                                        </th>
+
+                                        <th>
+                                            Calificación
+                                        </th>
+
+                                        <th>
+                                            Días
+                                        </th>
+
+                                        <th class="align-right">
+                                            Capital
+                                        </th>
+
+                                    </tr>
+
+                                    </thead>
+
+
+
+                                    <tbody id="deudasBody">
+
+                                    <tr>
+
+                                        <td
+                                            colspan="5"
+                                            class="portal-report-empty"
+                                        >
+                                            Sin información.
+                                        </td>
+
+                                    </tr>
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                        </section>
+
+
+
+                        <!-- ==================================================
+                             LÍNEAS DE CRÉDITO
+                        ================================================== -->
+
+                        <section class="portal-report-section">
+
+
+                            <div class="portal-report-section-title">
+                                Líneas de crédito
+                            </div>
+
+
+                            <div class="portal-report-table-wrap">
+
+
+                                <table class="portal-report-table">
+
+
+                                    <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            Entidad reportante
+                                        </th>
+
+                                        <th>
+                                            Tipo de línea
+                                        </th>
+
+                                        <th>
+                                            % utilizado
+                                        </th>
+
+                                        <th>
+                                            % no utilizado
+                                        </th>
+
+                                        <th class="align-right">
+                                            Línea de crédito
+                                        </th>
+
+                                    </tr>
+
+                                    </thead>
+
+
+
+                                    <tbody id="lineasBody">
+
+                                    <tr>
+
+                                        <td
+                                            colspan="5"
+                                            class="portal-report-empty"
+                                        >
+                                            Sin información.
+                                        </td>
+
+                                    </tr>
+
+                                    </tbody>
+
+
+                                </table>
+
+
+                            </div>
+
+
+                        </section>
+
+
+
+                        <div
+                            class="portal-report-period"
+                            id="reportePeriodo"
+                        >
+                            Reporte actualizado con el periodo -
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- ==================================================
+                     VISTA JSON RRCC
+                ================================================== -->
+
+                <div
+                    class="portal-result-view"
+                    id="jsonView"
+                >
+
+
+                    <div class="portal-json-header">
+
+
+                        <div>
+
+                            <span class="portal-label">
+                                Respuesta API
+                            </span>
+
+                            <h2>
+                                Resultado JSON
+                            </h2>
+
+                            <p>
+                                Respuesta completa devuelta por el servicio.
+                            </p>
+
+                        </div>
+
+
+
+                        <button
+                            type="button"
+                            class="copy-json-button"
+                            id="copyJsonButton"
+                        >
+                            Copiar JSON
+                        </button>
+
+
+                    </div>
+
+
+
+                    <div class="portal-json-container">
+
+                        <pre
+                            id="jsonResponse"
+                            class="portal-json-response"
+                        >{{ consulta_json }}</pre>
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+<!-- ==================================================
+     MODAL CONSULTA SUELDOS
+================================================== -->
+
+{% if cuenta %}
+
+
+<div
+    class="portal-modal-overlay"
+    id="sueldosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if sueldos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sueldosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER SUELDOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="sueldosModalTitulo">
+                    Consulta de sueldos
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarSueldosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY SUELDOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO SUELDOS
+            ================================================== -->
+
+            <form
+                id="sueldosForm"
+                method="POST"
+                action="{{ url_for('portal_sueldos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="sueldosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="sueldosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if sueldos_form and sueldos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="sueldosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="sueldosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if sueldos_form %}{{ sueldos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="sueldosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="sueldosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if sueldos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if sueldos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if sueldos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO SUELDOS
+            ================================================== -->
+
+            {% if sueldos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="sueldosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de sueldos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copySueldosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="sueldosJsonResponse"
+                        class="portal-json-response"
+                    >{{ sueldos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<div
+    class="portal-modal-overlay"
+    id="fallecidosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if fallecidos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fallecidosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER FALLECIDOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="fallecidosModalTitulo">
+                    Consulta de fallecidos
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarFallecidosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY FALLECIDOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO FALLECIDOS
+            ================================================== -->
+
+            <form
+                id="fallecidosForm"
+                method="POST"
+                action="{{ url_for('portal_fallecidos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="fallecidosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="fallecidosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if fallecidos_form and fallecidos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="fallecidosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="fallecidosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if fallecidos_form %}{{ fallecidos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="fallecidosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="fallecidosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if fallecidos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if fallecidos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if fallecidos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO FALLECIDOS
+            ================================================== -->
+
+            {% if fallecidos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="fallecidosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de fallecidos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copyFallecidosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="fallecidosJsonResponse"
+                        class="portal-json-response"
+                    >{{ fallecidos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+<div
+    class="portal-modal-overlay"
+    id="telefonosModal"
+    aria-hidden="true"
+    data-auto-open="{{ 'true' if telefonos_json else 'false' }}"
+>
+
+
+    <div
+        class="portal-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="telefonosModalTitulo"
+    >
+
+
+
+        <!-- ==================================================
+             HEADER TELÉFONOS
+        ================================================== -->
+
+        <div class="portal-modal-header">
+
+
+            <div>
+
+                <h2 id="telefonosModalTitulo">
+                    Consulta de líneas móviles
+                </h2>
+
+                <p>
+                    Ingresa el documento que deseas consultar.
+                </p>
+
+            </div>
+
+
+
+            <button
+                type="button"
+                class="portal-modal-close"
+                id="cerrarTelefonosModal"
+                aria-label="Cerrar"
+            >
+
+                <span>
+                    Cerrar
+                </span>
+
+                <strong>
+                    ×
+                </strong>
+
+            </button>
+
+
+        </div>
+
+
+
+        <!-- ==================================================
+             BODY TELÉFONOS
+        ================================================== -->
+
+        <div class="portal-modal-body">
+
+
+            <div class="portal-modal-cost">
+
+                <span>
+                    1 crédito por consulta
+                </span>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 FORMULARIO TELÉFONOS
+            ================================================== -->
+
+            <form
+                id="telefonosForm"
+                method="POST"
+                action="{{ url_for('portal_telefonos') }}"
+                class="portal-modal-form"
+            >
+
+
+                <div class="portal-query-field">
+
+
+                    <label for="telefonosTipoDocumento">
+                        Tipo de documento
+                    </label>
+
+
+                    <select
+                        id="telefonosTipoDocumento"
+                        name="tipoDocumento"
+                        required
+                    >
+
+
+                        <option value="">
+                            Seleccionar
+                        </option>
+
+
+                        <option
+                            value="DNI"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'DNI' %}
+                            selected
+                            {% endif %}
+                        >
+                            DNI
+                        </option>
+
+
+                        <option
+                            value="RUC"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'RUC' %}
+                            selected
+                            {% endif %}
+                        >
+                            RUC
+                        </option>
+
+
+                        <option
+                            value="CE"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'CE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Carnet de Extranjería
+                        </option>
+
+
+                        <option
+                            value="PASAPORTE"
+
+                            {% if telefonos_form and telefonos_form.get('tipoDocumento') == 'PASAPORTE' %}
+                            selected
+                            {% endif %}
+                        >
+                            Pasaporte
+                        </option>
+
+
+                    </select>
+
+
+                </div>
+
+
+
+                <div class="portal-query-field portal-document-field">
+
+
+                    <label for="telefonosDocumento">
+                        Documento
+                    </label>
+
+
+                    <input
+                        id="telefonosDocumento"
+                        name="documento"
+                        type="text"
+
+                        value="{% if telefonos_form %}{{ telefonos_form.get('documento', '') }}{% endif %}"
+
+                        placeholder="Ingrese documento"
+
+                        autocomplete="off"
+
+                        required
+                    >
+
+
+                    <small id="telefonosDocumentoAyuda"></small>
+
+
+                </div>
+
+
+
+                <div class="portal-modal-submit">
+
+
+                    <button
+                        id="telefonosSubmitButton"
+                        type="submit"
+
+                        class="
+                            portal-query-button
+                            {% if telefonos_disponibles <= 0 %}
+                            portal-query-button-disabled
+                            {% endif %}
+                        "
+
+                        {% if telefonos_disponibles <= 0 %}
+                        disabled
+                        {% endif %}
+                    >
+
+                        {% if telefonos_disponibles > 0 %}
+
+                            Consultar
+
+                        {% else %}
+
+                            Sin créditos
+
+                        {% endif %}
+
+                    </button>
+
+
+                </div>
+
+
+            </form>
+
+
+
+            <!-- ==================================================
+                 RESULTADO TELÉFONOS
+            ================================================== -->
+
+            {% if telefonos_json %}
+
+
+            <div
+                class="portal-modal-result"
+                id="telefonosResultado"
+            >
+
+
+                <div class="portal-json-header">
+
+
+                    <div>
+
+                        <span class="portal-label">
+                            Respuesta API
+                        </span>
+
+                        <h2>
+                            Resultado JSON
+                        </h2>
+
+                        <p>
+                            Respuesta completa devuelta por el
+                            servicio de teléfonos.
+                        </p>
+
+                    </div>
+
+
+
+                    <button
+                        type="button"
+                        class="copy-json-button"
+                        id="copyTelefonosJsonButton"
+                    >
+                        Copiar JSON
+                    </button>
+
+
+                </div>
+
+
+
+                <div class="portal-json-container">
+
+                    <pre
+                        id="telefonosJsonResponse"
+                        class="portal-json-response"
+                    >{{ telefonos_json }}</pre>
+
+                </div>
+
+
+            </div>
+
+
+            {% endif %}
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+{% endif %}
+
+
+
+<script>
+
+
+    // =====================================================
+    // REGLAS DE DOCUMENTOS
+    // =====================================================
+
+    const reglasDocumento = {
+
+
+        DNI: {
+
+            maxLength: 8,
+
+            exactLength: 8,
+
+            soloNumeros: true,
+
+            alfanumerico: false,
+
+            placeholder:
+                "Ingrese DNI",
+
+            ayuda:
+                "El DNI debe contener exactamente 8 dígitos.",
+
+            mensaje:
+                "El DNI debe contener exactamente 8 dígitos."
+        },
+
+
+        RUC: {
+
+            maxLength: 11,
+
+            exactLength: 11,
+
+            soloNumeros: true,
+
+            alfanumerico: false,
+
+            placeholder:
+                "Ingrese RUC",
+
+            ayuda:
+                "El RUC debe contener exactamente 11 dígitos.",
+
+            mensaje:
+                "El RUC debe contener exactamente 11 dígitos."
+        },
+
+
+        CE: {
+
+            maxLength: 20,
+
+            exactLength: null,
+
+            soloNumeros: false,
+
+            alfanumerico: true,
+
+            placeholder:
+                "Carnet de extranjería",
+
+            ayuda:
+                "Máximo 20 caracteres alfanuméricos.",
+
+            mensaje:
+                "El Carnet de Extranjería debe ser alfanumérico y no superar 20 caracteres."
+        },
+
+
+        PASAPORTE: {
+
+            maxLength: 20,
+
+            exactLength: null,
+
+            soloNumeros: false,
+
+            alfanumerico: true,
+
+            placeholder:
+                "Pasaporte",
+
+            ayuda:
+                "Máximo 20 caracteres alfanuméricos.",
+
+            mensaje:
+                "El pasaporte debe ser alfanumérico y no superar 20 caracteres."
+        }
+
+    };
+
+
+
+    // =====================================================
+    // ELEMENTOS RRCC
+    // =====================================================
+
+    const consultaModal =
+        document.getElementById(
+            "consultaModal"
+        );
+
+
+    const abrirConsultaModal =
+        document.getElementById(
+            "abrirConsultaModal"
+        );
+
+
+    const cerrarConsultaModal =
+        document.getElementById(
+            "cerrarConsultaModal"
+        );
+
+
+    const consultaForm =
+        document.getElementById(
+            "consultaForm"
+        );
+
+
+    const consultaSubmitButton =
+        document.getElementById(
+            "consultaSubmitButton"
+        );
+
+
+    const tipoDocumento =
+        document.getElementById(
+            "tipoDocumento"
+        );
+
+
+    const documento =
+        document.getElementById(
+            "documento"
+        );
+
+
+    const documentoAyuda =
+        document.getElementById(
+            "documentoAyuda"
+        );
+
+
+
+    // =====================================================
+    // ELEMENTOS SUELDOS
+    // =====================================================
+
+    const sueldosModal =
+        document.getElementById(
+            "sueldosModal"
+        );
+
+
+    const abrirSueldosModal =
+        document.getElementById(
+            "abrirSueldosModal"
+        );
+
+
+    const cerrarSueldosModal =
+        document.getElementById(
+            "cerrarSueldosModal"
+        );
+
+
+    const sueldosForm =
+        document.getElementById(
+            "sueldosForm"
+        );
+
+
+    const sueldosSubmitButton =
+        document.getElementById(
+            "sueldosSubmitButton"
+        );
+
+
+    const sueldosTipoDocumento =
+        document.getElementById(
+            "sueldosTipoDocumento"
+        );
+
+
+    const sueldosDocumento =
+        document.getElementById(
+            "sueldosDocumento"
+        );
+
+
+    const sueldosDocumentoAyuda =
+        document.getElementById(
+            "sueldosDocumentoAyuda"
+        );
+
+
+
+    // =====================================================
+    // RESULTADOS
+    // =====================================================
+
+    const consultaResultado =
+        document.getElementById(
+            "consultaResultado"
+        );
+
+
+    const sueldosResultado =
+        document.getElementById(
+            "sueldosResultado"
+        );
+
+
+    // =====================================================
+    // ELEMENTOS FALLECIDOS
+    // =====================================================
+
+    const fallecidosModal =
+        document.getElementById(
+            "fallecidosModal"
+        );
+
+
+    const abrirFallecidosModal =
+        document.getElementById(
+            "abrirFallecidosModal"
+        );
+
+
+    const cerrarFallecidosModal =
+        document.getElementById(
+            "cerrarFallecidosModal"
+        );
+
+
+    const fallecidosForm =
+        document.getElementById(
+            "fallecidosForm"
+        );
+
+
+    const fallecidosSubmitButton =
+        document.getElementById(
+            "fallecidosSubmitButton"
+        );
+
+
+    const fallecidosTipoDocumento =
+        document.getElementById(
+            "fallecidosTipoDocumento"
+        );
+
+
+    const fallecidosDocumento =
+        document.getElementById(
+            "fallecidosDocumento"
+        );
+
+
+    const fallecidosDocumentoAyuda =
+        document.getElementById(
+            "fallecidosDocumentoAyuda"
+        );
+
+
+    const fallecidosResultado =
+        document.getElementById(
+            "fallecidosResultado"
+        );
+
+
+    // =====================================================
+    // ELEMENTOS TELÉFONOS
+    // =====================================================
+
+    const telefonosModal =
+        document.getElementById(
+            "telefonosModal"
+        );
+
+
+    const abrirTelefonosModal =
+        document.getElementById(
+            "abrirTelefonosModal"
+        );
+
+
+    const cerrarTelefonosModal =
+        document.getElementById(
+            "cerrarTelefonosModal"
+        );
+
+
+    const telefonosForm =
+        document.getElementById(
+            "telefonosForm"
+        );
+
+
+    const telefonosSubmitButton =
+        document.getElementById(
+            "telefonosSubmitButton"
+        );
+
+
+    const telefonosTipoDocumento =
+        document.getElementById(
+            "telefonosTipoDocumento"
+        );
+
+
+    const telefonosDocumento =
+        document.getElementById(
+            "telefonosDocumento"
+        );
+
+
+    const telefonosDocumentoAyuda =
+        document.getElementById(
+            "telefonosDocumentoAyuda"
+        );
+
+
+    const telefonosResultado =
+        document.getElementById(
+            "telefonosResultado"
+        );
+
+
+
+    // =====================================================
+    // MODALES
+    // =====================================================
+
+    function abrirModal(
+        modal,
+        campoInicial = null
+    ) {
+
+        if (!modal) {
+            return;
+        }
+
+
+        modal.classList.add(
+            "is-open"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "false"
+        );
+
+
+        document.body.classList.add(
+            "portal-modal-open"
+        );
+
+
+        if (campoInicial) {
+
+            setTimeout(
+                function () {
+
+                    campoInicial.focus();
+
+                },
+                100
+            );
+        }
+    }
+
+
+
+    function cerrarModal(
+        modal
+    ) {
+
+        if (!modal) {
+            return;
+        }
+
+
+        modal.classList.remove(
+            "is-open"
+        );
+
+
+        modal.setAttribute(
+            "aria-hidden",
+            "true"
+        );
+
+        if (window.history.replaceState) {
+            window.history.replaceState(null, "", "{{ url_for('portal_cuenta') }}");
+        }
+
+
+        const existeOtroModalAbierto =
+            document.querySelector(
+                ".portal-modal-overlay.is-open"
+            );
+
+
+        if (!existeOtroModalAbierto) {
+
+            document.body.classList.remove(
+                "portal-modal-open"
+            );
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA RRCC
+    // =====================================================
+
+    function limpiarNuevaConsultaRRCC() {
+
+
+        if (consultaForm) {
+
+            consultaForm.reset();
+
+            consultaForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (tipoDocumento) {
+
+            tipoDocumento.value =
+                "";
+        }
+
+
+        if (documento) {
+
+            documento.value =
+                "";
+
+            documento.setCustomValidity(
+                ""
+            );
+
+            documento.placeholder =
+                "Ingrese documento";
+
+            documento.removeAttribute(
+                "maxlength"
+            );
+
+            documento.inputMode =
+                "text";
+        }
+
+
+        if (documentoAyuda) {
+
+            documentoAyuda.textContent =
+                "";
+        }
+
+
+        if (consultaSubmitButton) {
+
+            consultaSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (consultaResultado) {
+
+            consultaResultado.style.display =
+                "none";
+        }
+
+
+        cambiarVistaResultado(
+            "resumen"
+        );
+
+
+        if (consultaModal) {
+
+            const modalBody =
+                consultaModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA SUELDOS
+    // =====================================================
+
+    function limpiarNuevaConsultaSueldos() {
+
+
+        if (sueldosForm) {
+
+            sueldosForm.reset();
+
+            sueldosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (sueldosTipoDocumento) {
+
+            sueldosTipoDocumento.value =
+                "";
+        }
+
+
+        if (sueldosDocumento) {
+
+            sueldosDocumento.value =
+                "";
+
+            sueldosDocumento.setCustomValidity(
+                ""
+            );
+
+            sueldosDocumento.placeholder =
+                "Ingrese documento";
+
+            sueldosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            sueldosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (sueldosDocumentoAyuda) {
+
+            sueldosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            sueldosSubmitButton &&
+            !sueldosSubmitButton.disabled
+        ) {
+
+            sueldosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (sueldosResultado) {
+
+            sueldosResultado.style.display =
+                "none";
+        }
+
+
+        if (sueldosModal) {
+
+            const modalBody =
+                sueldosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA FALLECIDOS
+    // =====================================================
+
+    function limpiarNuevaConsultaFallecidos() {
+
+
+        if (fallecidosForm) {
+
+            fallecidosForm.reset();
+
+            fallecidosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (fallecidosTipoDocumento) {
+
+            fallecidosTipoDocumento.value =
+                "";
+        }
+
+
+        if (fallecidosDocumento) {
+
+            fallecidosDocumento.value =
+                "";
+
+            fallecidosDocumento.setCustomValidity(
+                ""
+            );
+
+            fallecidosDocumento.placeholder =
+                "Ingrese documento";
+
+            fallecidosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            fallecidosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (fallecidosDocumentoAyuda) {
+
+            fallecidosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            fallecidosSubmitButton &&
+            !fallecidosSubmitButton.disabled
+        ) {
+
+            fallecidosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (fallecidosResultado) {
+
+            fallecidosResultado.style.display =
+                "none";
+        }
+
+
+        if (fallecidosModal) {
+
+            const modalBody =
+                fallecidosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // LIMPIAR NUEVA CONSULTA TELÉFONOS
+    // =====================================================
+
+    function limpiarNuevaConsultaTelefonos() {
+
+
+        if (telefonosForm) {
+
+            telefonosForm.reset();
+
+            telefonosForm.dataset.enviando =
+                "false";
+        }
+
+
+        if (telefonosTipoDocumento) {
+
+            telefonosTipoDocumento.value =
+                "";
+        }
+
+
+        if (telefonosDocumento) {
+
+            telefonosDocumento.value =
+                "";
+
+            telefonosDocumento.setCustomValidity(
+                ""
+            );
+
+            telefonosDocumento.placeholder =
+                "Ingrese documento";
+
+            telefonosDocumento.removeAttribute(
+                "maxlength"
+            );
+
+            telefonosDocumento.inputMode =
+                "text";
+        }
+
+
+        if (telefonosDocumentoAyuda) {
+
+            telefonosDocumentoAyuda.textContent =
+                "";
+        }
+
+
+        if (
+            telefonosSubmitButton &&
+            !telefonosSubmitButton.disabled
+        ) {
+
+            telefonosSubmitButton.textContent =
+                "Consultar";
+        }
+
+
+        if (telefonosResultado) {
+
+            telefonosResultado.style.display =
+                "none";
+        }
+
+
+        if (telefonosModal) {
+
+            const modalBody =
+                telefonosModal.querySelector(
+                    ".portal-modal-body"
+                );
+
+
+            if (modalBody) {
+
+                modalBody.scrollTop =
+                    0;
+            }
+        }
+    }
+
+
+
+    // =====================================================
+    // ABRIR RRCC
+    // =====================================================
+
+    if (
+        abrirConsultaModal &&
+        !abrirConsultaModal.disabled
+    ) {
+
+        abrirConsultaModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaRRCC();
+
+                abrirModal(
+                    consultaModal,
+                    tipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarConsultaModal) {
+
+        cerrarConsultaModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    consultaModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ABRIR SUELDOS
+    // =====================================================
+
+    if (
+        abrirSueldosModal &&
+        !abrirSueldosModal.disabled
+    ) {
+
+        abrirSueldosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaSueldos();
+
+                abrirModal(
+                    sueldosModal,
+                    sueldosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarSueldosModal) {
+
+        cerrarSueldosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    sueldosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ABRIR FALLECIDOS
+    // =====================================================
+
+    if (
+        abrirFallecidosModal &&
+        !abrirFallecidosModal.disabled
+    ) {
+
+        abrirFallecidosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaFallecidos();
+
+                abrirModal(
+                    fallecidosModal,
+                    fallecidosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarFallecidosModal) {
+
+        cerrarFallecidosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    fallecidosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ABRIR TELÉFONOS
+    // =====================================================
+
+    if (
+        abrirTelefonosModal &&
+        !abrirTelefonosModal.disabled
+    ) {
+
+        abrirTelefonosModal.addEventListener(
+            "click",
+            function () {
+
+                limpiarNuevaConsultaTelefonos();
+
+                abrirModal(
+                    telefonosModal,
+                    telefonosTipoDocumento
+                );
+            }
+        );
+    }
+
+
+
+    if (cerrarTelefonosModal) {
+
+        cerrarTelefonosModal.addEventListener(
+            "click",
+            function () {
+
+                cerrarModal(
+                    telefonosModal
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // CERRAR AL PULSAR FONDO
+    // =====================================================
+
+    if (consultaModal) {
+
+        consultaModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    consultaModal
+                ) {
+
+                    cerrarModal(
+                        consultaModal
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (sueldosModal) {
+
+        sueldosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    sueldosModal
+                ) {
+
+                    cerrarModal(
+                        sueldosModal
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (fallecidosModal) {
+
+        fallecidosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    fallecidosModal
+                ) {
+
+                    cerrarModal(
+                        fallecidosModal
+                    );
+                }
+            }
+        );
+    }
+
+
+    if (telefonosModal) {
+
+        telefonosModal.addEventListener(
+            "click",
+            function (event) {
+
+                if (
+                    event.target ===
+                    telefonosModal
+                ) {
+
+                    cerrarModal(
+                        telefonosModal
+                    );
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // ESC
+    // =====================================================
+
+    document.addEventListener(
+        "keydown",
+        function (event) {
+
+            if (
+                event.key !==
+                "Escape"
+            ) {
+
+                return;
+            }
+
+
+            if (
+                sueldosModal &&
+                sueldosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    sueldosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                fallecidosModal &&
+                fallecidosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    fallecidosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                telefonosModal &&
+                telefonosModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    telefonosModal
+                );
+
+                return;
+            }
+
+
+            if (
+                consultaModal &&
+                consultaModal.classList.contains(
+                    "is-open"
+                )
+            ) {
+
+                cerrarModal(
+                    consultaModal
+                );
+            }
+        }
+    );
+
+
+
+    // =====================================================
+    // NORMALIZAR DOCUMENTO
+    // =====================================================
+
+    function normalizarDocumentoCampo(
+        selectorTipo,
+        inputDocumento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        if (!regla) {
+            return;
+        }
+
+
+        let valor =
+            inputDocumento.value;
+
+
+        if (regla.soloNumeros) {
+
+            valor =
+                valor.replace(
+                    /\D/g,
+                    ""
+                );
+        }
+
+
+        if (regla.alfanumerico) {
+
+            valor =
+                valor
+                    .replace(
+                        /[^A-Za-z0-9]/g,
+                        ""
+                    )
+                    .toUpperCase();
+        }
+
+
+        valor =
+            valor.substring(
+                0,
+                regla.maxLength
+            );
+
+
+        inputDocumento.value =
+            valor;
+    }
+
+
+
+    // =====================================================
+    // CONFIGURAR DOCUMENTO
+    // =====================================================
+
+    function configurarDocumentoCampo(
+        selectorTipo,
+        inputDocumento,
+        ayudaElemento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        inputDocumento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+
+            inputDocumento.removeAttribute(
+                "maxlength"
+            );
+
+
+            inputDocumento.placeholder =
+                "Ingrese documento";
+
+
+            inputDocumento.inputMode =
+                "text";
+
+
+            if (ayudaElemento) {
+
+                ayudaElemento.textContent =
+                    "";
+            }
+
+
+            return;
+        }
+
+
+        inputDocumento.maxLength =
+            regla.maxLength;
+
+
+        inputDocumento.inputMode =
+            regla.soloNumeros
+                ? "numeric"
+                : "text";
+
+
+        inputDocumento.placeholder =
+            regla.placeholder;
+
+
+        if (ayudaElemento) {
+
+            ayudaElemento.textContent =
+                regla.ayuda;
+        }
+
+
+        normalizarDocumentoCampo(
+            selectorTipo,
+            inputDocumento
+        );
+    }
+
+
+
+    // =====================================================
+    // VALIDAR DOCUMENTO
+    // =====================================================
+
+    function validarDocumentoCampo(
+        selectorTipo,
+        inputDocumento
+    ) {
+
+        if (
+            !selectorTipo ||
+            !inputDocumento
+        ) {
+
+            return true;
+        }
+
+
+        const regla =
+            reglasDocumento[
+                selectorTipo.value
+            ];
+
+
+        inputDocumento.setCustomValidity(
+            ""
+        );
+
+
+        if (!regla) {
+            return true;
+        }
+
+
+        const valor =
+            inputDocumento.value.trim();
+
+
+        if (!valor) {
+            return true;
+        }
+
+
+        if (
+            regla.exactLength &&
+            valor.length !==
+            regla.exactLength
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        if (
+            regla.soloNumeros &&
+            !/^\d+$/.test(
+                valor
+            )
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        if (
+            regla.alfanumerico &&
+            !/^[A-Za-z0-9]+$/.test(
+                valor
+            )
+        ) {
+
+            inputDocumento.setCustomValidity(
+                regla.mensaje
+            );
+
+            return false;
+        }
+
+
+        return true;
+    }
+
+
+
+    // =====================================================
+    // EVENTOS RRCC
+    // =====================================================
+
+    if (
+        tipoDocumento &&
+        documento
+    ) {
+
+        configurarDocumentoCampo(
+            tipoDocumento,
+            documento,
+            documentoAyuda
+        );
+
+
+        tipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                documento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    tipoDocumento,
+                    documento,
+                    documentoAyuda
+                );
+
+
+                documento.focus();
+            }
+        );
+
+
+        documento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+
+
+                validarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+            }
+        );
+
+
+        documento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS SUELDOS
+    // =====================================================
+
+    if (
+        sueldosTipoDocumento &&
+        sueldosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            sueldosTipoDocumento,
+            sueldosDocumento,
+            sueldosDocumentoAyuda
+        );
+
+
+        sueldosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                sueldosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento,
+                    sueldosDocumentoAyuda
+                );
+
+
+                sueldosDocumento.focus();
+            }
+        );
+
+
+        sueldosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+            }
+        );
+
+
+        sueldosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO RRCC
+    // =====================================================
+
+    if (consultaForm) {
+
+        consultaForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    consultaForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    tipoDocumento,
+                    documento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        tipoDocumento,
+                        documento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    documento.reportValidity();
+
+                    documento.focus();
+
+                    return;
+                }
+
+
+                consultaForm.dataset.enviando =
+                    "true";
+
+
+                if (consultaSubmitButton) {
+
+                    consultaSubmitButton.disabled =
+                        true;
+
+                    consultaSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO SUELDOS
+    // =====================================================
+
+    if (sueldosForm) {
+
+        sueldosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    sueldosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    sueldosTipoDocumento,
+                    sueldosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        sueldosTipoDocumento,
+                        sueldosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    sueldosDocumento.reportValidity();
+
+                    sueldosDocumento.focus();
+
+                    return;
+                }
+
+
+                sueldosForm.dataset.enviando =
+                    "true";
+
+
+                if (sueldosSubmitButton) {
+
+                    sueldosSubmitButton.disabled =
+                        true;
+
+                    sueldosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS FALLECIDOS
+    // =====================================================
+
+    if (
+        fallecidosTipoDocumento &&
+        fallecidosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            fallecidosTipoDocumento,
+            fallecidosDocumento,
+            fallecidosDocumentoAyuda
+        );
+
+
+        fallecidosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                fallecidosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento,
+                    fallecidosDocumentoAyuda
+                );
+
+
+                fallecidosDocumento.focus();
+            }
+        );
+
+
+        fallecidosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+            }
+        );
+
+
+        fallecidosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO FALLECIDOS
+    // =====================================================
+
+    if (fallecidosForm) {
+
+        fallecidosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    fallecidosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    fallecidosTipoDocumento,
+                    fallecidosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        fallecidosTipoDocumento,
+                        fallecidosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    fallecidosDocumento.reportValidity();
+
+                    fallecidosDocumento.focus();
+
+                    return;
+                }
+
+
+                fallecidosForm.dataset.enviando =
+                    "true";
+
+
+                if (fallecidosSubmitButton) {
+
+                    fallecidosSubmitButton.disabled =
+                        true;
+
+                    fallecidosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVENTOS TELÉFONOS
+    // =====================================================
+
+    if (
+        telefonosTipoDocumento &&
+        telefonosDocumento
+    ) {
+
+        configurarDocumentoCampo(
+            telefonosTipoDocumento,
+            telefonosDocumento,
+            telefonosDocumentoAyuda
+        );
+
+
+        telefonosTipoDocumento.addEventListener(
+            "change",
+            function () {
+
+                telefonosDocumento.value =
+                    "";
+
+
+                configurarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento,
+                    telefonosDocumentoAyuda
+                );
+
+
+                telefonosDocumento.focus();
+            }
+        );
+
+
+        telefonosDocumento.addEventListener(
+            "input",
+            function () {
+
+                normalizarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+
+
+                validarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+            }
+        );
+
+
+        telefonosDocumento.addEventListener(
+            "blur",
+            function () {
+
+                validarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // EVITAR DOBLE ENVÍO TELÉFONOS
+    // =====================================================
+
+    if (telefonosForm) {
+
+        telefonosForm.addEventListener(
+            "submit",
+            function (event) {
+
+
+                if (
+                    telefonosForm.dataset.enviando ===
+                    "true"
+                ) {
+
+                    event.preventDefault();
+
+                    return;
+                }
+
+
+                normalizarDocumentoCampo(
+                    telefonosTipoDocumento,
+                    telefonosDocumento
+                );
+
+
+                const valido =
+                    validarDocumentoCampo(
+                        telefonosTipoDocumento,
+                        telefonosDocumento
+                    );
+
+
+                if (!valido) {
+
+                    event.preventDefault();
+
+                    telefonosDocumento.reportValidity();
+
+                    telefonosDocumento.focus();
+
+                    return;
+                }
+
+
+                telefonosForm.dataset.enviando =
+                    "true";
+
+
+                if (telefonosSubmitButton) {
+
+                    telefonosSubmitButton.disabled =
+                        true;
+
+                    telefonosSubmitButton.textContent =
+                        "Consultando...";
+                }
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // PESTAÑAS RRCC
+    // =====================================================
+
+    const resumenTab =
+        document.getElementById(
+            "resumenTab"
+        );
+
+
+    const jsonTab =
+        document.getElementById(
+            "jsonTab"
+        );
+
+
+    const resumenView =
+        document.getElementById(
+            "resumenView"
+        );
+
+
+    const jsonView =
+        document.getElementById(
+            "jsonView"
+        );
+
+
+
+    function cambiarVistaResultado(
+        vista
+    ) {
+
+        if (
+            !resumenTab ||
+            !jsonTab ||
+            !resumenView ||
+            !jsonView
+        ) {
+
+            return;
+        }
+
+
+        const mostrarResumen =
+            vista ===
+            "resumen";
+
+
+        resumenTab.classList.toggle(
+            "active",
+            mostrarResumen
+        );
+
+
+        jsonTab.classList.toggle(
+            "active",
+            !mostrarResumen
+        );
+
+
+        resumenView.classList.toggle(
+            "active",
+            mostrarResumen
+        );
+
+
+        jsonView.classList.toggle(
+            "active",
+            !mostrarResumen
+        );
+    }
+
+
+
+    if (resumenTab) {
+
+        resumenTab.addEventListener(
+            "click",
+            function () {
+
+                cambiarVistaResultado(
+                    "resumen"
+                );
+            }
+        );
+    }
+
+
+
+    if (jsonTab) {
+
+        jsonTab.addEventListener(
+            "click",
+            function () {
+
+                cambiarVistaResultado(
+                    "json"
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // UTILIDADES
+    // =====================================================
+
+    function valorNumerico(
+        valor
+    ) {
+
+        const numero =
+            Number(valor);
+
+
+        return Number.isFinite(
+            numero
+        )
+            ? numero
+            : 0;
+    }
+
+
+
+    function formatoMoneda(
+        valor
+    ) {
+
+        return valorNumerico(
+            valor
+        )
+            .toLocaleString(
+                "es-PE",
+                {
+
+                    style:
+                        "currency",
+
+                    currency:
+                        "PEN",
+
+                    minimumFractionDigits:
+                        2,
+
+                    maximumFractionDigits:
+                        2
+                }
+            );
+    }
+
+
+
+    function formatoPorcentaje(
+        valor
+    ) {
+
+        return (
+            valorNumerico(
+                valor
+            ).toFixed(2)
+            +
+            "%"
+        );
+    }
+
+
+
+    function textoSeguro(
+        valor,
+        alternativo = "-"
+    ) {
+
+        if (
+            valor === null ||
+            valor === undefined ||
+            valor === ""
+        ) {
+
+            return alternativo;
+        }
+
+
+        return String(
+            valor
+        );
+    }
+
+
+
+    function formatoPeriodo(
+        periodo
+    ) {
+
+        const texto =
+            String(
+                periodo || ""
+            )
+                .trim();
+
+
+        if (
+            !/^\d{6}$/.test(
+                texto
+            )
+        ) {
+
+            return texto || "-";
+        }
+
+
+        const anio =
+            texto.substring(
+                0,
+                4
+            );
+
+
+        const mes =
+            Number(
+                texto.substring(
+                    4,
+                    6
+                )
+            );
+
+
+        const meses = [
+
+            "Enero",
+            "Febrero",
+            "Marzo",
+            "Abril",
+            "Mayo",
+            "Junio",
+            "Julio",
+            "Agosto",
+            "Septiembre",
+            "Octubre",
+            "Noviembre",
+            "Diciembre"
+
+        ];
+
+
+        if (
+            mes < 1 ||
+            mes > 12
+        ) {
+
+            return texto;
+        }
+
+
+        return (
+            `${meses[mes - 1]} ${anio}`
+        );
+    }
+
+
+
+    function formatoFechaConsulta(
+        valor
+    ) {
+
+        const fecha =
+            valor
+                ? new Date(valor)
+                : new Date();
+
+
+        if (
+            Number.isNaN(
+                fecha.getTime()
+            )
+        ) {
+
+            return "-";
+        }
+
+
+        return fecha.toLocaleString(
+            "es-PE",
+            {
+
+                timeZone:
+                    "America/Lima",
+
+                day:
+                    "2-digit",
+
+                month:
+                    "2-digit",
+
+                year:
+                    "numeric",
+
+                hour:
+                    "2-digit",
+
+                minute:
+                    "2-digit"
+            }
+        );
+    }
+
+
+
+    function crearCelda(
+        texto,
+        clase = ""
+    ) {
+
+        const td =
+            document.createElement(
+                "td"
+            );
+
+
+        if (clase) {
+
+            td.className =
+                clase;
+        }
+
+
+        td.textContent =
+            texto;
+
+
+        return td;
+    }
+
+
+
+    // =====================================================
+    // DEUDAS
+    // =====================================================
+
+    function renderizarDeudas(
+        deudas,
+        totalInformado
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "deudasBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.replaceChildren();
+
+
+        const lista =
+            Array.isArray(
+                deudas
+            )
+                ? deudas
+                : [];
+
+
+        if (
+            lista.length === 0
+        ) {
+
+            const fila =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const celda =
+                document.createElement(
+                    "td"
+                );
+
+
+            celda.colSpan =
+                5;
+
+
+            celda.className =
+                "portal-report-empty";
+
+
+            celda.textContent =
+                "No se registran deudas para el período consultado.";
+
+
+            fila.appendChild(
+                celda
+            );
+
+
+            tbody.appendChild(
+                fila
+            );
+
+
+            return;
+        }
+
+
+        let totalCalculado =
+            0;
+
+
+        lista.forEach(
+            function (deuda) {
+
+
+                const fila =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                const saldo =
+                    valorNumerico(
+                        deuda?.saldo
+                        ??
+                        deuda?.capital
+                        ??
+                        0
+                    );
+
+
+                totalCalculado +=
+                    saldo;
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.entidad
+                        ),
+                        "entity-cell"
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.tipoDeuda
+                        )
+                    )
+                );
+
+
+                const tdCalificacion =
+                    document.createElement(
+                        "td"
+                    );
+
+
+                const calificacion =
+                    textoSeguro(
+                        deuda?.calificacion
+                    )
+                        .trim()
+                        .toUpperCase();
+
+
+                const badge =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                badge.className =
+                    "portal-calificacion";
+
+
+                const texto =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                texto.textContent =
+                    calificacion;
+
+
+                const punto =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                punto.className =
+                    "portal-calificacion-dot";
+
+
+                const clasesValidas = [
+
+                    "NOR",
+                    "CPP",
+                    "DEF",
+                    "DUD",
+                    "PER"
+
+                ];
+
+
+                if (
+                    clasesValidas.includes(
+                        calificacion
+                    )
+                ) {
+
+                    punto.classList.add(
+                        `calificacion-${calificacion.toLowerCase()}`
+                    );
+                }
+
+
+                badge.appendChild(
+                    texto
+                );
+
+
+                badge.appendChild(
+                    punto
+                );
+
+
+                tdCalificacion.appendChild(
+                    badge
+                );
+
+
+                fila.appendChild(
+                    tdCalificacion
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            deuda?.dias
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoMoneda(
+                            saldo
+                        ),
+                        "align-right amount-cell"
+                    )
+                );
+
+
+                tbody.appendChild(
+                    fila
+                );
+
+            }
+        );
+
+
+        const total =
+            totalInformado !== null &&
+            totalInformado !== undefined
+
+                ? valorNumerico(
+                    totalInformado
+                )
+
+                : totalCalculado;
+
+
+        const filaTotal =
+            document.createElement(
+                "tr"
+            );
+
+
+        filaTotal.className =
+            "portal-total-row";
+
+
+        const vacio =
+            document.createElement(
+                "td"
+            );
+
+
+        vacio.colSpan =
+            3;
+
+
+        filaTotal.appendChild(
+            vacio
+        );
+
+
+        filaTotal.appendChild(
+            crearCelda(
+                "TOTAL"
+            )
+        );
+
+
+        const totalCelda =
+            crearCelda(
+                formatoMoneda(
+                    total
+                ),
+                "align-right"
+            );
+
+
+        const strong =
+            document.createElement(
+                "strong"
+            );
+
+
+        strong.textContent =
+            totalCelda.textContent;
+
+
+        totalCelda.replaceChildren(
+            strong
+        );
+
+
+        filaTotal.appendChild(
+            totalCelda
+        );
+
+
+        tbody.appendChild(
+            filaTotal
+        );
+
+    }
+
+
+
+    // =====================================================
+    // LÍNEAS DE CRÉDITO
+    // =====================================================
+
+    function renderizarLineas(
+        lineas,
+        totalInformado
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "lineasBody"
+            );
+
+
+        if (!tbody) {
+            return;
+        }
+
+
+        tbody.replaceChildren();
+
+
+        const lista =
+            Array.isArray(
+                lineas
+            )
+                ? lineas
+                : [];
+
+
+        if (
+            lista.length === 0
+        ) {
+
+            const fila =
+                document.createElement(
+                    "tr"
+                );
+
+
+            const celda =
+                document.createElement(
+                    "td"
+                );
+
+
+            celda.colSpan =
+                5;
+
+
+            celda.className =
+                "portal-report-empty";
+
+
+            celda.textContent =
+                "No se registran líneas de crédito para el período consultado.";
+
+
+            fila.appendChild(
+                celda
+            );
+
+
+            tbody.appendChild(
+                fila
+            );
+
+
+            return;
+        }
+
+
+        let totalCalculado =
+            0;
+
+
+        lista.forEach(
+            function (linea) {
+
+
+                const fila =
+                    document.createElement(
+                        "tr"
+                    );
+
+
+                const lineaCredito =
+                    valorNumerico(
+                        linea?.lineaCredito
+                        ??
+                        linea?.linea
+                        ??
+                        0
+                    );
+
+
+                totalCalculado +=
+                    lineaCredito;
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            linea?.entidad
+                        ),
+                        "entity-cell"
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        textoSeguro(
+                            linea?.tipo
+                            ??
+                            linea?.tipoLinea
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoPorcentaje(
+                            linea?.porcentajeUtilizado
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoPorcentaje(
+                            linea?.porcentajeNoUtilizado
+                        )
+                    )
+                );
+
+
+                fila.appendChild(
+                    crearCelda(
+                        formatoMoneda(
+                            lineaCredito
+                        ),
+                        "align-right amount-cell"
+                    )
+                );
+
+
+                tbody.appendChild(
+                    fila
+                );
+
+            }
+        );
+
+
+        const total =
+            totalInformado !== null &&
+            totalInformado !== undefined
+
+                ? valorNumerico(
+                    totalInformado
+                )
+
+                : totalCalculado;
+
+
+        const filaTotal =
+            document.createElement(
+                "tr"
+            );
+
+
+        filaTotal.className =
+            "portal-total-row";
+
+
+        const vacio =
+            document.createElement(
+                "td"
+            );
+
+
+        vacio.colSpan =
+            3;
+
+
+        filaTotal.appendChild(
+            vacio
+        );
+
+
+        filaTotal.appendChild(
+            crearCelda(
+                "TOTAL"
+            )
+        );
+
+
+        const totalCelda =
+            crearCelda(
+                formatoMoneda(
+                    total
+                ),
+                "align-right"
+            );
+
+
+        const strong =
+            document.createElement(
+                "strong"
+            );
+
+
+        strong.textContent =
+            totalCelda.textContent;
+
+
+        totalCelda.replaceChildren(
+            strong
+        );
+
+
+        filaTotal.appendChild(
+            totalCelda
+        );
+
+
+        tbody.appendChild(
+            filaTotal
+        );
+
+    }
+
+
+
+    // =====================================================
+    // RENDER RESUMEN RRCC
+    // =====================================================
+
+    function renderizarResumenConsulta() {
+
+
+        const jsonResponse =
+            document.getElementById(
+                "jsonResponse"
+            );
+
+
+        if (!jsonResponse) {
+            return;
+        }
+
+
+        const errorView =
+            document.getElementById(
+                "consultaErrorView"
+            );
+
+
+        const contenido =
+            document.getElementById(
+                "resumenContenido"
+            );
+
+
+        let respuesta;
+
+
+        try {
+
+            respuesta =
+                JSON.parse(
+                    jsonResponse.textContent
+                );
+
+        } catch (error) {
+
+
+            if (errorView) {
+
+                errorView.hidden =
+                    false;
+
+
+                errorView.textContent =
+                    "No se pudo interpretar la respuesta de la consulta.";
+            }
+
+
+            if (contenido) {
+
+                contenido.hidden =
+                    true;
+            }
+
+
+            return;
+        }
+
+
+
+        const esObjeto =
+            respuesta &&
+            typeof respuesta ===
+            "object";
+
+
+        const datos =
+            esObjeto &&
+            respuesta.data &&
+            typeof respuesta.data ===
+            "object" &&
+            !Array.isArray(
+                respuesta.data
+            )
+
+                ? respuesta.data
+
+                : respuesta;
+
+
+
+        const fallo =
+            !esObjeto ||
+            respuesta.success === false ||
+            !datos ||
+            typeof datos !==
+            "object";
+
+
+        if (fallo) {
+
+
+            const mensaje =
+                respuesta?.error
+                ||
+                respuesta?.message
+                ||
+                respuesta?.mensaje
+                ||
+                "No fue posible realizar la consulta.";
+
+
+            if (errorView) {
+
+                errorView.hidden =
+                    false;
+
+
+                errorView.textContent =
+                    mensaje;
+            }
+
+
+            if (contenido) {
+
+                contenido.hidden =
+                    true;
+            }
+
+
+            return;
+        }
+
+
+
+        if (errorView) {
+
+            errorView.hidden =
+                true;
+        }
+
+
+        if (contenido) {
+
+            contenido.hidden =
+                false;
+        }
+
+
+
+        /* METADATOS */
+
+        const documentoResumen =
+            document.getElementById(
+                "resumenDocumento"
+            );
+
+
+        const nombreResumen =
+            document.getElementById(
+                "resumenNombre"
+            );
+
+
+        const consultaResumen =
+            document.getElementById(
+                "resumenConsulta"
+            );
+
+
+        if (documentoResumen) {
+
+            documentoResumen.textContent =
+                textoSeguro(
+                    datos.documento
+                );
+        }
+
+
+        if (nombreResumen) {
+
+            nombreResumen.textContent =
+                textoSeguro(
+                    datos.nombre
+                )
+                    .toUpperCase();
+        }
+
+
+        if (consultaResumen) {
+
+            consultaResumen.textContent =
+                formatoFechaConsulta(
+                    datos.fechaConsulta
+                    ??
+                    respuesta.fechaConsulta
+                    ??
+                    null
+                );
+        }
+
+
+
+        /* PERIODO ACTUAL PARA VISTA RESUMEN */
+        const periodoActual =
+            (Array.isArray(datos.periodos) && datos.periodos.length > 0)
+                ? datos.periodos[0]
+                : datos;
+
+        /* RATING */
+
+        const rating =
+            periodoActual.rating &&
+            typeof periodoActual.rating ===
+            "object"
+
+                ? periodoActual.rating
+
+                : (datos.rating && typeof datos.rating === "object" ? datos.rating : {});
+
+
+        const ratingNOR =
+            valorNumerico(
+                rating.NOR
+                ??
+                rating.normal
+            );
+
+
+        const ratingCPP =
+            valorNumerico(
+                rating.CPP
+                ??
+                rating.problemas
+            );
+
+
+        const ratingDEF =
+            valorNumerico(
+                rating.DEF
+                ??
+                rating.deficiente
+            );
+
+
+        const ratingDUD =
+            valorNumerico(
+                rating.DUD
+                ??
+                rating.dudoso
+            );
+
+
+        const ratingPER =
+            valorNumerico(
+                rating.PER
+                ??
+                rating.perdida
+            );
+
+
+        const ratingReportan =
+            valorNumerico(
+                rating.reportan
+            );
+
+
+        const valoresRating = {
+
+            ratingNOR:
+                `${ratingNOR}%`,
+
+            ratingCPP:
+                `${ratingCPP}%`,
+
+            ratingDEF:
+                `${ratingDEF}%`,
+
+            ratingDUD:
+                `${ratingDUD}%`,
+
+            ratingPER:
+                `${ratingPER}%`,
+
+            ratingReportan:
+                String(
+                    ratingReportan
+                )
+        };
+
+
+        Object.entries(
+            valoresRating
+        )
+            .forEach(
+                function (
+                    [id, valor]
+                ) {
+
+                    const elemento =
+                        document.getElementById(
+                            id
+                        );
+
+
+                    if (elemento) {
+
+                        elemento.textContent =
+                            valor;
+                    }
+                }
+            );
+
+
+
+        const barras = [
+
+            [
+                "ratingBarNOR",
+                ratingNOR
+            ],
+
+            [
+                "ratingBarCPP",
+                ratingCPP
+            ],
+
+            [
+                "ratingBarDEF",
+                ratingDEF
+            ],
+
+            [
+                "ratingBarDUD",
+                ratingDUD
+            ],
+
+            [
+                "ratingBarPER",
+                ratingPER
+            ],
+
+            [
+                "ratingBarReportan",
+                ratingReportan
+            ]
+        ];
+
+
+        barras.forEach(
+            function (
+                [id, valor]
+            ) {
+
+                const elemento =
+                    document.getElementById(
+                        id
+                    );
+
+
+                if (elemento) {
+
+                    elemento.style.flexGrow =
+                        String(
+                            valor > 0
+                                ? valor
+                                : 0.5
+                        );
+                }
+            }
+        );
+
+
+
+        renderizarDeudas(
+
+            periodoActual.deudas ?? datos.deudas,
+
+            datos.totalCapital
+            ??
+            datos.totalSaldo
+            ??
+            null
+        );
+
+
+        renderizarLineas(
+
+            periodoActual.lineas ?? datos.lineas,
+
+            datos.totalLineaCredito
+            ??
+            null
+        );
+
+
+
+        const reportePeriodo =
+            document.getElementById(
+                "reportePeriodo"
+            );
+
+
+        if (reportePeriodo) {
+
+            reportePeriodo.textContent =
+                (
+                    "Reporte actualizado con el periodo "
+                    +
+                    formatoPeriodo(
+                        periodoActual.periodo ?? datos.periodo
+                    )
+                );
+        }
+
+    }
+
+
+
+    // =====================================================
+    // COPIAR JSON
+    // =====================================================
+
+    async function copiarContenido(
+        idElemento,
+        boton,
+        textoExito
+    ) {
+
+        const elemento =
+            document.getElementById(
+                idElemento
+            );
+
+
+        if (!elemento) {
+            return;
+        }
+
+
+        try {
+
+            await navigator
+                .clipboard
+                .writeText(
+                    elemento.textContent
+                );
+
+
+            if (boton) {
+
+                boton.textContent =
+                    textoExito;
+
+
+                setTimeout(
+                    function () {
+
+                        boton.textContent =
+                            "Copiar JSON";
+
+                    },
+                    1800
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "No se pudo copiar el JSON:",
+                error
+            );
+
+
+            if (boton) {
+
+                boton.textContent =
+                    "No se pudo copiar";
+
+
+                setTimeout(
+                    function () {
+
+                        boton.textContent =
+                            "Copiar JSON";
+
+                    },
+                    1800
+                );
+            }
+        }
+    }
+
+
+
+    const copyJsonButton =
+        document.getElementById(
+            "copyJsonButton"
+        );
+
+
+    if (copyJsonButton) {
+
+        copyJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "jsonResponse",
+                    copyJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    const copySueldosJsonButton =
+        document.getElementById(
+            "copySueldosJsonButton"
+        );
+
+
+    if (copySueldosJsonButton) {
+
+        copySueldosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "sueldosJsonResponse",
+                    copySueldosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    const copyFallecidosJsonButton =
+        document.getElementById(
+            "copyFallecidosJsonButton"
+        );
+
+
+    if (copyFallecidosJsonButton) {
+
+        copyFallecidosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "fallecidosJsonResponse",
+                    copyFallecidosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    const copyTelefonosJsonButton =
+        document.getElementById(
+            "copyTelefonosJsonButton"
+        );
+
+
+    if (copyTelefonosJsonButton) {
+
+        copyTelefonosJsonButton.addEventListener(
+            "click",
+            function () {
+
+                copiarContenido(
+                    "telefonosJsonResponse",
+                    copyTelefonosJsonButton,
+                    "JSON copiado ✓"
+                );
+            }
+        );
+    }
+
+
+
+    // =====================================================
+    // INICIALIZACIÓN
+    // =====================================================
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+
+
+            configurarDocumentoCampo(
+                tipoDocumento,
+                documento,
+                documentoAyuda
+            );
+
+
+            renderizarResumenConsulta();
+
+
+            if (
+                consultaModal &&
+                consultaModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    consultaModal
+                );
+            }
+
+
+
+            configurarDocumentoCampo(
+                sueldosTipoDocumento,
+                sueldosDocumento,
+                sueldosDocumentoAyuda
+            );
+
+
+            if (
+                sueldosModal &&
+                sueldosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    sueldosModal
+                );
+            }
+
+
+
+            configurarDocumentoCampo(
+                fallecidosTipoDocumento,
+                fallecidosDocumento,
+                fallecidosDocumentoAyuda
+            );
+
+
+            if (
+                fallecidosModal &&
+                fallecidosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    fallecidosModal
+                );
+            }
+
+
+
+            configurarDocumentoCampo(
+                telefonosTipoDocumento,
+                telefonosDocumento,
+                telefonosDocumentoAyuda
+            );
+
+
+            if (
+                telefonosModal &&
+                telefonosModal.dataset.autoOpen ===
+                "true"
+            ) {
+
+                abrirModal(
+                    telefonosModal
+                );
+            }
+
+            // Desvincular reenvío de formulario POST al recargar (F5)
+            if (
+                (consultaModal && consultaModal.dataset.autoOpen === "true") ||
+                (sueldosModal && sueldosModal.dataset.autoOpen === "true") ||
+                (fallecidosModal && fallecidosModal.dataset.autoOpen === "true") ||
+                (telefonosModal && telefonosModal.dataset.autoOpen === "true") ||
+                window.location.pathname !== "{{ url_for('portal_cuenta') }}"
+            ) {
+                if (window.history.replaceState) {
+                    window.history.replaceState(null, "", "{{ url_for('portal_cuenta') }}");
+                }
+            }
+
+        }
+    );
+
+
+
+    // =====================================================
+    // ESTILO DINÁMICO DE PLACEHOLDER EN SELECTS
+    // =====================================================
+    document.querySelectorAll(".portal-modal-form select").forEach(function (select) {
+        function actualizarEstadoSelect() {
+            if (!select.value) {
+                select.classList.add("is-placeholder");
+            } else {
+                select.classList.remove("is-placeholder");
+            }
+        }
+        select.addEventListener("change", actualizarEstadoSelect);
+        actualizarEstadoSelect();
+    });
+
+
+
+    
+
+    
+    // =====================================================
+    // BUSCADOR Y FILTRADO DE SERVICIOS EN TIEMPO REAL
+    // =====================================================
+    const serviceSearchInput = document.getElementById("serviceSearchInput");
+    const clearServiceSearch = document.getElementById("clearServiceSearch");
+    const servicesGrid = document.getElementById("servicesGrid");
+    const servicesEmptyState = document.getElementById("servicesEmptyState");
+    const emptySearchTerm = document.getElementById("emptySearchTerm");
+    const servicesCounter = document.getElementById("servicesCounter");
+    const categoryFilterBtns = document.querySelectorAll(".category-filter-btn");
+    const resetServicesFilterBtn = document.getElementById("resetServicesFilterBtn");
+
+    let activeCategory = "all";
+
+    function filtrarServicios() {
+        if (!servicesGrid) return;
+        const query = (serviceSearchInput ? serviceSearchInput.value : "").trim().toLowerCase();
+        const cards = servicesGrid.querySelectorAll(".portal-service-card");
+        let visibleCount = 0;
+
+        if (clearServiceSearch) {
+            clearServiceSearch.style.display = query.length > 0 ? "flex" : "none";
+        }
+
+        cards.forEach(function (card) {
+            const cat = card.dataset.category || "";
+            const keywords = (card.dataset.keywords || "").toLowerCase();
+            const title = (card.querySelector(".portal-service-title") ? card.querySelector(".portal-service-title").textContent : "").toLowerCase();
+            const desc = (card.querySelector(".portal-service-desc") ? card.querySelector(".portal-service-desc").textContent : "").toLowerCase();
+            const matchesCat = (activeCategory === "all" || cat === activeCategory);
+            const matchesQuery = (!query || title.includes(query) || desc.includes(query) || keywords.includes(query));
+
+            if (matchesCat && matchesQuery) {
+                card.style.display = "flex";
+                visibleCount++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        if (servicesCounter) {
+            servicesCounter.textContent = visibleCount + (visibleCount === 1 ? " disponible" : " disponibles");
+        }
+
+        if (servicesEmptyState) {
+            if (visibleCount === 0) {
+                servicesEmptyState.style.display = "block";
+                if (emptySearchTerm) {
+                    emptySearchTerm.textContent = query || activeCategory;
+                }
+            } else {
+                servicesEmptyState.style.display = "none";
+            }
+        }
+    }
+
+    if (serviceSearchInput) {
+        serviceSearchInput.addEventListener("input", filtrarServicios);
+    }
+
+    if (clearServiceSearch) {
+        clearServiceSearch.addEventListener("click", function () {
+            serviceSearchInput.value = "";
+            filtrarServicios();
+            serviceSearchInput.focus();
+        });
+    }
+
+    if (resetServicesFilterBtn) {
+        resetServicesFilterBtn.addEventListener("click", function () {
+            if (serviceSearchInput) {
+                serviceSearchInput.value = "";
+            }
+            activeCategory = "all";
+            categoryFilterBtns.forEach(function (btn) {
+                btn.classList.toggle("is-active", btn.dataset.filter === "all");
+            });
+            filtrarServicios();
+        });
+    }
+
+    categoryFilterBtns.forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            categoryFilterBtns.forEach(function (b) {
+                b.classList.remove("is-active");
+            });
+            btn.classList.add("is-active");
+            activeCategory = btn.dataset.filter;
+            filtrarServicios();
+        });
+    });
+
+
+    // =====================================================
+    // DROPDOWN PERSONALIZADO ELEGANTE (ESTILO DE LA FOTO)
+    // =====================================================
+    const documentDisplayNames = {
+        "": "Seleccionar",
+        "DNI": "DNI",
+        "RUC": "RUC",
+        "CE": "Carnet de Extranjería",
+        "PASAPORTE": "Pasaporte"
+    };
+
+    function setupCustomSelect(selectElement) {
+        if (!selectElement || selectElement.dataset.customized === "true") return;
+        selectElement.dataset.customized = "true";
+        selectElement.classList.add("portal-hidden-select");
+
+        const wrapper = document.createElement("div");
+        wrapper.className = "custom-dropdown";
+
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "custom-dropdown-trigger";
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+
+        const triggerText = document.createElement("span");
+        triggerText.className = "trigger-text is-placeholder";
+        triggerText.textContent = "Seleccionar";
+
+        trigger.appendChild(triggerText);
+        trigger.innerHTML += `
+            <svg class="trigger-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+            </svg>
+        `;
+
+        const menu = document.createElement("div");
+        menu.className = "custom-dropdown-menu";
+        menu.setAttribute("role", "listbox");
+        menu.style.display = "none";
+
+        const options = ["", "DNI", "RUC", "CE", "PASAPORTE"];
+        options.forEach(function (val) {
+            const label = documentDisplayNames[val] || val;
+            const optDiv = document.createElement("div");
+            optDiv.className = "custom-dropdown-option";
+            optDiv.setAttribute("role", "option");
+            optDiv.dataset.value = val;
+
+            optDiv.innerHTML = `
+                <span class="opt-title">${label}</span>
+                <svg class="opt-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+
+            optDiv.addEventListener("click", function (e) {
+                e.stopPropagation();
+                selectElement.value = val;
+                selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+                updateCustomDisplay();
+                closeDropdown();
+                const form = selectElement.closest("form");
+                if (form) {
+                    const docInput = form.querySelector('input[name="documento"]');
+                    if (docInput) docInput.focus();
+                }
+            });
+
+            menu.appendChild(optDiv);
+        });
+
+        function updateCustomDisplay() {
+            const val = selectElement.value || "";
+            const currentText = trigger.querySelector(".trigger-text");
+            if (!currentText) return;
+
+            if (val && val !== "") {
+                currentText.textContent = documentDisplayNames[val] || val;
+                currentText.classList.remove("is-placeholder");
+            } else {
+                currentText.textContent = "Seleccionar";
+                currentText.classList.add("is-placeholder");
+            }
+
+            menu.querySelectorAll(".custom-dropdown-option").forEach(function (el) {
+                if (el.dataset.value === val) {
+                    el.classList.add("is-selected");
+                } else {
+                    el.classList.remove("is-selected");
+                }
+            });
+        }
+
+        function openDropdown() {
+            document.querySelectorAll(".custom-dropdown-menu").forEach(function (m) {
+                if (m !== menu) m.style.display = "none";
+            });
+            document.querySelectorAll(".custom-dropdown-trigger").forEach(function (t) {
+                if (t !== trigger) {
+                    t.classList.remove("is-active");
+                    t.setAttribute("aria-expanded", "false");
+                }
+            });
+            menu.style.display = "block";
+            trigger.classList.add("is-active");
+            trigger.setAttribute("aria-expanded", "true");
+        }
+
+        function closeDropdown() {
+            menu.style.display = "none";
+            trigger.classList.remove("is-active");
+            trigger.setAttribute("aria-expanded", "false");
+        }
+
+        trigger.addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (menu.style.display === "block") {
+                closeDropdown();
+            } else {
+                openDropdown();
+            }
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!wrapper.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && menu.style.display === "block") {
+                closeDropdown();
+            }
+        });
+
+        selectElement.addEventListener("change", updateCustomDisplay);
+
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(menu);
+        selectElement.parentNode.insertBefore(wrapper, selectElement.nextSibling);
+
+        updateCustomDisplay();
+    }
+
+    // Inicializar los selects personalizados con el estilo de la foto
+    [
+        document.getElementById("tipoDocumento"),
+        document.getElementById("sueldosTipoDocumento"),
+        document.getElementById("fallecidosTipoDocumento"),
+        document.getElementById("telefonosTipoDocumento")
+    ].forEach(function (s) {
+        if (s) setupCustomSelect(s);
+    });
+    
+</script>
+
+
+</body>
+
+</html>

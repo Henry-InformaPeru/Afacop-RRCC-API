@@ -1,0 +1,24 @@
+# Dependencias
+node_modules/
+
+# Entornos y secretos
+.env
+.env.*
+*.env
+backend.env
+frontend.env
+!.env.example
+!.env.template
+
+# Empaquetados y binarios
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*

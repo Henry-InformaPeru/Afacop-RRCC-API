@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+
+    <html lang="es">
+
+    <head>
+
+        <meta charset="UTF-8">
+
+        <meta
+
+            name="viewport"
+
+            content="width=device-width, initial-scale=1.0"
+
+        >
+
+        <title>
+
+            {{ data.cliente.nombre if data else "Cliente" }} | Gestión API
+
+        </title>
+
+        <link
+
+            rel="stylesheet"
+
+            href="{{ url_for('static', filename='css/style.css') }}?v=13"
+
+        >
+
+    </head>
+
+    <body class="dashboard-body">
+
+    <div class="app-layout">
+
+        <!-- ==========================================
+
+            SIDEBAR
+
+        =========================================== -->
+
+                <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    API
+                </div>
+                <div>
+                    <strong>Gestión API</strong>
+                    <span>Panel de Control</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('clientes') }}" class="nav-link active">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ url_for('consumos') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                    <span>Consumos</span>
+                </a>
+
+                {% if administrador and administrador.rol == "SUPERADMIN" %}
+                <a href="{{ url_for('administradores') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span>Administradores</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <button type="submit" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+        <!-- ==========================================
+
+            CONTENIDO
+
+        =========================================== -->
+
+        <main class="main-content">
+
+            <div class="admin-breadcrumbs">
+                <a href="{{ url_for('clientes') }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px;"><path d="m15 18-6-6 6-6"/></svg>
+                    Clientes
+                </a>
+                <span>/</span>
+                <span style="color: #0f172a; font-weight: 600;">{{ data.cliente.nombre }}</span>
+            </div>
+
+            <!-- ERROR -->
+
+            {% if error %}
+
+            <div class="alert-error">
+
+                {{ error }}
+
+            </div>
+
+            {% endif %}
+
+            <!-- MENSAJE -->
+
+            {% if mensaje %}
+
+            <div class="alert-success">
+
+                {{ mensaje }}
+
+            </div>
+
+            {% endif %}
+
+            {% if data %}
+
+            <!-- ==========================================
+
+                VOLVER
+
+            =========================================== -->
+
+            <div class="detail-back">
+
+                <a href="{{ url_for('clientes') }}">
+
+                    ← Volver a clientes
+
+                </a>
+
+            </div>
+
+            <!-- ==========================================
+
+                ENCABEZADO CLIENTE
+
+            =========================================== -->
+
+            <header class="client-detail-header">
+                <div>
+                    <div class="client-title-row">
+                        <h1>{{ data.cliente.nombre }}</h1>
+                        {% if data.cliente.estado == "ACTIVO" %}
+                        <span class="badge badge-active">ACTIVO</span>
+                        {% else %}
+                        <span class="badge badge-blocked">{{ data.cliente.estado }}</span>
+                        {% endif %}
+                    </div>
+                    <p style="margin-top: 8px;">
+                        <span class="doc-badge">{{ data.cliente.tipoDocumento }}: {{ data.cliente.documento }}</span>
+                        {% if data.cliente.email %}
+                        <span style="margin-left: 8px; color: #64748b; font-size: 13.5px;">{{ data.cliente.email }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </header>
+
+            <!-- ==========================================
+                BARRA DE ACCIONES ACOPLADA
+            =========================================== -->
+            <section class="client-actions-bar">
+                <!-- ACCIONES DE ESTADO Y TOKEN -->
+                <div class="client-status-actions">
+                    <!-- BLOQUEAR / ACTIVAR -->
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_estado', id_cliente=data.cliente.idCliente) }}"
+                        style="margin: 0;"
+                    >
+                        {% if data.cliente.estado == "ACTIVO" %}
+                        <input type="hidden" name="estado" value="BLOQUEADO">
+                        <button type="submit" class="btn-action-account btn-action-block">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                            </svg>
+                            <span>Bloquear cliente</span>
+                        </button>
+                        {% else %}
+                        <input type="hidden" name="estado" value="ACTIVO">
+                        <button type="submit" class="btn-action-account btn-action-activate">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                                <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+                            </svg>
+                            <span>Activar cliente</span>
+                        </button>
+                        {% endif %}
+                    </form>
+
+                    <!-- REGENERAR TOKEN -->
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_regenerar_token', id_cliente=data.cliente.idCliente) }}"
+                        style="margin: 0;"
+                    >
+                        <button type="submit" class="btn-action-account btn-action-regenerate">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m21 2-2 2m-1.5 1.5L10 13m-4.5 1.5L2 18l3 3 3.5-3.5m4.5-4.5 2-2"/>
+                                <circle cx="7.5" cy="16.5" r="1.5"/>
+                            </svg>
+                            <span>Regenerar token</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CAJA DE RECARGA DE SALDO -->
+                <div class="client-recharge-card">
+                    <form
+                        method="POST"
+                        action="{{ url_for('cliente_recargar_creditos', id_cliente=data.cliente.idCliente) }}"
+                        class="client-recharge-form"
+                    >
+                        <span class="recharge-badge-label">Recarga:</span>
+                        <select
+                            name="servicio"
+                            class="recharge-service-select"
+                            required
+                        >
+                            <option value="RRCC">RRCC</option>
+                            <option value="SUELDOS">SUELDOS</option>
+                            <option value="FALLECIDOS">FALLECIDOS</option>
+                            <option value="TELEFONOS">TELEFONOS</option>
+                        </select>
+
+                        <input
+                            type="number"
+                            name="cantidad"
+                            id="adminRechargeAmount"
+                            min="1"
+                            step="1"
+                            placeholder="Créditos"
+                            required
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn-recharge-submit"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            <span>Recargar</span>
+                        </button>
+                    </form>
+
+                    <div class="quick-recharge-row">
+                        <span class="quick-recharge-label">Monto rápido:</span>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 50;">+50</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 100;">+100</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 500;">+500</button>
+                        <button type="button" class="quick-amount-pill" onclick="document.getElementById('adminRechargeAmount').value = 1000;">+1000</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==========================================
+
+                CRÉDITOS
+
+            =========================================== -->
+
+            <section class="detail-stats">
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+
+                        Créditos disponibles
+
+                    </div>
+
+                    <div class="stat-value">
+
+                        {{ data.creditos.disponibles }}
+
+                    </div>
+
+                </article>
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+
+                        Total asignado
+
+                    </div>
+
+                    <div class="stat-value">
+
+                        {{ data.creditos.totalAsignado }}
+
+                    </div>
+
+                </article>
+
+                <article class="stat-card">
+
+                    <div class="stat-title">
+
+                        Total consumido
+
+                    </div>
+
+                    <div class="stat-value">
+
+                        {{ data.creditos.totalConsumido }}
+
+                    </div>
+
+                </article>
+
+            </section>
+
+            <!-- ==========================================
+                CRÉDITOS POR SERVICIO
+            =========================================== -->
+
+            <div style="margin: 28px 0 14px 0; display: flex; align-items: center; justify-content: space-between;">
+                <h3 style="font-size: 15px; font-weight: 700; color: #1e293b; margin: 0;">Saldos por Servicio de API</h3>
+                <span style="font-size: 12px; color: #64748b;">4 servicios independientes</span>
+            </div>
+
+            <div class="services-balance-grid">
+                <!-- RRCC -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-rrcc">RRCC</span>
+                            <span>Calificación SBS</span>
+                        </div>
+                    </div>
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.RRCC.disponibles if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.RRCC.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.RRCC.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.RRCC else 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SUELDOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-sueldos">SUELDOS</span>
+                            <span>Planillas / Sueldos</span>
+                        </div>
+                    </div>
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.SUELDOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.SUELDOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.SUELDOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.SUELDOS else 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FALLECIDOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-fallecidos">FALLECIDOS</span>
+                            <span>Defunciones</span>
+                        </div>
+                    </div>
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.FALLECIDOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.FALLECIDOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.FALLECIDOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.FALLECIDOS else 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TELEFONOS -->
+                <div class="service-balance-card">
+                    <div class="service-balance-header">
+                        <div class="service-balance-title">
+                            <span class="badge badge-service-telefonos">TELEFONOS</span>
+                            <span>Líneas y Operadores</span>
+                        </div>
+                    </div>
+                    <div class="service-balance-stats">
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Disponibles</span>
+                            <span class="service-balance-stat-value" style="color: #059669;">{{ data.creditosPorServicio.TELEFONOS.disponibles if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Asignados</span>
+                            <span class="service-balance-stat-value">{{ data.creditosPorServicio.TELEFONOS.totalAsignado if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
+                        <div class="service-balance-stat-item">
+                            <span class="service-balance-stat-label">Consumidos</span>
+                            <span class="service-balance-stat-value" style="color: #64748b;">{{ data.creditosPorServicio.TELEFONOS.totalConsumido if data.creditosPorServicio and data.creditosPorServicio.TELEFONOS else 0 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==========================================
+
+                INFORMACIÓN DEL CLIENTE
+
+            =========================================== -->
+
+            <section class="panel detail-information">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <h2>
+
+                            Información del cliente
+
+                        </h2>
+
+                        <p>
+
+                            Datos registrados en la plataforma
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="information-grid">
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Razón social / Nombre
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.nombre }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Documento
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.tipoDocumento }}
+
+                            {{ data.cliente.documento }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Correo
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.email or "No registrado" }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Teléfono
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.telefono or "No registrado" }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Fecha de creación
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.fechaCreacion | fecha }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Estado
+
+                        </span>
+
+                        <strong>
+
+                            {{ data.cliente.estado }}
+
+                        </strong>
+
+                    </div>
+
+                    <div class="information-item">
+
+                        <span>
+
+                            Administrador responsable
+
+                        </span>
+
+                        <strong>
+
+                            {% if data.cliente.administrador %}
+
+                                {% set admin_encontrado = namespace(nombre="Sin asignar") %}
+
+                                {% for admin in administradores_asignables %}
+
+                                    {% if admin.idAdmin == data.cliente.administrador.idAdmin %}
+
+                                        {% set admin_encontrado.nombre =
+
+                                            admin.nombre or admin.usuario
+
+                                        %}
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                                {{ admin_encontrado.nombre }}
+
+                            {% else %}
+
+                                Sin asignar
+
+                            {% endif %}
+
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+           <!-- ==========================================
+
+            ADMINISTRADOR RESPONSABLE
+
+            SOLO SUPERADMIN
+
+            =========================================== -->
+
+        {% if
+
+            administrador_actual
+
+            and administrador_actual.rol == "SUPERADMIN"
+
+        %}
+
+        <section class="panel admin-assignment-panel">
+
+            <!-- CABECERA -->
+
+            <div class="admin-assignment-header">
+
+                <h2>
+
+                    Administrador responsable
+
+                </h2>
+
+                <p>
+
+                    Asigna este cliente a un administrador
+
+                </p>
+
+            </div>
+
+            <form
+
+                method="POST"
+
+                action="{{ url_for(
+
+                    'cliente_asignar_administrador',
+
+                    id_cliente=data.cliente.idCliente
+
+                ) }}"
+
+                class="admin-assignment-form"
+
+            >
+
+                <div class="admin-assignment-content">
+
+                    <!-- ADMINISTRADOR ACTUAL -->
+
+                    <div class="admin-current">
+
+                        <span class="admin-label">
+
+                            Administrador actual
+
+                        </span>
+
+                        <strong class="admin-current-name">
+
+                            {% if data.cliente.administrador %}
+
+                                {% set admin_actual_nombre =
+
+                                    namespace(nombre="Sin asignar")
+
+                                %}
+
+                                {% for admin in administradores_asignables %}
+
+                                    {% if
+
+                                        admin.idAdmin
+
+                                        == data.cliente.administrador.idAdmin
+
+                                    %}
+
+                                        {% set admin_actual_nombre.nombre =
+
+                                            admin.nombre or admin.usuario
+
+                                        %}
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                                {{ admin_actual_nombre.nombre }}
+
+                            {% else %}
+
+                                Sin administrador asignado
+
+                            {% endif %}
+
+                        </strong>
+
+                    </div>
+
+                    <!-- CAMBIAR ADMINISTRADOR -->
+
+                    <div class="admin-change">
+
+                        <span class="admin-label">
+
+                            Asignar administrador
+
+                        </span>
+
+                        <div class="admin-change-row">
+
+                            <select
+
+                                name="idAdmin"
+
+                                class="admin-assignment-select"
+
+                            >
+
+                                <option value="">
+
+                                    Sin asignar
+
+                                </option>
+
+                                {% for admin in administradores_asignables %}
+
+                                <option
+
+                                    value="{{ admin.idAdmin }}"
+
+                                    {% if
+
+                                        data.cliente.administrador
+
+                                        and
+
+                                        data.cliente.administrador.idAdmin
+
+                                        == admin.idAdmin
+
+                                    %}
+
+                                        selected
+
+                                    {% endif %}
+
+                                >
+
+                                    {{ admin.nombre or admin.usuario }}
+
+                                    — {{ admin.usuario }}
+
+                                </option>
+
+                                {% endfor %}
+
+                            </select>
+
+                            <button
+
+                                type="submit"
+
+                                class="primary-action admin-assignment-button"
+
+                            >
+
+                                Guardar asignación
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </section>
+
+        {% endif %}
+
+        <!-- ==========================================
+    API COMERCIAL
+=========================================== -->
+
+<section class="panel detail-section api-commercial-panel">
+
+    <div class="panel-header api-commercial-header">
+
+        <div>
+
+            <h2>
+                API Comercial
+            </h2>
+
+            <p>
+                Acceso para consumir los endpoints GET
+                mediante HTTP Basic Authentication
+            </p>
+
+        </div>
+
+
+        {% if data.apiCredencial %}
+
+            {% if data.apiCredencial.estado == "ACTIVO" %}
+
+            <span class="badge badge-active">
+                ACTIVO
+            </span>
+
+            {% else %}
+
+            <span class="badge badge-blocked">
+                {{ data.apiCredencial.estado }}
+            </span>
+
+            {% endif %}
+
+        {% endif %}
+
+    </div>
+
+
+    {% if data.apiCredencial %}
+
+    <!-- ======================================
+        CREDENCIAL EXISTENTE
+    ======================================= -->
+
+    <div class="api-commercial-body">
+
+        <div class="api-credential-grid">
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    CLIENT_ID
+                </span>
+
+                <strong class="api-client-id">
+                    {{ data.apiCredencial.clientId }}
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Autenticación
+                </span>
+
+                <strong>
+                    HTTP Basic
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Fecha de creación
+                </span>
+
+                <strong>
+                    {{
+                        data.apiCredencial.fechaCreacion
+                        | fecha
+                    }}
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Última actualización
+                </span>
+
+                <strong>
+
+                    {% if data.apiCredencial.fechaActualizacion %}
+
+                        {{
+                            data.apiCredencial.fechaActualizacion
+                            | fecha
+                        }}
+
+                    {% else %}
+
+                        -
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div class="api-credential-item">
+
+                <span class="api-credential-label">
+                    Último uso
+                </span>
+
+                <strong>
+
+                    {% if data.apiCredencial.ultimoUso %}
+
+                        {{
+                            data.apiCredencial.ultimoUso
+                            | fecha
+                        }}
+
+                    {% else %}
+
+                        Nunca
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="api-commercial-actions">
+
+    <!-- REGENERAR CLIENT_SECRET -->
+
+    <form
+        method="POST"
+        action="{{ url_for(
+            'cliente_regenerar_api_secret',
+            id_cliente=data.cliente.idCliente
+        ) }}"
+    >
+        <button
+            type="submit"
+            class="api-action-button api-action-primary"
+        >
+            Regenerar CLIENT_SECRET
+        </button>
+
+    </form>
+
+
+    <!-- BLOQUEAR API -->
+
+    {% if data.apiCredencial.estado == "ACTIVO" %}
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_estado_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <input
+                type="hidden"
+                name="estado"
+                value="BLOQUEADO"
+            >
+
+            <button
+                type="submit"
+                class="api-action-button api-action-danger"
+            >
+                Bloquear API
+            </button>
+
+        </form>
+
+        {% elif data.apiCredencial.estado == "BLOQUEADO" %}
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_estado_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <input
+                type="hidden"
+                name="estado"
+                value="ACTIVO"
+            >
+
+            <button
+                type="submit"
+                class="api-action-button api-action-success"
+            >
+                Activar API
+            </button>
+
+        </form>
+
+        {% endif %}
+
+</div>
+
+    </div>
+
+
+    {% else %}
+
+    <!-- ======================================
+        SIN CREDENCIAL
+    ======================================= -->
+
+    <div class="api-empty-state">
+
+        <div class="api-empty-icon">
+            &lt;/&gt;
+        </div>
+
+
+        <div class="api-empty-content">
+
+            <h3>
+                Sin credencial API
+            </h3>
+
+            <p>
+                Este cliente todavía no tiene acceso
+                habilitado para consumir la API comercial.
+            </p>
+
+        </div>
+
+
+        <form
+            method="POST"
+            action="{{ url_for(
+                'cliente_generar_api_credencial',
+                id_cliente=data.cliente.idCliente
+            ) }}"
+        >
+
+            <button
+                type="submit"
+                class="primary-action api-generate-button"
+            >
+                Generar credencial
+            </button>
+
+        </form>
+
+    </div>
+
+    {% endif %}
+
+</section>
+
+            <!-- ==========================================
+
+                TOKENS
+
+            =========================================== -->
+
+            <section class="panel detail-section">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <h2>
+
+                            Tokens de acceso
+
+                        </h2>
+
+                        <p>
+
+                            Historial de credenciales del cliente
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="table-responsive">
+
+                    <table class="clients-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+
+                                    Token
+
+                                </th>
+
+                                <th>
+
+                                    Estado
+
+                                </th>
+
+                                <th>
+
+                                    Creación
+
+                                </th>
+
+                                <th>
+
+                                    Vencimiento
+
+                                </th>
+
+                                <th>
+
+                                    Último uso
+
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for token in data.tokens %}
+
+                            <tr>
+
+                                <td>
+
+                                    <strong>
+
+                                        {{ token.prefijo }}...
+
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    {% if token.estado == "ACTIVO" %}
+
+                                    <span class="badge badge-active">
+
+                                        ACTIVO
+
+                                    </span>
+
+                                    {% else %}
+
+                                    <span class="badge badge-blocked">
+
+                                        {{ token.estado }}
+
+                                    </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {{ token.fechaCreacion | fecha }}
+
+                                </td>
+
+                                <td>
+
+                                    {% if token.fechaVencimiento %}
+
+                                        {{ token.fechaVencimiento | fecha }}
+
+                                    {% else %}
+
+                                        Sin vencimiento
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    {% if token.ultimoUso %}
+
+                                        {{ token.ultimoUso | fecha }}
+
+                                    {% else %}
+
+                                        Nunca
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+
+                                    colspan="5"
+
+                                    class="empty-table"
+
+                                >
+
+                                    No existen tokens.
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            </section>
+
+           <!-- ==========================================
+
+    ÚLTIMAS CONSULTAS
+
+=========================================== -->
+
+<section
+
+    class="panel detail-section"
+
+    id="consultas-section"
+
+>
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>
+
+                Últimas consultas
+
+            </h2>
+
+            <p>
+
+                Historial reciente de consumo de API
+
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="table-responsive">
+
+        <table class="clients-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>
+
+                        Documento
+
+                    </th>
+
+                    <th>
+
+                        Servicio
+
+                    </th>
+
+                    <th>
+
+                        Resultado
+
+                    </th>
+
+                    <th>
+
+                        Créditos
+
+                    </th>
+
+                    <th>
+
+                        HTTP
+
+                    </th>
+
+                    <th>
+
+                        Duración
+
+                    </th>
+
+                    <th>
+
+                        Fecha
+
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+            {% for consumo in data.consumos %}
+
+                <tr>
+
+                    <!-- ======================================
+
+                         DOCUMENTO
+
+                    ======================================= -->
+
+                    <td>
+
+                        <div class="document-type">
+
+                            {{ consumo.tipoDocumento }}
+
+                        </div>
+
+                        {{ consumo.documento }}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         SERVICIO
+
+                    ======================================= -->
+
+                    <td>
+
+                        {% if consumo.servicio == "SUELDOS" %}
+
+                        <span class="badge badge-warning">
+
+                            SUELDOS
+
+                        </span>
+
+                        {% elif consumo.servicio == "FALLECIDOS" %}
+
+                        <span class="badge badge-info">
+
+                            FALLECIDOS
+
+                        </span>
+
+                        {% elif consumo.servicio == "TELEFONOS" %}
+
+                        <span class="badge badge-telefonos">
+
+                            TELEFONOS
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge badge-active">
+
+                            RRCC
+
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         RESULTADO
+
+                    ======================================= -->
+
+                    <td>
+
+                        {% if consumo.estado == "EXITOSA" %}
+
+                        <span class="badge badge-active">
+
+                            EXITOSA
+
+                        </span>
+
+                        {% elif consumo.estado == "SIN_DATOS" %}
+
+                        <span class="badge badge-warning">
+
+                            SIN DATOS
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge badge-blocked">
+
+                            {{ consumo.estado }}
+
+                        </span>
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         CRÉDITOS
+
+                    ======================================= -->
+
+                    <td>
+
+                        {{ consumo.creditosConsumidos }}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         HTTP
+
+                    ======================================= -->
+
+                    <td>
+
+                        {{ consumo.httpStatus or "-" }}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         DURACIÓN
+
+                    ======================================= -->
+
+                    <td>
+
+                        {% if consumo.duracionMs is not none %}
+
+                            {{ consumo.duracionMs }} ms
+
+                        {% else %}
+
+                            -
+
+                        {% endif %}
+
+                    </td>
+
+                    <!-- ======================================
+
+                         FECHA
+
+                    ======================================= -->
+
+                    <td>
+
+                        {{ consumo.fecha | fecha }}
+
+                    </td>
+
+                </tr>
+
+            {% else %}
+
+                <tr>
+
+                    <td
+
+                        colspan="7"
+
+                        class="empty-table"
+
+                    >
+
+                        Este cliente todavía no realizó consultas.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <!-- ======================================
+
+         PAGINACIÓN DE CONSULTAS
+
+    ======================================= -->
+
+        {% if
+
+            data.paginacionConsumos
+
+            and
+
+            data.paginacionConsumos.totalPaginas > 1
+
+        %}
+
+        <div class="pagination">
+
+            <!-- ANTERIOR -->
+
+            {% if data.paginacionConsumos.page > 1 %}
+
+            <a
+
+                href="{{ url_for(
+
+                    'cliente_detalle',
+
+                    id_cliente=data.cliente.idCliente,
+
+                    page_consultas=data.paginacionConsumos.page - 1,
+
+                    page_movimientos=(
+
+                        data.paginacionMovimientos.page
+
+                        if data.paginacionMovimientos
+
+                        else 1
+
+                    )
+
+                ) }}"
+
+            >
+
+                ← Anterior
+
+            </a>
+
+            {% endif %}
+
+            <!-- PÁGINA -->
+
+            <span>
+
+                Página
+
+                {{ data.paginacionConsumos.page }}
+
+                de
+
+                {{ data.paginacionConsumos.totalPaginas }}
+
+            </span>
+
+            <!-- SIGUIENTE -->
+
+            {% if
+
+                data.paginacionConsumos.page
+
+                <
+
+                data.paginacionConsumos.totalPaginas
+
+            %}
+
+            <a
+
+                href="{{ url_for(
+
+                    'cliente_detalle',
+
+                    id_cliente=data.cliente.idCliente,
+
+                    page_consultas=data.paginacionConsumos.page + 1,
+
+                    page_movimientos=(
+
+                        data.paginacionMovimientos.page
+
+                        if data.paginacionMovimientos
+
+                        else 1
+
+                    )
+
+                ) }}"
+
+            >
+
+                Siguiente →
+
+            </a>
+
+            {% endif %}
+
+        </div>
+
+        {% endif %}
+
+    </section>
+
+            <!-- ==========================================
+
+                MOVIMIENTOS DE CRÉDITOS
+
+            =========================================== -->
+
+           <section class="panel detail-section" id="movimientos-section">
+
+                <div class="panel-header">
+
+                    <div>
+
+                        <h2>
+
+                            Movimientos de créditos
+
+                        </h2>
+
+                        <p>
+
+                            Cargas, consumos y ajustes
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="table-responsive">
+
+                    <table class="clients-table">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+
+                                    Tipo
+
+                                </th>
+
+                                <th>
+                                    Servicio
+                                </th>
+
+                                <th>
+
+                                    Cantidad
+
+                                </th>
+
+                                <th>
+
+                                    Saldo anterior
+
+                                </th>
+
+                                <th>
+
+                                    Saldo posterior
+
+                                </th>
+
+                                <th>
+
+                                    Origen
+
+                                </th>
+
+                                <th>
+
+                                    Fecha
+
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for movimiento in data.movimientos %}
+
+                            <tr>
+
+                                <!-- TIPO -->
+
+                                <td>
+
+                                    <strong>
+
+                                        {{ movimiento.tipo }}
+
+                                    </strong>
+
+                                </td>
+
+                                <td>
+
+                                    {% if movimiento.servicio == "SUELDOS" %}
+
+                                    <span class="badge badge-warning">
+                                        SUELDOS
+                                    </span>
+
+                                    {% elif movimiento.servicio == "FALLECIDOS" %}
+
+                                    <span class="badge badge-info">
+                                        FALLECIDOS
+                                    </span>
+
+                                    {% elif movimiento.servicio == "TELEFONOS" %}
+
+                                    <span class="badge badge-telefonos">
+                                        TELEFONOS
+                                    </span>
+
+                                    {% elif movimiento.servicio == "RRCC" %}
+
+                                    <span class="badge badge-active">
+                                        RRCC
+                                    </span>
+
+                                    {% else %}
+
+                                    <span>
+                                        -
+                                    </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <!-- CANTIDAD -->
+
+                                <td>
+
+                                    {{ movimiento.cantidad }}
+
+                                </td>
+
+                                <!-- SALDO ANTERIOR -->
+
+                                <td>
+
+                                    {{ movimiento.saldoAntes }}
+
+                                </td>
+
+                                <!-- SALDO POSTERIOR -->
+
+                                <td>
+
+                                    {{ movimiento.saldoDespues }}
+
+                                </td>
+
+                                <!-- ORIGEN -->
+
+                                <td>
+
+                                    {{ movimiento.origen }}
+
+                                </td>
+
+                                <!-- FECHA -->
+
+                                <td>
+
+                                    {{ movimiento.fecha | fecha }}
+
+                                </td>
+
+                            </tr>
+
+                        {% else %}
+
+                            <tr>
+
+                                <td
+
+                                    colspan="7"
+
+                                    class="empty-table"
+
+                                >
+
+                                    No existen movimientos.
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <!-- ======================================
+
+                    PAGINACIÓN DE MOVIMIENTOS
+
+                ======================================= -->
+
+                {% if
+
+                    data.paginacionMovimientos
+
+                    and
+
+                    data.paginacionMovimientos.totalPaginas > 1
+
+                %}
+
+                <div class="pagination">
+
+                    <!-- ANTERIOR -->
+
+                    {% if data.paginacionMovimientos.page > 1 %}
+
+                    <a
+
+                        href="{{ url_for(
+
+                            'cliente_detalle',
+
+                            id_cliente=data.cliente.idCliente,
+
+                            page_consultas=(
+
+                                data.paginacionConsumos.page
+
+                                if data.paginacionConsumos
+
+                                else 1
+
+                            ),
+
+                            page_movimientos=data.paginacionMovimientos.page - 1
+
+                        ) }}"
+
+                    >
+
+                        ← Anterior
+
+                    </a>
+
+                    {% endif %}
+
+                    <!-- PÁGINA -->
+
+                    <span>
+
+                        Página
+
+                        {{ data.paginacionMovimientos.page }}
+
+                        de
+
+                        {{ data.paginacionMovimientos.totalPaginas }}
+
+                    </span>
+
+                    <!-- SIGUIENTE -->
+
+                    {% if
+
+                        data.paginacionMovimientos.page
+
+                        <
+
+                        data.paginacionMovimientos.totalPaginas
+
+                    %}
+
+                    <a
+
+                        href="{{ url_for(
+
+                            'cliente_detalle',
+
+                            id_cliente=data.cliente.idCliente,
+
+                            page_consultas=(
+
+                                data.paginacionConsumos.page
+
+                                if data.paginacionConsumos
+
+                                else 1
+
+                            ),
+
+                            page_movimientos=data.paginacionMovimientos.page + 1
+
+                        ) }}"
+
+                    >
+
+                        Siguiente →
+
+                    </a>
+
+                    {% endif %}
+
+                </div>
+
+                {% endif %}
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+    <script>
+
+        document.addEventListener(
+
+            "DOMContentLoaded",
+
+            () => {
+
+                // ---------------------------------------------
+
+                // ACTUALIZAR SOLO LAS TABLAS PAGINADAS
+
+                // ---------------------------------------------
+
+                async function cargarPagina(url) {
+
+                    const consultasSection =
+
+                        document.getElementById(
+
+                            "consultas-section"
+
+                        );
+
+                    const movimientosSection =
+
+                        document.getElementById(
+
+                            "movimientos-section"
+
+                        );
+
+                    if (
+
+                        !consultasSection ||
+
+                        !movimientosSection
+
+                    ) {
+
+                        return;
+
+                    }
+
+                    try {
+
+                        // Indicamos visualmente que está cargando
+
+                        consultasSection.classList.add(
+
+                            "pagination-loading"
+
+                        );
+
+                        movimientosSection.classList.add(
+
+                            "pagination-loading"
+
+                        );
+
+                        const response =
+
+                            await fetch(
+
+                                url,
+
+                                {
+
+                                    method: "GET",
+
+                                    headers: {
+
+                                        "X-Requested-With":
+
+                                            "XMLHttpRequest"
+
+                                    },
+
+                                    credentials:
+
+                                        "same-origin",
+
+                                }
+
+                            );
+
+                        if (!response.ok) {
+
+                            throw new Error(
+
+                                "No fue posible cargar la página."
+
+                            );
+
+                        }
+
+                        const html =
+
+                            await response.text();
+
+                        // Convertimos el HTML recibido
+
+                        // sin reemplazar toda la página.
+
+                        const parser =
+
+                            new DOMParser();
+
+                        const documento =
+
+                            parser.parseFromString(
+
+                                html,
+
+                                "text/html"
+
+                            );
+
+                        const nuevasConsultas =
+
+                            documento.getElementById(
+
+                                "consultas-section"
+
+                            );
+
+                        const nuevosMovimientos =
+
+                            documento.getElementById(
+
+                                "movimientos-section"
+
+                            );
+
+                        if (
+
+                            !nuevasConsultas ||
+
+                            !nuevosMovimientos
+
+                        ) {
+
+                            throw new Error(
+
+                                "No se encontraron las secciones paginadas."
+
+                            );
+
+                        }
+
+                        // -------------------------------------
+
+                        // REEMPLAZAR SOLO LAS DOS SECCIONES
+
+                        // -------------------------------------
+
+                        consultasSection.replaceWith(
+
+                            nuevasConsultas
+
+                        );
+
+                        movimientosSection.replaceWith(
+
+                            nuevosMovimientos
+
+                        );
+
+                        // -------------------------------------
+
+                        // ACTUALIZAR URL DEL NAVEGADOR
+
+                        // SIN RECARGAR
+
+                        // -------------------------------------
+
+                        window.history.pushState(
+
+                            {
+
+                                paginacionCliente: true
+
+                            },
+
+                            "",
+
+                            url
+
+                        );
+
+                    } catch (error) {
+
+                        console.error(
+
+                            "Error cargando paginación:",
+
+                            error
+
+                        );
+
+                    } finally {
+
+                        const consultasActuales =
+
+                            document.getElementById(
+
+                                "consultas-section"
+
+                            );
+
+                        const movimientosActuales =
+
+                            document.getElementById(
+
+                                "movimientos-section"
+
+                            );
+
+                        if (consultasActuales) {
+
+                            consultasActuales
+
+                                .classList
+
+                                .remove(
+
+                                    "pagination-loading"
+
+                                );
+
+                        }
+
+                        if (movimientosActuales) {
+
+                            movimientosActuales
+
+                                .classList
+
+                                .remove(
+
+                                    "pagination-loading"
+
+                                );
+
+                        }
+
+                    }
+
+                }
+
+                // ---------------------------------------------
+
+                // INTERCEPTAR ANTERIOR / SIGUIENTE
+
+                // ---------------------------------------------
+
+                document.addEventListener(
+
+                    "click",
+
+                    (event) => {
+
+                        const enlace =
+
+                            event.target.closest(
+
+                                "#consultas-section .pagination a, " +
+
+                                "#movimientos-section .pagination a"
+
+                            );
+
+                        if (!enlace) {
+
+                            return;
+
+                        }
+
+                        event.preventDefault();
+
+                        cargarPagina(
+
+                            enlace.href
+
+                        );
+
+                    }
+
+                );
+
+                // ---------------------------------------------
+
+                // SOPORTAR BOTÓN ATRÁS / ADELANTE
+
+                // DEL NAVEGADOR SIN RECARGAR
+
+                // ---------------------------------------------
+
+                window.addEventListener(
+
+                    "popstate",
+
+                    () => {
+
+                        cargarPaginaSinHistorial(
+
+                            window.location.href
+
+                        );
+
+                    }
+
+                );
+
+                async function cargarPaginaSinHistorial(
+
+                    url
+
+                ) {
+
+                    try {
+
+                        const response =
+
+                            await fetch(
+
+                                url,
+
+                                {
+
+                                    method: "GET",
+
+                                    headers: {
+
+                                        "X-Requested-With":
+
+                                            "XMLHttpRequest"
+
+                                    },
+
+                                    credentials:
+
+                                        "same-origin",
+
+                                }
+
+                            );
+
+                        if (!response.ok) {
+
+                            return;
+
+                        }
+
+                        const html =
+
+                            await response.text();
+
+                        const parser =
+
+                            new DOMParser();
+
+                        const documento =
+
+                            parser.parseFromString(
+
+                                html,
+
+                                "text/html"
+
+                            );
+
+                        const nuevasConsultas =
+
+                            documento.getElementById(
+
+                                "consultas-section"
+
+                            );
+
+                        const nuevosMovimientos =
+
+                            documento.getElementById(
+
+                                "movimientos-section"
+
+                            );
+
+                        const consultasActuales =
+
+                            document.getElementById(
+
+                                "consultas-section"
+
+                            );
+
+                        const movimientosActuales =
+
+                            document.getElementById(
+
+                                "movimientos-section"
+
+                            );
+
+                        if (
+
+                            nuevasConsultas &&
+
+                            consultasActuales
+
+                        ) {
+
+                            consultasActuales.replaceWith(
+
+                                nuevasConsultas
+
+                            );
+
+                        }
+
+                        if (
+
+                            nuevosMovimientos &&
+
+                            movimientosActuales
+
+                        ) {
+
+                            movimientosActuales.replaceWith(
+
+                                nuevosMovimientos
+
+                            );
+
+                        }
+
+                    } catch (error) {
+
+                        console.error(
+
+                            "Error restaurando paginación:",
+
+                            error
+
+                        );
+
+                    }
+
+                }
+
+            }
+
+        );
+
+        </script>
+
+        <script src="{{ url_for('static', filename='js/custom-select.js') }}?v=2"></script>
+</body>
+
+</html>

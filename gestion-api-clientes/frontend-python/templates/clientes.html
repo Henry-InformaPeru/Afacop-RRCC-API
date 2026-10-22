@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Clientes | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=2"
+    >
+</head>
+
+
+<body class="dashboard-body">
+
+<div class="app-layout">
+
+
+    <!-- SIDEBAR -->
+
+            <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    API
+                </div>
+                <div>
+                    <strong>Gestión API</strong>
+                    <span>Panel de Control</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('clientes') }}" class="nav-link active">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ url_for('consumos') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                    <span>Consumos</span>
+                </a>
+
+                {% if administrador and administrador.rol == "SUPERADMIN" %}
+                <a href="{{ url_for('administradores') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span>Administradores</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <button type="submit" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+
+    <!-- CONTENIDO -->
+
+    <main class="main-content">
+
+        <header class="page-header">
+
+            <div>
+
+                <h1>
+                    Clientes
+                </h1>
+
+                <p>
+                    Administración de clientes,
+                    créditos y accesos API
+                </p>
+
+            </div>
+
+
+            <a
+                href="{{ url_for('cliente_nuevo') }}"
+                class="primary-action"
+            >
+                + Nuevo cliente
+            </a>
+
+        </header>
+
+
+        {% if error %}
+
+        <div class="alert-error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+
+        <!-- FILTROS -->
+
+                <!-- FILTROS RAPIDOS -->
+        <div class="admin-filter-pills" id="adminFilterPills">
+            <button type="button" class="filter-pill-btn is-active" data-filter="all">Todos los clientes</button>
+            <button type="button" class="filter-pill-btn" data-filter="ACTIVO">● Solo Activos</button>
+            <button type="button" class="filter-pill-btn" data-filter="BLOQUEADO">● Solo Bloqueados</button>
+        </div>
+
+        <section class="clients-toolbar">
+
+            <form
+                method="GET"
+                action="{{ url_for('clientes') }}"
+                class="search-form"
+            >
+
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Buscar por nombre, documento o correo..."
+                >
+
+                <button
+                    type="submit"
+                >
+                    Buscar
+                </button>
+
+                {% if search %}
+
+                <a
+                    href="{{ url_for('clientes') }}"
+                    class="clear-search"
+                >
+                    Limpiar
+                </a>
+
+                {% endif %}
+
+            </form>
+
+        </section>
+
+
+        <!-- TABLA -->
+
+        <section class="table-panel">
+
+            <div class="table-header">
+
+                <div>
+
+                    <h2>
+                        Clientes registrados
+                    </h2>
+
+                    {% if paginacion %}
+
+                    <p>
+                        {{ paginacion.total }}
+                        cliente(s)
+                    </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+            <div class="table-responsive">
+
+                <table class="clients-table">
+
+                    <thead>
+
+                        <tr>
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Documento
+                            </th>
+
+                            <th>
+                                Créditos
+                            </th>
+
+                            <th>
+                                Consumidos
+                            </th>
+
+                            <th>
+                                Tokens
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                            </th>
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                    {% for cliente in clientes %}
+
+                        <tr data-client-status="{{ cliente.estado }}">
+
+                            <td>
+                                <div class="client-cell-wrapper">
+                                    <div class="client-avatar">
+                                        {{ (cliente.nombre or "C")[:1] | upper }}
+                                    </div>
+                                    <div>
+                                        <div class="client-name">
+                                            {{ cliente.nombre }}
+                                        </div>
+                                        <div class="client-email">
+                                            {{ cliente.email or "Sin correo" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="doc-badge">
+                                    {{ cliente.tipoDocumento }}: {{ cliente.documento }}
+                                </span>
+                            </td>
+
+
+                            <td>
+
+                                <strong class="credits-value">
+                                    {{ cliente.creditos.disponibles }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+                                {{ cliente.creditos.totalConsumido }}
+                            </td>
+
+
+                            <td>
+                                {{ cliente.tokensActivos }}
+                            </td>
+
+
+                            <td>
+
+                                {% if cliente.estado == "ACTIVO" %}
+
+                                <span class="badge badge-active">
+                                    ACTIVO
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge badge-blocked">
+                                    {{ cliente.estado }}
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    href="{{ url_for('cliente_detalle', id_cliente=cliente.idCliente) }}"
+                                    class="detail-link"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Ver detalle
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="empty-table"
+                            >
+                                No se encontraron clientes.
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            {% if paginacion and paginacion.totalPaginas > 1 %}
+
+            <div class="pagination">
+
+                {% if paginacion.page > 1 %}
+
+                <a
+                    href="{{ url_for(
+                        'clientes',
+                        page=paginacion.page - 1,
+                        search=search
+                    ) }}"
+                >
+                    ← Anterior
+                </a>
+
+                {% endif %}
+
+
+                <span>
+                    Página
+                    {{ paginacion.page }}
+                    de
+                    {{ paginacion.totalPaginas }}
+                </span>
+
+
+                {% if paginacion.page < paginacion.totalPaginas %}
+
+                <a
+                    href="{{ url_for(
+                        'clientes',
+                        page=paginacion.page + 1,
+                        search=search
+                    ) }}"
+                >
+                    Siguiente →
+                </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+</div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pills = document.querySelectorAll('#adminFilterPills .filter-pill-btn');
+        const rows = document.querySelectorAll('.clients-table tbody tr[data-client-status]');
+        pills.forEach(function(pill) {
+            pill.addEventListener('click', function() {
+                pills.forEach(function(p) { p.classList.remove('is-active'); });
+                this.classList.add('is-active');
+                var filter = this.getAttribute('data-filter');
+                rows.forEach(function(row) {
+                    var status = row.getAttribute('data-client-status');
+                    if (filter === 'all' || status === filter) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+    </script>
+</body>
+
+</html>

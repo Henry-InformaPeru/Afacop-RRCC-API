@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Administrador | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="admin-users-page">
+
+        <div class="admin-detail-container">
+
+            <div class="admin-detail-top">
+
+                <div>
+
+                    <span class="admin-users-eyebrow">
+                        Seguridad
+                    </span>
+
+                    <h1>
+                        Detalle del administrador
+                    </h1>
+
+                    <p>
+                        Consulta y modifica los datos
+                        de la cuenta administrativa.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="{{ url_for('administradores') }}"
+                    class="admin-secondary-button"
+                >
+                    ← Administradores
+                </a>
+
+            </div>
+
+
+            {% if mensaje %}
+
+            <div class="alert-success">
+                {{ mensaje }}
+            </div>
+
+            {% endif %}
+
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            {% if admin %}
+
+            <div class="admin-detail-summary">
+
+                <div>
+
+                    <span>
+                        Usuario
+                    </span>
+
+                    <strong>
+                        {{ admin.usuario }}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Rol
+                    </span>
+
+                    {% if admin.rol == "SUPERADMIN" %}
+
+                    <strong
+                        class="admin-role-badge admin-role-super"
+                    >
+                        SUPERADMIN
+                    </strong>
+
+                    {% else %}
+
+                    <strong
+                        class="admin-role-badge"
+                    >
+                        ADMIN
+                    </strong>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Estado
+                    </span>
+
+                    {% if admin.estado == "ACTIVO" %}
+
+                    <strong
+                        class="admin-status-badge admin-status-active"
+                    >
+                        ACTIVO
+                    </strong>
+
+                    {% else %}
+
+                    <strong
+                        class="admin-status-badge admin-status-blocked"
+                    >
+                        BLOQUEADO
+                    </strong>
+
+                    {% endif %}
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Versión de sesión
+                    </span>
+
+                    <strong>
+                        {{ admin.sessionVersion }}
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <form
+                id="editAdminForm"
+                method="POST"
+                action="{{ url_for(
+                    'administrador_editar',
+                    id_admin=admin.idAdmin
+                ) }}"
+                class="admin-form-card"
+            >
+
+                <div class="admin-form-section-title">
+
+                    <h2>
+                        Información general
+                    </h2>
+
+                    <p>
+                        Estos cambios no modifican
+                        el rol ni el estado.
+                    </p>
+
+                </div>
+
+
+                <div class="admin-form-grid">
+
+                    <div class="admin-form-field">
+
+                        <label for="usuario">
+                            Usuario
+                        </label>
+
+                        <input
+                            id="usuario"
+                            name="usuario"
+                            type="text"
+                            value="{{ admin.usuario }}"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="admin-form-field">
+
+                        <label for="nombre">
+                            Nombre
+                        </label>
+
+                        <input
+                            id="nombre"
+                            name="nombre"
+                            type="text"
+                            value="{{ admin.nombre or '' }}"
+                        >
+
+                    </div>
+
+
+                    <div
+                        class="admin-form-field admin-form-full"
+                    >
+
+                        <label for="email">
+                            Correo electrónico
+                        </label>
+
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            value="{{ admin.email or '' }}"
+                            required
+                        >
+
+                        <span class="admin-form-help">
+                            Este correo será utilizado
+                            para recuperación de contraseña.
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <div class="admin-form-actions">
+
+                    <button
+                        id="editAdminButton"
+                        type="submit"
+                        class="admin-primary-button admin-submit-button"
+                    >
+                        Guardar cambios
+                    </button>
+
+                </div>
+
+            </form>
+
+            <div class="admin-security-section">
+
+                <div class="admin-form-section-title">
+
+                    <h2>
+                        Seguridad y permisos
+                    </h2>
+
+                    <p>
+                        Gestiona el rol, estado y sesiones
+                        de esta cuenta administrativa.
+                    </p>
+
+                </div>
+
+
+                <div class="admin-security-grid">
+
+
+                    <!-- =====================================
+                        CAMBIAR ROL
+                    ====================================== -->
+
+                    <div class="admin-security-card">
+
+                        <h3>
+                            Rol administrativo
+                        </h3>
+
+                        <p>
+                            Define los permisos que tendrá
+                            este administrador.
+                        </p>
+
+
+                        <form
+                            method="POST"
+                            action="{{ url_for(
+                                'administrador_cambiar_rol',
+                                id_admin=admin.idAdmin
+                            ) }}"
+                            onsubmit="
+                                return confirm(
+                                    '¿Deseas cambiar el rol de este administrador?'
+                                );
+                            "
+                        >
+
+                            <select
+                                name="rol"
+                                class="admin-security-select"
+                            >
+
+                                <option
+                                    value="ADMIN"
+                                    {% if admin.rol == "ADMIN" %}
+                                    selected
+                                    {% endif %}
+                                >
+                                    ADMIN
+                                </option>
+
+                                <option
+                                    value="SUPERADMIN"
+                                    {% if admin.rol == "SUPERADMIN" %}
+                                    selected
+                                    {% endif %}
+                                >
+                                    SUPERADMIN
+                                </option>
+
+                            </select>
+
+
+                            <button
+                                type="submit"
+                                class="admin-security-button"
+                            >
+                                Cambiar rol
+                            </button>
+
+                        </form>
+
+                    </div>
+
+
+                    <!-- =====================================
+                        ESTADO
+                    ====================================== -->
+
+                    <div class="admin-security-card">
+
+                        <h3>
+                            Estado de la cuenta
+                        </h3>
+
+                        <p>
+                            Un administrador bloqueado
+                            no podrá iniciar sesión.
+                        </p>
+
+
+                        <form
+                            method="POST"
+                            action="{{ url_for(
+                                'administrador_cambiar_estado',
+                                id_admin=admin.idAdmin
+                            ) }}"
+                            onsubmit="
+                                return confirm(
+                                    '¿Confirmas este cambio de estado?'
+                                );
+                            "
+                        >
+
+                            {% if admin.estado == "ACTIVO" %}
+
+                            <input
+                                type="hidden"
+                                name="estado"
+                                value="BLOQUEADO"
+                            >
+
+                            <button
+                                type="submit"
+                                class="admin-danger-button"
+                            >
+                                Bloquear administrador
+                            </button>
+
+                            {% else %}
+
+                            <input
+                                type="hidden"
+                                name="estado"
+                                value="ACTIVO"
+                            >
+
+                            <button
+                                type="submit"
+                                class="admin-success-button"
+                            >
+                                Activar administrador
+                            </button>
+
+                            {% endif %}
+
+                        </form>
+
+                    </div>
+
+
+                    <!-- =====================================
+                        CERRAR SESIONES
+                    ====================================== -->
+
+                    <div class="admin-security-card">
+
+                        <h3>
+                            Sesiones activas
+                        </h3>
+
+                        <p>
+                            Invalida inmediatamente todas
+                            las sesiones existentes.
+                        </p>
+
+
+                        <form
+                            method="POST"
+                            action="{{ url_for(
+                                'administrador_cerrar_sesiones',
+                                id_admin=admin.idAdmin
+                            ) }}"
+                            onsubmit="
+                                return confirm(
+                                    '¿Deseas cerrar todas las sesiones de este administrador?'
+                                );
+                            "
+                        >
+
+                            <button
+                                type="submit"
+                                class="admin-warning-button"
+                            >
+                                Cerrar todas las sesiones
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="admin-detail-meta">
+
+                <div>
+
+                    <span>
+                        Creado
+                    </span>
+
+                    <strong>
+                        {{ admin.fechaCreacion | fecha }}
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Última actualización
+                    </span>
+
+                    <strong>
+
+                        {% if admin.fechaActualizacion %}
+
+                            {{ admin.fechaActualizacion | fecha }}
+
+                        {% else %}
+
+                            -
+
+                        {% endif %}
+
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        Último acceso
+                    </span>
+
+                    <strong>
+
+                        {% if admin.ultimoLogin %}
+
+                            {{ admin.ultimoLogin | fecha }}
+
+                        {% else %}
+
+                            Nunca
+
+                        {% endif %}
+
+                    </strong>
+
+                </div>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </main>
+
+
+    {% if admin %}
+
+    <script>
+
+        const editAdminForm =
+            document.getElementById(
+                "editAdminForm"
+            );
+
+        const editAdminButton =
+            document.getElementById(
+                "editAdminButton"
+            );
+
+        let edicionEnProceso =
+            false;
+
+
+        if (
+            editAdminForm &&
+            editAdminButton
+        ) {
+
+            editAdminForm.addEventListener(
+                "submit",
+                function (event) {
+
+                    if (edicionEnProceso) {
+
+                        event.preventDefault();
+
+                        return;
+                    }
+
+
+                    edicionEnProceso =
+                        true;
+
+                    editAdminButton.disabled =
+                        true;
+
+                    editAdminButton.textContent =
+                        "Guardando...";
+                }
+            );
+        }
+
+    </script>
+
+    {% endif %}
+
+</body>
+
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Dashboard | Gestión API Clientes
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body class="dashboard-body">
+
+    <div class="app-layout">
+
+        <!-- =========================================
+             SIDEBAR
+        ========================================== -->
+
+                <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    API
+                </div>
+                <div>
+                    <strong>Gestión API</strong>
+                    <span>Panel de Control</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-link active">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('clientes') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ url_for('consumos') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                    <span>Consumos</span>
+                </a>
+
+                {% if administrador and administrador.rol == "SUPERADMIN" %}
+                <a href="{{ url_for('administradores') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span>Administradores</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <button type="submit" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+
+        <!-- =========================================
+             CONTENIDO PRINCIPAL
+        ========================================== -->
+
+        <main class="main-content">
+
+            <header class="page-header">
+
+                <div>
+
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        Resumen general de la plataforma
+                    </p>
+
+                </div>
+
+
+                <div class="dashboard-header-right">
+
+                    {% if administrador %}
+
+                    <div class="admin-session-card">
+
+                        <div class="admin-session-avatar">
+
+                            {{
+                                (
+                                    administrador.nombre
+                                    or
+                                    administrador.usuario
+                                    or
+                                    "A"
+                                )[0] | upper
+                            }}
+
+                        </div>
+
+
+                        <div class="admin-session-info">
+
+                            <span class="admin-session-label">
+                                Sesión iniciada como
+                            </span>
+
+
+                            <strong class="admin-session-name">
+
+                                {{
+                                    administrador.nombre
+                                    or
+                                    administrador.usuario
+                                }}
+
+                            </strong>
+
+
+                            <div class="admin-session-meta">
+
+                                <span>
+                                    @{{ administrador.usuario }}
+                                </span>
+
+
+                                {% if administrador.rol == "SUPERADMIN" %}
+
+                                <span class="admin-role-badge superadmin">
+                                    SUPERADMIN
+                                </span>
+
+                                {% else %}
+
+                                <span class="admin-role-badge admin">
+                                    ADMIN
+                                </span>
+
+                                {% endif %}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    {% endif %}
+
+
+                    <div class="status-badge">
+                        <span class="pulse-dot"></span>
+                        Sistema Operativo
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <!-- =====================================
+                 ERROR
+            ====================================== -->
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            {% if data %}
+
+            <!-- =====================================
+                 TARJETAS PRINCIPALES
+            ====================================== -->
+
+            <section class="stats-grid">
+
+                <!-- 1. CLIENTES -->
+                <article class="stat-card">
+                    <div class="stat-header-flex">
+                        <span class="stat-title" style="margin: 0; font-weight: 600;">Clientes Totales</span>
+                        <div class="stat-icon-pill blue">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ data.clientes.total }}</div>
+                    <div class="stat-detail">
+                        <span class="badge-active">{{ data.clientes.activos }} activos</span>
+                        {% if data.clientes.bloqueados > 0 %}
+                        <span class="badge-blocked">{{ data.clientes.bloqueados }} bloqueados</span>
+                        {% else %}
+                        <span style="color: #64748b;">0 bloqueados</span>
+                        {% endif %}
+                    </div>
+                </article>
+
+                <!-- 2. CRÉDITOS DISPONIBLES -->
+                <article class="stat-card">
+                    <div class="stat-header-flex">
+                        <span class="stat-title" style="margin: 0; font-weight: 600;">Créditos Disponibles</span>
+                        <div class="stat-icon-pill green">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="8"/>
+                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                <line x1="8" y1="12" x2="16" y2="12"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" style="color: #047857;">{{ data.creditos.disponibles }}</div>
+                    <div class="stat-detail">
+                        <span style="color: #64748b;">De {{ data.creditos.asignados }} asignados</span>
+                    </div>
+                </article>
+
+                <!-- 3. CRÉDITOS CONSUMIDOS -->
+                <article class="stat-card">
+                    <div class="stat-header-flex">
+                        <span class="stat-title" style="margin: 0; font-weight: 600;">Créditos Consumidos</span>
+                        <div class="stat-icon-pill indigo">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 3v18h18"/>
+                                <path d="m19 9-5 5-4-4-3 3"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value" style="color: #1e293b;">{{ data.creditos.consumidos }}</div>
+                    <div class="stat-detail">
+                        <span style="color: #64748b;">Consumo acumulado</span>
+                    </div>
+                </article>
+
+                <!-- 4. CONSULTAS TOTALES -->
+                <article class="stat-card">
+                    <div class="stat-header-flex">
+                        <span class="stat-title" style="margin: 0; font-weight: 600;">Consultas Realizadas</span>
+                        <div class="stat-icon-pill purple">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-value">{{ data.consultas.total }}</div>
+                    <div class="stat-detail">
+                        <span class="badge-active">{{ data.consultas.hoy }} hoy</span>
+                    </div>
+                </article>
+
+            </section>
+
+            <!-- =====================================
+                 ACCIONES RÁPIDAS & CATÁLOGO DE APIS
+            ====================================== -->
+            <section style="margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 19px; font-weight: 700; color: #0f172a;">Servicios API Disponibles</h2>
+                        <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">Monitoreo y acceso rápido a las 4 APIs integradas</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <a href="{{ url_for('cliente_nuevo') }}" class="primary-action" style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; font-size: 13px;">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                            Nuevo Cliente
+                        </a>
+                        <a href="{{ url_for('consumos') }}" class="detail-link" style="padding: 9px 16px; font-size: 13px;">
+                            Auditoría de Consumos
+                        </a>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+                    <!-- API RRCC -->
+                    <div class="stat-card" style="padding: 18px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span class="portal-service-tag tag-rrcc" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">RRCC</span>
+                            <span class="badge-active" style="font-size: 11px;">Operativo</span>
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;">Calificación SBS</h3>
+                        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b; line-height: 1.4;">Riesgo financiero y crediticio por DNI/RUC.</p>
+                        <a href="{{ url_for('consumos', servicio='RRCC') }}" class="detail-link" style="justify-content: center; font-size: 11.5px; padding: 5px 10px;">
+                            Ver consumos &rarr;
+                        </a>
+                    </div>
+
+                    <!-- API SUELDOS -->
+                    <div class="stat-card" style="padding: 18px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span class="portal-service-tag tag-sueldos" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">SUELDOS</span>
+                            <span class="badge-active" style="font-size: 11px;">Operativo</span>
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;">Historial Laboral</h3>
+                        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b; line-height: 1.4;">Empleadores, planilla y rangos salariales.</p>
+                        <a href="{{ url_for('consumos', servicio='SUELDOS') }}" class="detail-link" style="justify-content: center; font-size: 11.5px; padding: 5px 10px;">
+                            Ver consumos &rarr;
+                        </a>
+                    </div>
+
+                    <!-- API FALLECIDOS -->
+                    <div class="stat-card" style="padding: 18px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span class="portal-service-tag tag-fallecidos" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">FALLECIDOS</span>
+                            <span class="badge-active" style="font-size: 11px;">Operativo</span>
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;">Consulta Defunciones</h3>
+                        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b; line-height: 1.4;">Acta y condición de defunción registrada.</p>
+                        <a href="{{ url_for('consumos', servicio='FALLECIDOS') }}" class="detail-link" style="justify-content: center; font-size: 11.5px; padding: 5px 10px;">
+                            Ver consumos &rarr;
+                        </a>
+                    </div>
+
+                    <!-- API TELÉFONOS -->
+                    <div class="stat-card" style="padding: 18px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                            <span class="portal-service-tag tag-telefonos" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 700;">TELÉFONOS</span>
+                            <span class="badge-active" style="font-size: 11px;">Operativo</span>
+                        </div>
+                        <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0f172a;">Líneas Telefónicas</h3>
+                        <p style="margin: 0 0 12px; font-size: 12px; color: #64748b; line-height: 1.4;">Números móviles y fijos por titular.</p>
+                        <a href="{{ url_for('consumos', servicio='TELEFONOS') }}" class="detail-link" style="justify-content: center; font-size: 11.5px; padding: 5px 10px;">
+                            Ver consumos &rarr;
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- =====================================
+                 SEGUNDA FILA
+            ====================================== -->
+
+            <section class="dashboard-grid">
+
+                <!-- ESTADO CONSULTAS -->
+
+                <article class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h2>
+                                Estado de consultas
+                            </h2>
+
+                            <p>
+                                Resultado acumulado
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="metrics-list">
+
+                        <div class="metric-row">
+
+                            <span>
+                                Exitosas
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.exitosas }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Sin datos
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.sinDatos }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Errores
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.errores }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="metric-row">
+
+                            <span>
+                                Total
+                            </span>
+
+                            <strong>
+                                {{ data.consultas.total }}
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+
+                <!-- TOKENS -->
+
+                <article class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h2>
+                                Tokens
+                            </h2>
+
+                            <p>
+                                Credenciales actualmente habilitadas
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="token-summary">
+
+                        <div class="token-number">
+                            {{ data.tokens.activos }}
+                        </div>
+
+                        <div>
+                            Tokens activos
+                        </div>
+
+                    </div>
+
+                </article>
+
+            </section>
+
+            {% endif %}
+
+        </main>
+
+    </div>
+
+</body>
+
+</html>

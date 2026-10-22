@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Administradores | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <main class="admin-users-page">
+
+        <div class="admin-users-container">
+
+            <!-- =====================================
+                 CABECERA
+            ====================================== -->
+
+            <div class="admin-users-header">
+
+                <div>
+
+                    <span class="admin-users-eyebrow">
+                        Seguridad
+                    </span>
+
+                    <h1>
+                        Administradores
+                    </h1>
+
+                    <p>
+                        Gestiona las cuentas administrativas
+                        y sus permisos de acceso.
+                    </p>
+
+                </div>
+
+
+                <a
+                    href="{{ url_for('administrador_nuevo') }}"
+                    class="admin-primary-button"
+                >
+                    + Nuevo administrador
+                </a>
+
+            </div>
+
+
+            <!-- =====================================
+                 MENSAJES
+            ====================================== -->
+
+            {% if mensaje %}
+
+            <div class="alert-success">
+                {{ mensaje }}
+            </div>
+
+            {% endif %}
+
+
+            {% if error %}
+
+            <div class="alert-error">
+                {{ error }}
+            </div>
+
+            {% endif %}
+
+
+            <!-- =====================================
+                 FILTROS
+            ====================================== -->
+
+            <form
+                method="GET"
+                action="{{ url_for('administradores') }}"
+                class="admin-users-filters"
+            >
+
+                <div class="admin-filter-field">
+
+                    <label for="search">
+                        Buscar
+                    </label>
+
+                    <input
+                        id="search"
+                        name="search"
+                        type="text"
+                        placeholder="Usuario, nombre o correo"
+                        value="{{ search }}"
+                    >
+
+                </div>
+
+
+                <div class="admin-filter-field">
+
+                    <label for="rol">
+                        Rol
+                    </label>
+
+                    <select
+                        id="rol"
+                        name="rol"
+                    >
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option
+                            value="ADMIN"
+                            {% if rol == "ADMIN" %}
+                            selected
+                            {% endif %}
+                        >
+                            ADMIN
+                        </option>
+
+                        <option
+                            value="SUPERADMIN"
+                            {% if rol == "SUPERADMIN" %}
+                            selected
+                            {% endif %}
+                        >
+                            SUPERADMIN
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="admin-filter-field">
+
+                    <label for="estado">
+                        Estado
+                    </label>
+
+                    <select
+                        id="estado"
+                        name="estado"
+                    >
+
+                        <option value="">
+                            Todos
+                        </option>
+
+                        <option
+                            value="ACTIVO"
+                            {% if estado == "ACTIVO" %}
+                            selected
+                            {% endif %}
+                        >
+                            ACTIVO
+                        </option>
+
+                        <option
+                            value="BLOQUEADO"
+                            {% if estado == "BLOQUEADO" %}
+                            selected
+                            {% endif %}
+                        >
+                            BLOQUEADO
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <button
+                    type="submit"
+                    class="admin-filter-button"
+                >
+                    Filtrar
+                </button>
+
+
+                <a
+                    href="{{ url_for('administradores') }}"
+                    class="admin-filter-clear"
+                >
+                    Limpiar
+                </a>
+
+            </form>
+
+
+            <!-- =====================================
+                 TABLA
+            ====================================== -->
+
+            <div class="admin-users-table-wrapper">
+
+                <table class="admin-users-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Usuario
+                            </th>
+
+                            <th>
+                                Nombre
+                            </th>
+
+                            <th>
+                                Correo
+                            </th>
+
+                            <th>
+                                Rol
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Último acceso
+                            </th>
+
+                            <th>
+                                Acciones
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+                        {% for admin in administradores %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ admin.usuario }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+                                {{ admin.nombre or "-" }}
+                            </td>
+
+
+                            <td>
+                                {{ admin.email or "-" }}
+                            </td>
+
+
+                            <td>
+
+                                {% if admin.rol == "SUPERADMIN" %}
+
+                                <span
+                                    class="admin-role-badge admin-role-super"
+                                >
+                                    SUPERADMIN
+                                </span>
+
+                                {% else %}
+
+                                <span
+                                    class="admin-role-badge"
+                                >
+                                    ADMIN
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if admin.estado == "ACTIVO" %}
+
+                                <span
+                                    class="admin-status-badge admin-status-active"
+                                >
+                                    ACTIVO
+                                </span>
+
+                                {% else %}
+
+                                <span
+                                    class="admin-status-badge admin-status-blocked"
+                                >
+                                    BLOQUEADO
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                {% if admin.ultimoLogin %}
+
+                                    {{ admin.ultimoLogin | fecha }}
+
+                                {% else %}
+
+                                    Nunca
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+
+                                <a
+                                    href="{{ url_for(
+                                        'administrador_detalle',
+                                        id_admin=admin.idAdmin
+                                    ) }}"
+                                    class="admin-action-link"
+                                >
+                                    Ver
+                                </a>
+
+                            </td>
+
+                        </tr>
+
+
+                        {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="7"
+                                class="admin-users-empty"
+                            >
+                                No se encontraron
+                                administradores.
+                            </td>
+
+                        </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- =====================================
+                 PAGINACIÓN
+            ====================================== -->
+
+            {% if paginacion and paginacion.totalPaginas > 1 %}
+
+            <div class="admin-pagination">
+
+                {% if paginacion.page > 1 %}
+
+                <a
+                    href="{{ url_for(
+                        'administradores',
+                        page=paginacion.page - 1,
+                        search=search,
+                        rol=rol,
+                        estado=estado
+                    ) }}"
+                >
+                    ← Anterior
+                </a>
+
+                {% endif %}
+
+
+                <span>
+
+                    Página
+                    {{ paginacion.page }}
+                    de
+                    {{ paginacion.totalPaginas }}
+
+                </span>
+
+
+                {% if paginacion.page < paginacion.totalPaginas %}
+
+                <a
+                    href="{{ url_for(
+                        'administradores',
+                        page=paginacion.page + 1,
+                        search=search,
+                        rol=rol,
+                        estado=estado
+                    ) }}"
+                >
+                    Siguiente →
+                </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+
+            <div class="admin-users-back">
+
+                <a
+                    href="{{ url_for('dashboard') }}"
+                >
+                    ← Volver al dashboard
+                </a>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <script src="{{ url_for('static', filename='js/custom-select.js') }}?v=2"></script>
+</body>
+
+</html>

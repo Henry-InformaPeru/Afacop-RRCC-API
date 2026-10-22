@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Consumos | Gestión API
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}?v=8"
+    >
+
+</head>
+
+
+<body class="dashboard-body">
+
+<div class="app-layout">
+
+
+    <!-- ==================================================
+         SIDEBAR
+    ================================================== -->
+
+            <aside class="sidebar">
+
+            <div class="sidebar-brand">
+                <div class="sidebar-logo">
+                    API
+                </div>
+                <div>
+                    <strong>Gestión API</strong>
+                    <span>Panel de Control</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('dashboard') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+                    <span>Dashboard</span>
+                </a>
+
+                <a href="{{ url_for('clientes') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <span>Clientes</span>
+                </a>
+
+                <a href="{{ url_for('consumos') }}" class="nav-link active">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span>
+                    <span>Consumos</span>
+                </a>
+
+                {% if administrador and administrador.rol == "SUPERADMIN" %}
+                <a href="{{ url_for('administradores') }}" class="nav-link ">
+                    <span class="nav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+                    <span>Administradores</span>
+                </a>
+                {% endif %}
+            </nav>
+
+            <div class="sidebar-footer">
+                <form method="POST" action="{{ url_for('logout') }}">
+                    <button type="submit" class="logout-button">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Cerrar sesión
+                    </button>
+                </form>
+            </div>
+
+        </aside>
+
+
+
+    <!-- ==================================================
+         CONTENIDO
+    ================================================== -->
+
+    <main class="main-content">
+
+
+        <header class="page-header">
+
+            <div>
+
+                <h1>
+                    Consumos
+                </h1>
+
+                <p>
+                    Historial de consultas realizadas
+                    por los clientes de la API
+                </p>
+
+            </div>
+
+        </header>
+
+
+
+        {% if error %}
+
+        <div class="alert-error">
+            {{ error }}
+        </div>
+
+        {% endif %}
+
+
+
+        <!-- ==================================================
+             FILTROS
+        ================================================== -->
+
+        <section class="consumos-toolbar">
+
+            <form
+                method="GET"
+                action="{{ url_for('consumos') }}"
+                class="consumos-filter-form"
+            >
+
+
+                <!-- BÚSQUEDA -->
+
+                <div class="consumo-search">
+
+                    <input
+                        type="text"
+                        name="search"
+                        value="{{ search }}"
+                        placeholder="Buscar cliente o documento..."
+                    >
+
+                </div>
+
+
+
+                <!-- SERVICIO -->
+
+                <div>
+
+                    <select name="servicio">
+
+                        <option
+                            value=""
+                            {% if not servicio %}
+                            selected
+                            {% endif %}
+                        >
+                            Todos los servicios
+                        </option>
+
+
+                        <option
+                            value="RRCC"
+                            {% if servicio == "RRCC" %}
+                            selected
+                            {% endif %}
+                        >
+                            RRCC
+                        </option>
+
+
+                        <option
+                            value="SUELDOS"
+                            {% if servicio == "SUELDOS" %}
+                            selected
+                            {% endif %}
+                        >
+                            Sueldos
+                        </option>
+
+
+                        <option
+                            value="FALLECIDOS"
+                            {% if servicio == "FALLECIDOS" %}
+                            selected
+                            {% endif %}
+                        >
+                            Fallecidos
+                        </option>
+
+                        <option
+                            value="TELEFONOS"
+                            {% if servicio == "TELEFONOS" %}
+                            selected
+                            {% endif %}
+                        >
+                            Teléfonos
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <!-- ESTADO -->
+
+                <div>
+
+                    <select name="estado">
+
+                        <option
+                            value=""
+                            {% if not estado %}
+                            selected
+                            {% endif %}
+                        >
+                            Todos los estados
+                        </option>
+
+
+                        <option
+                            value="EXITOSA"
+                            {% if estado == "EXITOSA" %}
+                            selected
+                            {% endif %}
+                        >
+                            Exitosa
+                        </option>
+
+
+                        <option
+                            value="SIN_DATOS"
+                            {% if estado == "SIN_DATOS" %}
+                            selected
+                            {% endif %}
+                        >
+                            Sin datos
+                        </option>
+
+
+                        <option
+                            value="ERROR"
+                            {% if estado == "ERROR" %}
+                            selected
+                            {% endif %}
+                        >
+                            Error
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+
+                <!-- FILTRAR -->
+
+                <button
+                    type="submit"
+                    class="filter-button"
+                >
+                    Filtrar
+                </button>
+
+
+
+                <!-- LIMPIAR -->
+
+                {% if search or estado or servicio %}
+
+                <a
+                    href="{{ url_for('consumos') }}"
+                    class="clear-search"
+                >
+                    Limpiar
+                </a>
+
+                {% endif %}
+
+            </form>
+
+        </section>
+
+
+
+        <!-- ==================================================
+             TABLA
+        ================================================== -->
+
+        <section class="table-panel">
+
+            <div class="table-header">
+
+                <div>
+
+                    <h2>
+                        Historial de consultas
+                    </h2>
+
+
+                    {% if paginacion %}
+
+                    <p>
+                        {{ paginacion.total }}
+                        registro(s)
+                    </p>
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+
+
+            <div class="table-responsive">
+
+                <table class="clients-table consumos-table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                Cliente
+                            </th>
+
+                            <th>
+                                Documento consultado
+                            </th>
+
+                            <th>
+                                Servicio
+                            </th>
+
+                            <th>
+                                Estado
+                            </th>
+
+                            <th>
+                                Créditos
+                            </th>
+
+                            <th>
+                                HTTP
+                            </th>
+
+                            <th>
+                                Duración
+                            </th>
+
+                            <th>
+                                IP
+                            </th>
+
+                            <th>
+                                Fecha
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody>
+
+
+                    {% for consumo in consumos %}
+
+                        <tr>
+
+
+                            <!-- ======================================
+                                 CLIENTE
+                            ======================================= -->
+
+                            <td>
+
+                                <a
+                                    href="{{ url_for(
+                                        'cliente_detalle',
+                                        id_cliente=consumo.idCliente
+                                    ) }}"
+                                    class="consumo-client-link"
+                                >
+
+                                    {{ consumo.cliente.nombre }}
+
+                                </a>
+
+
+                                <div class="client-email">
+
+                                    {{ consumo.cliente.tipoDocumento }}
+
+                                    {{ consumo.cliente.documento }}
+
+                                </div>
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 DOCUMENTO CONSULTADO
+                            ======================================= -->
+
+                            <td>
+                                <span class="doc-badge">
+                                    {{ consumo.consulta.tipoDocumento }}: {{ consumo.consulta.documento }}
+                                </span>
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 SERVICIO
+                            ======================================= -->
+
+                            <td>
+
+                                {% if consumo.servicio == "SUELDOS" %}
+
+                                <span class="badge badge-service-sueldos">
+                                    SUELDOS
+                                </span>
+
+                                {% elif consumo.servicio == "FALLECIDOS" %}
+
+                                <span class="badge badge-service-fallecidos">
+                                    FALLECIDOS
+                                </span>
+
+                                {% elif consumo.servicio == "TELEFONOS" %}
+
+                                <span class="badge badge-service-telefonos">
+                                    TELEFONOS
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge badge-service-rrcc">
+                                    RRCC
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 ESTADO
+                            ======================================= -->
+
+                            <td>
+
+                                {% if consumo.estado == "EXITOSA" %}
+
+                                <span class="badge badge-active">
+                                    EXITOSA
+                                </span>
+
+
+                                {% elif consumo.estado == "SIN_DATOS" %}
+
+                                <span class="badge badge-warning">
+                                    SIN DATOS
+                                </span>
+
+
+                                {% else %}
+
+                                <span class="badge badge-error">
+                                    ERROR
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 CRÉDITOS
+                            ======================================= -->
+
+                            <td>
+
+                                {% if consumo.creditosConsumidos > 0 %}
+
+                                <strong class="credits-value">
+
+                                    {{ consumo.creditosConsumidos }}
+
+                                </strong>
+
+                                {% else %}
+
+                                <span class="zero-credit">
+                                    0
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 HTTP
+                            ======================================= -->
+
+                            <td>
+
+                                <span class="http-code">
+
+                                    {{ consumo.httpStatus or "-" }}
+
+                                </span>
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 DURACIÓN
+                            ======================================= -->
+
+                            <td>
+
+                                {% if consumo.duracionMs is not none %}
+
+                                    {{ consumo.duracionMs }} ms
+
+                                {% else %}
+
+                                    -
+
+                                {% endif %}
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 IP
+                            ======================================= -->
+
+                            <td>
+
+                                <span class="ip-value">
+
+                                    {{ consumo.ipOrigen or "-" }}
+
+                                </span>
+
+                            </td>
+
+
+
+                            <!-- ======================================
+                                 FECHA
+                            ======================================= -->
+
+                            <td>
+
+                                <span class="consumo-date">
+
+                                    {{ consumo.fecha | fecha }}
+
+                                </span>
+
+                            </td>
+
+                        </tr>
+
+
+                    {% else %}
+
+                        <tr>
+
+                            <td
+                                colspan="9"
+                                class="empty-table"
+                            >
+
+                                No se encontraron consumos.
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+
+            <!-- ==================================================
+                 PAGINACIÓN
+            ================================================== -->
+
+            {% if
+                paginacion
+                and
+                paginacion.totalPaginas > 1
+            %}
+
+            <div class="pagination">
+
+
+                {% if paginacion.page > 1 %}
+
+                <a
+                    href="{{ url_for(
+                        'consumos',
+                        page=paginacion.page - 1,
+                        search=search,
+                        estado=estado,
+                        servicio=servicio
+                    ) }}"
+                >
+
+                    ← Anterior
+
+                </a>
+
+                {% endif %}
+
+
+
+                <span>
+
+                    Página
+
+                    {{ paginacion.page }}
+
+                    de
+
+                    {{ paginacion.totalPaginas }}
+
+                </span>
+
+
+
+                {% if
+                    paginacion.page
+                    <
+                    paginacion.totalPaginas
+                %}
+
+                <a
+                    href="{{ url_for(
+                        'consumos',
+                        page=paginacion.page + 1,
+                        search=search,
+                        estado=estado,
+                        servicio=servicio
+                    ) }}"
+                >
+
+                    Siguiente →
+
+                </a>
+
+                {% endif %}
+
+            </div>
+
+            {% endif %}
+
+        </section>
+
+    </main>
+
+</div>
+
+    <script src="{{ url_for('static', filename='js/custom-select.js') }}?v=2"></script>
+</body>
+
+</html>
