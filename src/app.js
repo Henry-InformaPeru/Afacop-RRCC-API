@@ -4,6 +4,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 import rrccRoutes from "./routes/rrcc.routes.js";
+import personasRoutes from "./routes/personas.routes.js";
 import { apiKeyMiddleware } from "./middleware/apiKey.js";
 
 const app = express();
@@ -12,7 +13,7 @@ app.use(helmet());
 
 app.use(
   express.json({
-    limit: "100kb",
+    limit: "2mb",
   })
 );
 
@@ -87,6 +88,15 @@ app.get(
 app.use(
   "/v1/rrcc",
   rrccRoutes
+);
+
+// --------------------------------------------------
+// RUTAS PERSONAS
+// --------------------------------------------------
+
+app.use(
+  "/v1/personas",
+  personasRoutes
 );
 
 export default app;
