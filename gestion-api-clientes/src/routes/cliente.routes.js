@@ -51,6 +51,11 @@ import {
   consultarTelefonos,
 } from "../services/telefonos.service.js";
 
+import {
+  getCachedConsulta,
+  setCachedConsulta,
+} from "../services/cache.service.js";
+
 
 
 const router =
@@ -322,24 +327,44 @@ async function procesarConsultaRRCC(
 
 
     // ==============================================
-    // 4. CONSULTAR RRCC
+    // 4. CONSULTAR RRCC (CACHÉ REDIS O SQL SERVER)
     //
     // Desde este punto el crédito
     // ya fue consumido.
     // ==============================================
 
-    const rrcc =
-      await consultarRRCC({
+    let rrcc =
+      await getCachedConsulta(
+        "RRCC",
+        datosConsulta.tipoDocumento,
+        datosConsulta.documento
+      );
 
-        tipoDocumento:
-          datosConsulta
-            .tipoDocumento,
+    const esCacheHit =
+      Boolean(rrcc);
 
-        documento:
-          datosConsulta
-            .documento,
+    if (esCacheHit) {
+      res.set("X-Cache", "HIT");
+    } else {
+      res.set("X-Cache", "MISS");
 
-      });
+      rrcc =
+        await consultarRRCC({
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+          documento:
+            datosConsulta.documento,
+        });
+
+      if (rrcc.ok && (rrcc.status === 200 || !rrcc.status)) {
+        await setCachedConsulta(
+          "RRCC",
+          datosConsulta.tipoDocumento,
+          datosConsulta.documento,
+          rrcc
+        );
+      }
+    }
 
 
     const duracionMs =
@@ -388,7 +413,9 @@ async function procesarConsultaRRCC(
           200,
 
         mensaje:
-          "Consulta procesada correctamente.",
+          esCacheHit
+            ? "Consulta procesada correctamente (Caché)."
+            : "Consulta procesada correctamente.",
 
         ipOrigen:
           req.ip,
@@ -791,24 +818,44 @@ async function procesarConsultaSueldos(
 
 
     // ==============================================
-    // 4. CONSULTAR SUELDOS
+    // 4. CONSULTAR SUELDOS (CACHÉ REDIS O SQL SERVER)
     //
     // Desde este punto el crédito
     // ya fue consumido.
     // ==============================================
 
-    const sueldos =
-      await consultarSueldos({
+    let sueldos =
+      await getCachedConsulta(
+        "SUELDOS",
+        datosConsulta.tipoDocumento,
+        datosConsulta.documento
+      );
 
-        tipoDocumento:
-          datosConsulta
-            .tipoDocumento,
+    const esCacheHit =
+      Boolean(sueldos);
 
-        documento:
-          datosConsulta
-            .documento,
+    if (esCacheHit) {
+      res.set("X-Cache", "HIT");
+    } else {
+      res.set("X-Cache", "MISS");
 
-      });
+      sueldos =
+        await consultarSueldos({
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+          documento:
+            datosConsulta.documento,
+        });
+
+      if (sueldos.ok && (sueldos.status === 200 || !sueldos.status)) {
+        await setCachedConsulta(
+          "SUELDOS",
+          datosConsulta.tipoDocumento,
+          datosConsulta.documento,
+          sueldos
+        );
+      }
+    }
 
 
     const duracionMs =
@@ -857,7 +904,9 @@ async function procesarConsultaSueldos(
           200,
 
         mensaje:
-          "Consulta de sueldos procesada correctamente.",
+          esCacheHit
+            ? "Consulta de sueldos procesada correctamente (Caché)."
+            : "Consulta de sueldos procesada correctamente.",
 
         ipOrigen:
           req.ip,
@@ -1253,21 +1302,41 @@ async function procesarConsultaFallecidos(
 
 
     // ==============================================
-    // 4. CONSULTAR FALLECIDOS
+    // 4. CONSULTAR FALLECIDOS (CACHÉ REDIS O SQL SERVER)
     // ==============================================
 
-    const fallecidos =
-      await consultarFallecidos({
+    let fallecidos =
+      await getCachedConsulta(
+        "FALLECIDOS",
+        datosConsulta.tipoDocumento,
+        datosConsulta.documento
+      );
 
-        tipoDocumento:
-          datosConsulta
-            .tipoDocumento,
+    const esCacheHit =
+      Boolean(fallecidos);
 
-        documento:
-          datosConsulta
-            .documento,
+    if (esCacheHit) {
+      res.set("X-Cache", "HIT");
+    } else {
+      res.set("X-Cache", "MISS");
 
-      });
+      fallecidos =
+        await consultarFallecidos({
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+          documento:
+            datosConsulta.documento,
+        });
+
+      if (fallecidos.ok && (fallecidos.status === 200 || !fallecidos.status)) {
+        await setCachedConsulta(
+          "FALLECIDOS",
+          datosConsulta.tipoDocumento,
+          datosConsulta.documento,
+          fallecidos
+        );
+      }
+    }
 
 
     const duracionMs =
@@ -1316,7 +1385,9 @@ async function procesarConsultaFallecidos(
           200,
 
         mensaje:
-          "Consulta de fallecidos procesada correctamente.",
+          esCacheHit
+            ? "Consulta de fallecidos procesada correctamente (Caché)."
+            : "Consulta de fallecidos procesada correctamente.",
 
         ipOrigen:
           req.ip,
@@ -1698,21 +1769,41 @@ async function procesarConsultaTelefonos(
 
 
     // ==============================================
-    // 4. CONSULTAR TELÉFONOS
+    // 4. CONSULTAR TELÉFONOS (CACHÉ REDIS O SQL SERVER)
     // ==============================================
 
-    const telefonos =
-      await consultarTelefonos({
+    let telefonos =
+      await getCachedConsulta(
+        "TELEFONOS",
+        datosConsulta.tipoDocumento,
+        datosConsulta.documento
+      );
 
-        tipoDocumento:
-          datosConsulta
-            .tipoDocumento,
+    const esCacheHit =
+      Boolean(telefonos);
 
-        documento:
-          datosConsulta
-            .documento,
+    if (esCacheHit) {
+      res.set("X-Cache", "HIT");
+    } else {
+      res.set("X-Cache", "MISS");
 
-      });
+      telefonos =
+        await consultarTelefonos({
+          tipoDocumento:
+            datosConsulta.tipoDocumento,
+          documento:
+            datosConsulta.documento,
+        });
+
+      if (telefonos.ok && (telefonos.status === 200 || !telefonos.status)) {
+        await setCachedConsulta(
+          "TELEFONOS",
+          datosConsulta.tipoDocumento,
+          datosConsulta.documento,
+          telefonos
+        );
+      }
+    }
 
 
     const duracionMs =
@@ -1761,7 +1852,9 @@ async function procesarConsultaTelefonos(
           200,
 
         mensaje:
-          "Consulta de teléfonos procesada correctamente.",
+          esCacheHit
+            ? "Consulta de teléfonos procesada correctamente (Caché)."
+            : "Consulta de teléfonos procesada correctamente.",
 
         ipOrigen:
           req.ip,

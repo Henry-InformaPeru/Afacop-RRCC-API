@@ -1,4 +1,6 @@
 import rateLimit from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { getRedisClient } from "../config/redis.js";
 
 
 // ==================================================
@@ -21,6 +23,31 @@ function responderRateLimit(
       code:
         "RATE_LIMITED",
     });
+}
+
+
+// ==================================================
+// FABRICADOR DE REDIS STORE
+//
+// Si Redis no está disponible o falla, express-rate-limit
+// continuará operando gracias a passOnStoreError: true.
+// ==================================================
+
+function crearRedisStore(prefix) {
+  try {
+    const redis = getRedisClient();
+
+    return new RedisStore({
+      sendCommand: (...args) => redis.call(...args),
+      prefix: `gestion-api:rl:${prefix}:`,
+    });
+  } catch (error) {
+    console.warn(
+      `[RATE LIMIT] No se pudo inicializar RedisStore para ${prefix}, usando memoria.`,
+      error.message
+    );
+    return undefined;
+  }
 }
 
 
@@ -50,6 +77,12 @@ export const clienteIpLimiter =
 
     legacyHeaders:
       false,
+
+    store:
+      crearRedisStore("ip"),
+
+    passOnStoreError:
+      true,
 
     handler:
       responderRateLimit,
@@ -84,6 +117,11 @@ export const cuentaTokenLimiter =
     legacyHeaders:
       false,
 
+    store:
+      crearRedisStore("cuenta"),
+
+    passOnStoreError:
+      true,
 
     keyGenerator:
       (req) => {
@@ -150,6 +188,11 @@ export const consultaTokenLimiter =
     legacyHeaders:
       false,
 
+    store:
+      crearRedisStore("consulta"),
+
+    passOnStoreError:
+      true,
 
     keyGenerator:
       (req) => {
@@ -189,29 +232,13 @@ export const consultaTokenLimiter =
 // Máximo:
 // 3 consultas procesándose al mismo tiempo.
 //
-// Ejemplo:
-//
-// Consulta 1 -> entra
-// Consulta 2 -> entra
-// Consulta 3 -> entra
-// Consulta 4 -> 429
-//
-// IMPORTANTE:
-// Esto ocurre ANTES de reservar crédito.
-// Una consulta bloqueada NO consume crédito.
-//
-// NOTA:
-// Este control funciona en memoria dentro de esta
-// instancia de Node.
-//
-// Si en el futuro existen varias instancias del
-// backend, este contador deberá centralizarse,
-// por ejemplo con Redis.
+// Control distribuido mediante Redis (INCR / DECR).
+// Si Redis no está disponible, realiza fallback
+// automático a Map en memoria de Node.js.
 // ==================================================
 
 const consultasActivas =
   new Map();
-
 
 const MAX_CONCURRENTES_POR_TOKEN =
   3;
@@ -221,7 +248,7 @@ const MAX_CONCURRENTES_POR_TOKEN =
 // MIDDLEWARE DE CONCURRENCIA
 // ==================================================
 
-export function limitarConsultasConcurrentes(
+export async function limitarConsultasConcurrentes(
   req,
   res,
   next
@@ -256,115 +283,141 @@ export function limitarConsultasConcurrentes(
 
 
   // ------------------------------------------------
-  // CONSULTAS ACTUALMENTE PROCESÁNDOSE
+  // GESTIÓN CON REDIS
   // ------------------------------------------------
 
-  const actuales =
-    consultasActivas.get(
-      idToken
-    ) || 0;
+  try {
+    const redis = getRedisClient();
+    const redisKey = `gestion-api:concurrencia:token:${idToken}`;
 
+    const actuales =
+      await redis.incr(redisKey);
 
-  // ------------------------------------------------
-  // SUPERÓ EL MÁXIMO
-  // ------------------------------------------------
-
-  if (
-    actuales >=
-    MAX_CONCURRENTES_POR_TOKEN
-  ) {
-
-    return res
-      .status(429)
-      .json({
-
-        success: false,
-
-        error:
-          "El token alcanzó el máximo de consultas simultáneas permitidas.",
-
-        code:
-          "TOKEN_CONCURRENCY_LIMITED",
-      });
-  }
-
-
-  // ------------------------------------------------
-  // REGISTRAR CONSULTA ACTIVA
-  // ------------------------------------------------
-
-  consultasActivas.set(
-    idToken,
-    actuales + 1
-  );
-
-
-  let liberado =
-    false;
-
-
-  // ------------------------------------------------
-  // LIBERAR SLOT
-  // ------------------------------------------------
-
-  function liberar() {
-
-    if (liberado) {
-
-      return;
+    // Si es la primera consulta activa, establecer TTL de seguridad (60 seg)
+    // para evitar bloqueos permanentes en caso de caída inesperada.
+    if (actuales === 1) {
+      await redis.expire(redisKey, 60);
     }
 
+    if (actuales > MAX_CONCURRENTES_POR_TOKEN) {
+      await redis.decr(redisKey);
 
-    liberado =
-      true;
+      return res
+        .status(429)
+        .json({
+          success: false,
+          error:
+            "El token alcanzó el máximo de consultas simultáneas permitidas.",
+          code:
+            "TOKEN_CONCURRENCY_LIMITED",
+        });
+    }
 
+    let liberado = false;
 
-    const cantidad =
+    async function liberarRedis() {
+      if (liberado) return;
+      liberado = true;
+
+      try {
+        const val = await redis.decr(redisKey);
+        if (val <= 0) {
+          await redis.del(redisKey);
+        }
+      } catch (err) {
+        console.warn(
+          "[REDIS CONCURRENCY] Error liberando slot:",
+          err.message
+        );
+      }
+    }
+
+    res.once("finish", liberarRedis);
+    res.once("close", liberarRedis);
+
+    return next();
+
+  } catch (errorRedis) {
+
+    // ------------------------------------------------
+    // FALLBACK A MEMORIA LOCAL SI REDIS NO RESPONDE
+    // ------------------------------------------------
+
+    console.warn(
+      "[REDIS CONCURRENCY] Usando fallback a memoria:",
+      errorRedis.message
+    );
+
+    const actuales =
       consultasActivas.get(
         idToken
       ) || 0;
 
-
     if (
-      cantidad <= 1
+      actuales >=
+      MAX_CONCURRENTES_POR_TOKEN
     ) {
 
-      consultasActivas.delete(
-        idToken
-      );
+      return res
+        .status(429)
+        .json({
 
-    } else {
+          success: false,
 
-      consultasActivas.set(
-        idToken,
-        cantidad - 1
-      );
+          error:
+            "El token alcanzó el máximo de consultas simultáneas permitidas.",
+
+          code:
+            "TOKEN_CONCURRENCY_LIMITED",
+        });
     }
+
+    consultasActivas.set(
+      idToken,
+      actuales + 1
+    );
+
+    let liberadoMemoria =
+      false;
+
+    function liberarMemoria() {
+
+      if (liberadoMemoria) {
+        return;
+      }
+
+      liberadoMemoria =
+        true;
+
+      const cantidad =
+        consultasActivas.get(
+          idToken
+        ) || 0;
+
+      if (
+        cantidad <= 1
+      ) {
+        consultasActivas.delete(
+          idToken
+        );
+      } else {
+        consultasActivas.set(
+          idToken,
+          cantidad - 1
+        );
+      }
+    }
+
+    res.once(
+      "finish",
+      liberarMemoria
+    );
+
+    res.once(
+      "close",
+      liberarMemoria
+    );
+
+    return next();
   }
-
-
-  /*
-    finish:
-    La respuesta terminó correctamente.
-
-    close:
-    El cliente cerró la conexión.
-
-    Escuchamos ambos eventos para evitar
-    dejar consultas marcadas como activas.
-  */
-
-  res.once(
-    "finish",
-    liberar
-  );
-
-
-  res.once(
-    "close",
-    liberar
-  );
-
-
-  return next();
 }

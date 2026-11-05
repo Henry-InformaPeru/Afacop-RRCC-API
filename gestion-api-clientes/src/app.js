@@ -11,6 +11,10 @@ import {
   getSqlPool,
 } from "./config/sqlserver.js";
 
+import {
+  checkRedisHealth,
+} from "./config/redis.js";
+
 
 const app =
   express();
@@ -81,6 +85,32 @@ app.get(
 // --------------------------------------------------
 // HEALTH SQL SERVER
 // --------------------------------------------------
+
+// --------------------------------------------------
+// HEALTH REDIS
+// --------------------------------------------------
+
+app.get(
+  "/health/redis",
+
+  async (
+    req,
+    res
+  ) => {
+
+    const health =
+      await checkRedisHealth();
+
+    return res
+      .status(
+        health.conectado
+          ? 200
+          : 503
+      )
+      .json(health);
+  }
+);
+
 
 app.get(
   "/health/sqlserver",

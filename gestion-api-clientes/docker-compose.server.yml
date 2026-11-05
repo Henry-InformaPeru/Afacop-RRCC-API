@@ -1,5 +1,15 @@
 services:
 
+  gestion-api-redis:
+    image: redis:7-alpine
+    container_name: gestion-api-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - gestion-api-network
+
   gestion-api-clientes:
     image: gestion-api-clientes-backend:latest
     container_name: gestion-api-clientes
@@ -11,6 +21,9 @@ services:
 
     ports:
       - "127.0.0.1:4200:4200"
+
+    depends_on:
+      - gestion-api-redis
 
     networks:
       - gestion-api-network
@@ -54,6 +67,10 @@ services:
 
     networks:
       - gestion-api-network
+
+
+volumes:
+  redis-data:
 
 
 networks:
