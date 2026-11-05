@@ -6,7 +6,7 @@ import {
 /**
  * Consulta un lote de personas en SQL Server por DNI.
  * @param {string[]} documentos - Lista de números de documento / DNI
- * @returns {Promise<Array<{ DNI: string, PRENOMBRES: string, APE_PAT: string, APE_MAT: string }>>}
+ * @returns {Promise<Array<{ DNI: string, PRENOMBRES: string, APE_PAT: string, APE_MAT: string, UBIGEO_RENIEC: string|null }>>}
  */
 export async function buscarPersonasPorLote(documentos) {
   if (!Array.isArray(documentos) || documentos.length === 0) {
@@ -52,7 +52,8 @@ export async function buscarPersonasPorLote(documentos) {
       DNI,
       PRENOMBRES,
       APE_PAT,
-      APE_MAT
+      APE_MAT,
+      UBIGEO_RENIEC
     FROM Operador.Personas
     WHERE DNI IN (${paramNames.join(", ")})
   `;
@@ -64,6 +65,7 @@ export async function buscarPersonasPorLote(documentos) {
     PRENOMBRES: String(row.PRENOMBRES ?? "").trim(),
     APE_PAT: String(row.APE_PAT ?? "").trim(),
     APE_MAT: String(row.APE_MAT ?? "").trim(),
+    UBIGEO_RENIEC: String(row.UBIGEO_RENIEC ?? "").trim() || null,
   }));
 
   return personas;
